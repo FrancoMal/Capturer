@@ -54,10 +54,10 @@ Capturer es una aplicación de escritorio avanzada para Windows que **automatiza
 
 ### Requisitos del Sistema
 
-- ✅ **Windows 10/11** (64-bit)
+- ✅ **Windows 7/10/11** (64-bit)
 - ✅ **.NET 8 Runtime** (se instala automáticamente)
-- ✅ **4 GB de RAM** mínimo (recomendado)
-- ✅ **10 GB de espacio libre** (configurable)
+- ✅ **2 GB de RAM** mínimo (recomendado)
+- ✅ **2 GB de espacio libre** (configurable)
 - ✅ **Conexión a Internet** (para emails)
 
 ### Instalación
