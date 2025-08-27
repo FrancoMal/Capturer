@@ -12,6 +12,8 @@ public interface IScreenshotService
     Task StopAutomaticCaptureAsync();
     bool IsCapturing { get; }
     DateTime? NextCaptureTime { get; }
+    List<ScreenInfo> GetAvailableScreens();
+    Task RefreshScreenConfigurationAsync();
     event EventHandler<ScreenshotCapturedEventArgs>? ScreenshotCaptured;
 }
 
@@ -58,6 +60,44 @@ public class ScreenshotService : IScreenshotService, IDisposable
     {
         _configManager = configManager;
         LoadConfigurationAsync().ConfigureAwait(false);
+    }
+
+    public List<ScreenInfo> GetAvailableScreens()
+    {
+        var screens = new List<ScreenInfo>();
+        var allScreens = Screen.AllScreens;
+        
+        for (int i = 0; i < allScreens.Length; i++)
+        {
+            var screen = allScreens[i];
+            screens.Add(new ScreenInfo
+            {
+                Index = i,
+                DeviceName = screen.DeviceName,
+                DisplayName = $"Monitor {i + 1}",
+                Width = screen.Bounds.Width,
+                Height = screen.Bounds.Height,
+                X = screen.Bounds.X,
+                Y = screen.Bounds.Y,
+                IsPrimary = screen.Primary
+            });
+        }
+        
+        return screens;
+    }
+
+    public async Task RefreshScreenConfigurationAsync()
+    {
+        try
+        {
+            await LoadConfigurationAsync();
+            _config.Screenshot.AvailableScreens = GetAvailableScreens();
+            await _configManager.SaveConfigurationAsync(_config);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error refreshing screen configuration: {ex.Message}");
+        }
     }
 
     private async Task LoadConfigurationAsync()
@@ -109,21 +149,11 @@ public class ScreenshotService : IScreenshotService, IDisposable
     {
         try
         {
-            // Get primary screen bounds
-            var bounds = Screen.PrimaryScreen?.Bounds ?? new Rectangle(0, 0, 1920, 1080);
-            
-            if (_config.Screenshot.ScreenIndex >= 0 && _config.Screenshot.ScreenIndex < Screen.AllScreens.Length)
+            var bounds = GetCaptureBounds();
+            if (bounds == Rectangle.Empty)
             {
-                bounds = Screen.AllScreens[_config.Screenshot.ScreenIndex].Bounds;
-            }
-            else if (_config.Screenshot.ScreenIndex == -1)
-            {
-                // Capture all screens
-                var minX = Screen.AllScreens.Min(s => s.Bounds.X);
-                var minY = Screen.AllScreens.Min(s => s.Bounds.Y);
-                var maxX = Screen.AllScreens.Max(s => s.Bounds.X + s.Bounds.Width);
-                var maxY = Screen.AllScreens.Max(s => s.Bounds.Y + s.Bounds.Height);
-                bounds = new Rectangle(minX, minY, maxX - minX, maxY - minY);
+                Console.WriteLine("No valid screen bounds found for capture");
+                return null;
             }
 
             var bitmap = new Bitmap(bounds.Width, bounds.Height, PixelFormat.Format32bppArgb);
@@ -150,6 +180,38 @@ public class ScreenshotService : IScreenshotService, IDisposable
         {
             Console.WriteLine($"Error capturing screen: {ex.Message}");
             return null;
+        }
+    }
+
+    private Rectangle GetCaptureBounds()
+    {
+        var allScreens = Screen.AllScreens;
+        if (allScreens.Length == 0)
+            return new Rectangle(0, 0, 1920, 1080); // Fallback
+
+        switch (_config.Screenshot.CaptureMode)
+        {
+            case ScreenCaptureMode.PrimaryScreen:
+                return Screen.PrimaryScreen?.Bounds ?? allScreens[0].Bounds;
+
+            case ScreenCaptureMode.SingleScreen:
+                var screenIndex = _config.Screenshot.SelectedScreenIndex;
+                if (screenIndex >= 0 && screenIndex < allScreens.Length)
+                {
+                    return allScreens[screenIndex].Bounds;
+                }
+                // Fallback to primary if invalid index
+                Console.WriteLine($"Invalid screen index {screenIndex}, falling back to primary screen");
+                return Screen.PrimaryScreen?.Bounds ?? allScreens[0].Bounds;
+
+            case ScreenCaptureMode.AllScreens:
+            default:
+                // Capture all screens as one large image
+                var minX = allScreens.Min(s => s.Bounds.X);
+                var minY = allScreens.Min(s => s.Bounds.Y);
+                var maxX = allScreens.Max(s => s.Bounds.X + s.Bounds.Width);
+                var maxY = allScreens.Max(s => s.Bounds.Y + s.Bounds.Height);
+                return new Rectangle(minX, minY, maxX - minX, maxY - minY);
         }
     }
 

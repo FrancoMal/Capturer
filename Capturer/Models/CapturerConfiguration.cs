@@ -18,7 +18,27 @@ public class ScreenshotSettings
     public string ImageFormat { get; set; } = "png";
     public int Quality { get; set; } = 90;
     public bool IncludeCursor { get; set; } = false;
-    public int ScreenIndex { get; set; } = -1; // -1 = all screens
+    public ScreenCaptureMode CaptureMode { get; set; } = ScreenCaptureMode.AllScreens;
+    public int SelectedScreenIndex { get; set; } = 0; // Index of specific screen when using SingleScreen mode
+    public List<ScreenInfo> AvailableScreens { get; set; } = new(); // Runtime populated
+    
+    // Legacy support - will be migrated to CaptureMode
+    public int ScreenIndex
+    {
+        get => CaptureMode == ScreenCaptureMode.AllScreens ? -1 : SelectedScreenIndex;
+        set
+        {
+            if (value == -1)
+            {
+                CaptureMode = ScreenCaptureMode.AllScreens;
+            }
+            else
+            {
+                CaptureMode = ScreenCaptureMode.SingleScreen;
+                SelectedScreenIndex = value;
+            }
+        }
+    }
 }
 
 public class EmailSettings
@@ -57,6 +77,27 @@ public enum ReportFrequency
     Weekly = 7,
     Monthly = 30,
     Custom = 0
+}
+
+public enum ScreenCaptureMode
+{
+    AllScreens = 0,     // Capture all monitors as one large image
+    SingleScreen = 1,   // Capture specific monitor
+    PrimaryScreen = 2   // Capture primary monitor only
+}
+
+public class ScreenInfo
+{
+    public int Index { get; set; }
+    public string DeviceName { get; set; } = "";
+    public string DisplayName { get; set; } = "";
+    public int Width { get; set; }
+    public int Height { get; set; }
+    public int X { get; set; }
+    public int Y { get; set; }
+    public bool IsPrimary { get; set; }
+    public string Resolution => $"{Width}x{Height}";
+    public string Description => $"{DisplayName} ({Resolution})" + (IsPrimary ? " [Principal]" : "");
 }
 
 public class ApplicationSettings

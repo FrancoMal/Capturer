@@ -1,12 +1,12 @@
 using Capturer.Models;
 using Capturer.Services;
-using MailKit.Net.Smtp;
 
 namespace Capturer.Forms;
 
 public partial class SettingsForm : Form
 {
     private readonly IConfigurationManager _configManager;
+    private readonly IScreenshotService? _screenshotService;
     private CapturerConfiguration _config;
     private ToolTip _helpTooltip;
     
@@ -15,6 +15,14 @@ public partial class SettingsForm : Form
     private TextBox txtScreenshotFolder;
     private Button btnBrowseFolder;
     private CheckBox chkAutoStart;
+    private ComboBox cmbCaptureMode;
+    private ComboBox cmbSelectedScreen;
+    private Label lblSelectedScreen;
+    private Button btnRefreshScreens;
+    private CheckBox chkIncludeCursor;
+    private ComboBox cmbImageFormat;
+    private NumericUpDown numImageQuality;
+    private Label lblQuality;
     
     private TextBox txtSmtpServer;
     private NumericUpDown numSmtpPort;
@@ -34,11 +42,11 @@ public partial class SettingsForm : Form
     
     private Button btnSave;
     private Button btnCancel;
-    private Button btnTest;
 
-    public SettingsForm(IConfigurationManager configManager)
+    public SettingsForm(IConfigurationManager configManager, IScreenshotService? screenshotService = null)
     {
         _configManager = configManager;
+        _screenshotService = screenshotService;
         _config = new CapturerConfiguration();
         _helpTooltip = new ToolTip();
         
@@ -80,15 +88,13 @@ public partial class SettingsForm : Form
         buttonPanel.Height = 50;
         buttonPanel.Dock = DockStyle.Bottom;
         
-        btnSave = new Button { Text = "Guardar", Size = new Size(80, 30), Location = new Point(470, 10) };
-        btnCancel = new Button { Text = "Cancelar", Size = new Size(80, 30), Location = new Point(560, 10) };
-        btnTest = new Button { Text = "Probar Email", Size = new Size(100, 30), Location = new Point(350, 10) };
+        btnSave = new Button { Text = "Guardar", Size = new Size(80, 30), Location = new Point(480, 10) };
+        btnCancel = new Button { Text = "Cancelar", Size = new Size(80, 30), Location = new Point(570, 10) };
         
         btnSave.Click += BtnSave_Click;
         btnCancel.Click += BtnCancel_Click;
-        btnTest.Click += BtnTest_Click;
         
-        buttonPanel.Controls.AddRange(new Control[] { btnSave, btnCancel, btnTest });
+        buttonPanel.Controls.AddRange(new Control[] { btnSave, btnCancel });
         this.Controls.Add(buttonPanel);
     }
 
@@ -102,6 +108,39 @@ public partial class SettingsForm : Form
         tab.Controls.Add(CreateHelpButton(new Point(360, y), "Frecuencia con la que se tomarán las capturas de pantalla automáticamente. Rango: 1-1440 minutos."));
         
         y += 35;
+        tab.Controls.Add(new Label { Text = "Modo de captura:", Location = new Point(20, y), Size = new Size(200, 23) });
+        cmbCaptureMode = new ComboBox 
+        {
+            Location = new Point(230, y - 3), 
+            Width = 200, 
+            DropDownStyle = ComboBoxStyle.DropDownList
+        };
+        cmbCaptureMode.Items.AddRange(new[] { "Todas las pantallas", "Pantalla específica", "Pantalla principal" });
+        cmbCaptureMode.SelectedIndexChanged += CmbCaptureMode_SelectedIndexChanged;
+        tab.Controls.Add(cmbCaptureMode);
+        tab.Controls.Add(CreateHelpButton(new Point(440, y), "Selecciona qué pantallas capturar: todas las pantallas como una imagen grande, una pantalla específica, o solo la pantalla principal."));
+        
+        y += 35;
+        lblSelectedScreen = new Label { Text = "Pantalla seleccionada:", Location = new Point(20, y), Size = new Size(200, 23) };
+        tab.Controls.Add(lblSelectedScreen);
+        cmbSelectedScreen = new ComboBox 
+        {
+            Location = new Point(230, y - 3), 
+            Width = 280, 
+            DropDownStyle = ComboBoxStyle.DropDownList
+        };
+        btnRefreshScreens = new Button 
+        {
+            Text = "🔄",
+            Location = new Point(520, y - 3),
+            Size = new Size(30, 23),
+            Font = new Font("Segoe UI", 9)
+        };
+        btnRefreshScreens.Click += BtnRefreshScreens_Click;
+        tab.Controls.AddRange(new Control[] { cmbSelectedScreen, btnRefreshScreens });
+        tab.Controls.Add(CreateHelpButton(new Point(560, y), "Selecciona la pantalla específica a capturar cuando el modo es 'Pantalla específica'. Use el botón de actualizar para detectar cambios en monitores."));
+        
+        y += 35;
         tab.Controls.Add(new Label { Text = "Carpeta de screenshots:", Location = new Point(20, y), Size = new Size(200, 23) });
         txtScreenshotFolder = new TextBox { Location = new Point(230, y - 3), Width = 280 };
         btnBrowseFolder = new Button { Text = "...", Location = new Point(520, y - 3), Size = new Size(30, 23) };
@@ -110,9 +149,42 @@ public partial class SettingsForm : Form
         tab.Controls.Add(CreateHelpButton(new Point(560, y), "Carpeta donde se guardarán todos los archivos de capturas de pantalla. Puede usar el botón [...] para seleccionar."));
         
         y += 35;
+        tab.Controls.Add(new Label { Text = "Formato de imagen:", Location = new Point(20, y), Size = new Size(200, 23) });
+        cmbImageFormat = new ComboBox 
+        {
+            Location = new Point(230, y - 3), 
+            Width = 120, 
+            DropDownStyle = ComboBoxStyle.DropDownList
+        };
+        cmbImageFormat.Items.AddRange(new[] { "PNG", "JPEG", "BMP", "GIF" });
+        cmbImageFormat.SelectedIndexChanged += CmbImageFormat_SelectedIndexChanged;
+        tab.Controls.Add(cmbImageFormat);
+        
+        lblQuality = new Label { Text = "Calidad:", Location = new Point(360, y), Size = new Size(60, 23) };
+        tab.Controls.Add(lblQuality);
+        numImageQuality = new NumericUpDown 
+        {
+            Location = new Point(420, y - 3), 
+            Width = 60, 
+            Minimum = 10, 
+            Maximum = 100, 
+            Value = 90
+        };
+        tab.Controls.Add(numImageQuality);
+        tab.Controls.Add(CreateHelpButton(new Point(490, y), "Formato de archivo para guardar las imágenes. PNG ofrece mejor calidad sin pérdida, JPEG ocupa menos espacio. La calidad solo aplica a JPEG (10-100)."));
+        
+        y += 35;
         chkAutoStart = new CheckBox { Text = "Iniciar captura automáticamente", Location = new Point(20, y), AutoSize = true };
         tab.Controls.Add(chkAutoStart);
         tab.Controls.Add(CreateHelpButton(new Point(250, y + 2), "Si está habilitado, la captura de screenshots comenzará automáticamente al abrir la aplicación."));
+        
+        y += 25;
+        chkIncludeCursor = new CheckBox { Text = "Incluir cursor en capturas", Location = new Point(20, y), AutoSize = true };
+        tab.Controls.Add(chkIncludeCursor);
+        tab.Controls.Add(CreateHelpButton(new Point(200, y + 2), "Si está habilitado, el cursor del mouse aparecerá en las capturas de pantalla."));
+        
+        // Initialize screen selection
+        RefreshScreenList();
     }
 
     private void CreateEmailControls(TabPage tab)
@@ -237,6 +309,31 @@ public partial class SettingsForm : Form
             numCaptureInterval.Value = (decimal)_config.Screenshot.CaptureInterval.TotalMinutes;
             txtScreenshotFolder.Text = _config.Storage.ScreenshotFolder;
             chkAutoStart.Checked = _config.Screenshot.AutoStartCapture;
+            chkIncludeCursor.Checked = _config.Screenshot.IncludeCursor;
+            
+            // Set capture mode
+            cmbCaptureMode.SelectedIndex = (int)_config.Screenshot.CaptureMode;
+            
+            // Set image format
+            cmbImageFormat.SelectedIndex = _config.Screenshot.ImageFormat.ToLower() switch
+            {
+                "jpeg" or "jpg" => 1,
+                "bmp" => 2,
+                "gif" => 3,
+                _ => 0 // PNG
+            };
+            
+            numImageQuality.Value = _config.Screenshot.Quality;
+            
+            // Update UI visibility based on format and mode
+            CmbImageFormat_SelectedIndexChanged(null, EventArgs.Empty);
+            CmbCaptureMode_SelectedIndexChanged(null, EventArgs.Empty);
+            
+            // Set selected screen
+            if (_config.Screenshot.CaptureMode == ScreenCaptureMode.SingleScreen)
+            {
+                cmbSelectedScreen.SelectedIndex = Math.Min(_config.Screenshot.SelectedScreenIndex, cmbSelectedScreen.Items.Count - 1);
+            }
             
             // Email settings
             txtSmtpServer.Text = _config.Email.SmtpServer;
@@ -298,6 +395,17 @@ public partial class SettingsForm : Form
             _config.Screenshot.CaptureInterval = TimeSpan.FromMinutes((double)numCaptureInterval.Value);
             _config.Storage.ScreenshotFolder = txtScreenshotFolder.Text;
             _config.Screenshot.AutoStartCapture = chkAutoStart.Checked;
+            _config.Screenshot.IncludeCursor = chkIncludeCursor.Checked;
+            _config.Screenshot.CaptureMode = (ScreenCaptureMode)cmbCaptureMode.SelectedIndex;
+            _config.Screenshot.SelectedScreenIndex = cmbSelectedScreen.SelectedIndex >= 0 ? cmbSelectedScreen.SelectedIndex : 0;
+            _config.Screenshot.ImageFormat = cmbImageFormat.SelectedIndex switch
+            {
+                1 => "jpeg",
+                2 => "bmp", 
+                3 => "gif",
+                _ => "png"
+            };
+            _config.Screenshot.Quality = (int)numImageQuality.Value;
             
             _config.Email.SmtpServer = txtSmtpServer.Text;
             _config.Email.SmtpPort = (int)numSmtpPort.Value;
@@ -350,65 +458,6 @@ public partial class SettingsForm : Form
         this.Close();
     }
 
-    private async void BtnTest_Click(object? sender, EventArgs e)
-    {
-        try
-        {
-            btnTest.Enabled = false;
-            btnTest.Text = "Probando...";
-            
-            // Validate required fields
-            if (string.IsNullOrEmpty(txtSmtpServer.Text) || string.IsNullOrEmpty(txtUsername.Text) || 
-                string.IsNullOrEmpty(txtPassword.Text))
-            {
-                MessageBox.Show("Complete los campos de SMTP, usuario y contraseña antes de probar.", 
-                    "Campos requeridos", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-            
-            // Test SMTP connection
-            await TestSmtpConnection(txtSmtpServer.Text, (int)numSmtpPort.Value, 
-                txtUsername.Text, txtPassword.Text);
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show($"Error probando conexión: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-        }
-        finally
-        {
-            btnTest.Enabled = true;
-            btnTest.Text = "Probar Email";
-        }
-    }
-    
-    private async Task TestSmtpConnection(string server, int port, string username, string password)
-    {
-        try
-        {
-            using var client = new MailKit.Net.Smtp.SmtpClient();
-            await client.ConnectAsync(server, port, MailKit.Security.SecureSocketOptions.StartTlsWhenAvailable);
-            await client.AuthenticateAsync(username, password);
-            await client.DisconnectAsync(true);
-            
-            MessageBox.Show("✅ Conexión SMTP exitosa!", "Prueba exitosa", 
-                MessageBoxButtons.OK, MessageBoxIcon.Information);
-        }
-        catch (MailKit.Security.AuthenticationException)
-        {
-            MessageBox.Show("❌ Error de autenticación. Verifique usuario y contraseña.", 
-                "Error de autenticación", MessageBoxButtons.OK, MessageBoxIcon.Error);
-        }
-        catch (System.Net.Sockets.SocketException)
-        {
-            MessageBox.Show("❌ No se pudo conectar al servidor SMTP. Verifique servidor y puerto.", 
-                "Error de conexión", MessageBoxButtons.OK, MessageBoxIcon.Error);
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show($"❌ Error de conexión: {ex.Message}", 
-                "Error SMTP", MessageBoxButtons.OK, MessageBoxIcon.Error);
-        }
-    }
     
     private Button CreateHelpButton(Point location, string helpText)
     {
@@ -440,6 +489,79 @@ public partial class SettingsForm : Form
         bool showCustomDays = cmbReportFrequency.SelectedIndex == 3; // Custom
         lblCustomDays.Visible = showCustomDays;
         numCustomDays.Visible = showCustomDays;
+    }
+    
+    private void CmbCaptureMode_SelectedIndexChanged(object? sender, EventArgs e)
+    {
+        bool showScreenSelection = cmbCaptureMode.SelectedIndex == 1; // Single screen
+        lblSelectedScreen.Visible = showScreenSelection;
+        cmbSelectedScreen.Visible = showScreenSelection;
+        btnRefreshScreens.Visible = showScreenSelection;
+    }
+    
+    private void CmbImageFormat_SelectedIndexChanged(object? sender, EventArgs e)
+    {
+        bool showQuality = cmbImageFormat.SelectedIndex == 1; // JPEG
+        lblQuality.Visible = showQuality;
+        numImageQuality.Visible = showQuality;
+    }
+    
+    private void BtnRefreshScreens_Click(object? sender, EventArgs e)
+    {
+        RefreshScreenList();
+    }
+    
+    private void RefreshScreenList()
+    {
+        try
+        {
+            cmbSelectedScreen.Items.Clear();
+            
+            List<ScreenInfo> screens;
+            if (_screenshotService != null)
+            {
+                screens = _screenshotService.GetAvailableScreens();
+            }
+            else
+            {
+                // Fallback if service not available
+                screens = new List<ScreenInfo>();
+                var allScreens = Screen.AllScreens;
+                for (int i = 0; i < allScreens.Length; i++)
+                {
+                    var screen = allScreens[i];
+                    screens.Add(new ScreenInfo
+                    {
+                        Index = i,
+                        DeviceName = screen.DeviceName,
+                        DisplayName = $"Monitor {i + 1}",
+                        Width = screen.Bounds.Width,
+                        Height = screen.Bounds.Height,
+                        X = screen.Bounds.X,
+                        Y = screen.Bounds.Y,
+                        IsPrimary = screen.Primary
+                    });
+                }
+            }
+            
+            foreach (var screen in screens)
+            {
+                cmbSelectedScreen.Items.Add(screen.Description);
+            }
+            
+            if (cmbSelectedScreen.Items.Count > 0 && cmbSelectedScreen.SelectedIndex < 0)
+            {
+                cmbSelectedScreen.SelectedIndex = 0;
+            }
+            
+            // Update available screens in config
+            _config.Screenshot.AvailableScreens = screens;
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error refrescando lista de pantallas: {ex.Message}", "Error", 
+                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
     }
     
     protected override void Dispose(bool disposing)
