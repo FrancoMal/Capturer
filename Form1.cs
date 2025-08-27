@@ -138,7 +138,7 @@ namespace Capturer
         {
             try
             {
-                var settingsForm = new SettingsForm(_configManager);
+                var settingsForm = new SettingsForm(_configManager, _screenshotService);
                 if (settingsForm.ShowDialog(this) == DialogResult.OK)
                 {
                     // Reload configuration after changes
@@ -303,7 +303,6 @@ namespace Capturer
 
                 // Update email status (simplified)
                 lblLastEmail.Text = "Último Email: Configurar"; // TODO: Track last email date
-                lblEmailStatus.Text = "Estado: --";
             }
             catch (Exception ex)
             {

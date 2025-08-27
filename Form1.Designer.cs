@@ -34,7 +34,6 @@
             this.lblTotalScreenshots = new System.Windows.Forms.Label();
             this.lblStorageUsed = new System.Windows.Forms.Label();
             this.lblLastEmail = new System.Windows.Forms.Label();
-            this.lblEmailStatus = new System.Windows.Forms.Label();
             this.btnStartCapture = new System.Windows.Forms.Button();
             this.btnStopCapture = new System.Windows.Forms.Button();
             this.btnSettings = new System.Windows.Forms.Button();
@@ -104,15 +103,6 @@
             this.lblLastEmail.Size = new System.Drawing.Size(130, 15);
             this.lblLastEmail.TabIndex = 4;
             this.lblLastEmail.Text = "Último Email: Nunca";
-            // 
-            // lblEmailStatus
-            // 
-            this.lblEmailStatus.AutoSize = true;
-            this.lblEmailStatus.Location = new System.Drawing.Point(300, 75);
-            this.lblEmailStatus.Name = "lblEmailStatus";
-            this.lblEmailStatus.Size = new System.Drawing.Size(100, 15);
-            this.lblEmailStatus.TabIndex = 5;
-            this.lblEmailStatus.Text = "Estado: --";
             // 
             // btnStartCapture
             // 
@@ -259,7 +249,6 @@
             this.groupBoxStatus.Controls.Add(this.lblTotalScreenshots);
             this.groupBoxStatus.Controls.Add(this.lblStorageUsed);
             this.groupBoxStatus.Controls.Add(this.lblLastEmail);
-            this.groupBoxStatus.Controls.Add(this.lblEmailStatus);
             this.groupBoxStatus.Location = new System.Drawing.Point(15, 15);
             this.groupBoxStatus.Name = "groupBoxStatus";
             this.groupBoxStatus.Size = new System.Drawing.Size(720, 110);
@@ -322,7 +311,6 @@
         private System.Windows.Forms.Label lblTotalScreenshots;
         private System.Windows.Forms.Label lblStorageUsed;
         private System.Windows.Forms.Label lblLastEmail;
-        private System.Windows.Forms.Label lblEmailStatus;
         private System.Windows.Forms.Button btnStartCapture;
         private System.Windows.Forms.Button btnStopCapture;
         private System.Windows.Forms.Button btnSettings;
