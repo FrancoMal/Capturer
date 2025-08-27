@@ -1,198 +1,218 @@
-# 📸 Capturer - Guía de Uso Completa
+# 📸 Capturer - Tu Asistente Personal de Capturas
 
-**Versión**: 2.0  
-**Fecha**: Agosto 2025  
-**Autor**: Sistema de Captura de Pantallas Automatizado Avanzado
+![Capturer Logo](Capturer_Logo.png)
 
----
+**Capturer** es una aplicación muy sencilla que toma fotografías de tu pantalla de computadora automáticamente y te las envía por correo electrónico. Es como tener un asistente que documenta tu trabajo sin que tengas que recordarlo.
 
-## 📋 Tabla de Contenidos
-
-1. [¿Qué es Capturer?](#qué-es-capturer)
-2. [Instalación y Primer Uso](#instalación-y-primer-uso)
-3. [Interfaz Principal](#interfaz-principal)
-4. [Configuración Avanzada](#configuración-avanzada)
-5. [Captura de Screenshots](#captura-de-screenshots)
-6. [Sistema de Email Mejorado](#sistema-de-email-mejorado)
-7. [Gestión de Archivos](#gestión-de-archivos)
-8. [System Tray y Atajos](#system-tray-y-atajos)
-9. [Ejemplos Prácticos](#ejemplos-prácticos)
-10. [Solución de Problemas](#solución-de-problemas)
-11. [Preguntas Frecuentes](#preguntas-frecuentes)
-12. [Documentación Técnica](#documentación-técnica)
+🎯 **Perfecto para**: Registrar tu trabajo diario, documentar actividades, o simplemente tener un respaldo visual de lo que haces en la computadora.
 
 ---
 
-## ¿Qué es Capturer?
+## 📋 Índice - Lo que puedes hacer
 
-Capturer es una aplicación de escritorio avanzada para Windows que **automatiza la captura de pantallas** y el **envío de reportes por email** con funcionalidades profesionales. Es perfecta para:
-
-- 🏢 **Monitoreo de estaciones de trabajo**
-- 📊 **Registro de actividad de pantalla**
-- 📧 **Reportes automáticos personalizables**
-- 🗄️ **Gestión organizada de capturas**
-- ⏰ **Programación flexible de horarios**
-- 🔐 **Seguridad y privacidad**
-
-### Características Principales v2.0
-
-| Característica | Descripción |
-|----------------|-------------|
-| ⏰ **Captura Automática** | Screenshots configurable (minutos, horas, días) |
-| 📧 **Email Inteligente** | Reportes diarios, semanales, mensuales o personalizados |
-| 🕐 **Horarios Fijos** | Configuración de hora específica para envíos |
-| 📋 **Formatos Flexibles** | ZIP comprimido o imágenes individuales |
-| 👁️ **Seguridad UI** | Toggle de contraseña con botón de ojo |
-| 📊 **Progreso Visual** | Barra de progreso durante envío de emails |
-| 📱 **System Tray** | Captura rápida desde área de notificación |
-| 🧹 **Limpieza Automática** | Eliminación inteligente de archivos antiguos |
-| 🔐 **Encriptación** | Contraseñas protegidas con DPAPI |
+1. [¿Para qué sirve Capturer?](#para-qué-sirve-capturer)
+2. [¿Cómo empezar?](#cómo-empezar)
+3. [La ventana principal (lo que verás)](#la-ventana-principal)
+4. [Configurar la aplicación](#configurar-la-aplicación)
+5. [Tomar capturas de pantalla](#tomar-capturas-de-pantalla)
+6. [Enviar por correo electrónico](#enviar-por-correo-electrónico)
+7. [Funciones avanzadas con cuadrantes](#funciones-avanzadas-con-cuadrantes)
+8. [Organización de archivos](#organización-de-archivos)
+9. [Usar desde la barra de tareas](#usar-desde-la-barra-de-tareas)
+10. [Ejemplos fáciles de entender](#ejemplos-fáciles-de-entender)
+11. [Si algo no funciona](#si-algo-no-funciona)
+12. [Preguntas comunes](#preguntas-comunes)
 
 ---
 
-## Instalación y Primer Uso
+## ¿Para qué sirve Capturer?
 
-### Requisitos del Sistema
+Imagínate que tienes un asistente que cada cierto tiempo toma una foto de tu pantalla y luego te envía todas esas fotos por correo. Eso es exactamente lo que hace Capturer.
 
-- ✅ **Windows 10/11** (64-bit)
-- ✅ **.NET 8 Runtime** (se instala automáticamente)
-- ✅ **4 GB de RAM** mínimo (recomendado)
-- ✅ **10 GB de espacio libre** (configurable)
-- ✅ **Conexión a Internet** (para emails)
+### ¿Cuándo es útil?
 
-### Instalación
+- 📋 **Para recordar lo que hiciste**: Si trabajas en la computadora y quieres tener un registro
+- 🏠 **Para trabajo desde casa**: Mostrar a tu jefe que estuviste trabajando
+- 📚 **Para documentar procesos**: Cuando aprendes algo nuevo en la computadora
+- 🔒 **Para seguridad personal**: Tener registro de tu actividad
+- 👥 **Para compartir con otros**: Mostrar cómo usas ciertos programas
 
-1. **Descargar la aplicación**
-   ```
-   Ubicación: C:\Users\Usuario\Desktop\Capturer\Capturer\bin\Debug\net8.0-windows\
-   ```
+### Lo que hace Capturer (en palabras simples)
 
-2. **Ejecutar Capturer.exe**
-   - Doble clic en `Capturer.exe`
-   - La aplicación se iniciará automáticamente
+✅ **Toma fotos automáticamente**: Cada 15, 30 minutos o cuando tú decidas  
+✅ **Las guarda organizadas**: Con fecha y hora, fácil de encontrar  
+✅ **Te las envía por email**: Diario, semanal o cuando quieras  
+✅ **Funciona solo**: Una vez configurado, no tienes que hacer nada más  
+✅ **Es seguro**: Tu información está protegida  
+✅ **Analiza áreas específicas**: Puede enfocarse en partes importantes de la pantalla  
 
-3. **Primera ejecución**
-   ```
-   ✅ Se creará: C:\Users\[Usuario]\Documents\Capturer\Screenshots\
-   ✅ Se generará: %APPDATA%\Capturer\capturer-settings.json
-   ✅ Se iniciará el programador de tareas avanzado
-   ```
+### ¿Es fácil de usar?
 
-### Verificación de Instalación
-
-Al abrir la aplicación por primera vez, verás:
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│ Capturer - Gestor de Screenshots v2.0                      │
-├─────────────────────────────────────────────────────────────┤
-│ Panel de Estado:                                            │
-│ ● Estado: Detenido          Próxima: --:--:--              │
-│ ● Screenshots Total: 0      Almacenamiento: 0 MB           │
-│ ● Último Email: Nunca       Estado Email: Sin configurar   │
-├─────────────────────────────────────────────────────────────┤
-│ [Iniciar] [Detener] [Configuración] [Enviar Email]         │
-├─────────────────────────────────────────────────────────────┤
-│ Screenshots Recientes:                                      │
-│ (No hay capturas disponibles)                              │
-├─────────────────────────────────────────────────────────────┤
-│                                      [Minimizar] [Salir]   │
-└─────────────────────────────────────────────────────────────┘
-```
+**¡Sí!** Solo tienes que:
+1. Abrir el programa
+2. Decirle cada cuánto quieres las fotos
+3. Configurar tu correo electrónico
+4. ¡Listo! El programa hace todo solo
 
 ---
 
-## Interfaz Principal
+## ¿Cómo empezar?
 
-### Panel de Estado Actualizado
+### ¿Qué necesitas?
 
-La interfaz principal muestra información en tiempo real mejorada:
+- 💻 **Una computadora Windows**: Windows 7, 10 u 11
+- 🌐 **Internet**: Para enviar los correos (solo cuando envíes)
+- 📧 **Un correo electrónico**: Gmail, Outlook o cualquier otro
+- 💾 **Espacio en el disco**: Un poquito (puedes configurar cuánto)
 
-#### Sección "Estado del Sistema"
+### Paso 1: Abrir el programa
+
+1. Ve a la carpeta donde está Capturer
+2. Busca el archivo que se llama **"Capturer.exe"**
+3. Haz doble clic en él (como abrir cualquier programa)
+
+### Paso 2: La primera vez
+
+Cuando abras Capturer por primera vez, verás una ventana como esta:
+
 ```
-● Estado: Ejecutándose/Detenido
-● Próxima: 14:35:20 (próxima captura automática)
-● Screenshots Total: 1,234 (contador total)
-● Almacenamiento: 2.3 GB (espacio usado)
-● Último Email: 2024-01-15 09:00 (último envío)
-● Estado Email: Exitoso/Error/Enviando (estado actual)
+📸 Capturer - Tu Asistente de Capturas
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Estado: Apagado        Próxima foto: --:--
+Total de fotos: 0      Espacio usado: 0 MB
+Último correo: Nunca   Estado: Sin configurar
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[▶ Empezar]  [⏹ Parar]  [⚙ Configurar]  [📧 Enviar]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Fotos recientes:
+(Aún no hay fotos)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                    [— Minimizar] [✕ Cerrar]
 ```
 
-#### Panel de Controles Principal
-- 🟢 **[Iniciar]**: Comienza la captura automática
-- 🔴 **[Detener]**: Detiene la captura automática  
-- ⚙️ **[Configuración]**: Abre el formulario de configuración avanzada
-- 📧 **[Enviar Email]**: Envío manual con opciones avanzadas
+**No te preocupes si no entiendes todo** - es normal. Lo importante son los botones grandes del medio.
 
-#### Lista de Capturas Recientes Mejorada
-Muestra las últimas 10 capturas con columnas:
-- **Archivo**: Nombre del screenshot (formato: YYYY-MM-DD_HH-mm-ss.png)
-- **Fecha y Hora**: Timestamp completo de captura
-- **Tamaño**: Tamaño del archivo en MB/KB
-- **Acciones**: Botón "Ver" para abrir el archivo
+### Paso 3: ¿Ya está listo?
 
-#### Botones Inferiores Optimizados
-- **[Minimizar]**: Envía la aplicación al system tray
-- **[Salir]**: Cierre seguro con confirmación
+¡Casi! Primero necesitas configurar:
+1. **Cada cuánto quieres las fotos** (cada 30 minutos está bien para empezar)
+2. **Tu correo electrónico** (para recibir las fotos)
 
-### System Tray Mejorado
-Al minimizar, el icono en system tray permite:
-- **Mostrar**: Restaurar ventana principal
-- **📸 Captura de Pantalla**: Tomar screenshot instantáneo
-- **Salir**: Cerrar aplicación
+👉 **Siguiente paso**: Ve a [Configurar la aplicación](#configurar-la-aplicación)
 
 ---
 
-## Configuración Avanzada
+## La ventana principal (lo que verás)
 
-### 1. Abrir Configuración
+Cuando abras Capturer, verás una ventana sencilla con toda la información que necesitas.
 
-Haz clic en **[Configuración]** para abrir el formulario con 3 pestañas mejoradas:
+### ¿Qué significa cada cosa?
 
-### 2. Pestaña "Screenshots" - Captura Automática
-
+#### La parte de arriba (información)
 ```
-┌─────────────────────────────────────────┐
-│ Screenshots - Configuración Avanzada   │
-├─────────────────────────────────────────┤
-│ Intervalo de captura (minutos): [30]    │
-│ Carpeta de screenshots: [Examinar...]   │
-│ C:\Users\Usuario\Documents\Capturer\... │
-│ ☑ Iniciar captura automáticamente       │
-│                                         │
-│ Configuración de Calidad:               │
-│ Formato: PNG (Alta calidad)            │
-│ Compresión: 90%                        │
-└─────────────────────────────────────────┘
+Estado: Funcionando    ← ¿Está tomando fotos o no?
+Próxima foto: 14:35    ← ¿Cuándo será la siguiente foto?
+Total de fotos: 25     ← ¿Cuántas fotos ha tomado?
+Espacio usado: 50 MB   ← ¿Cuánto espacio ocupan las fotos?
+Último correo: Ayer    ← ¿Cuándo fue el último correo enviado?
 ```
 
-**Configuraciones recomendadas:**
-- **Intervalo**: 15-60 minutos según necesidades
-- **Carpeta**: Mantener ubicación por defecto
-- **Auto-inicio**: ☑ Habilitado para automatización total
+#### Los botones principales (lo más importante)
 
-### 3. Pestaña "Email" - Sistema Inteligente
+- 🟢 **[▶ Empezar]**: Aprieta este botón para que empiece a tomar fotos
+- 🔴 **[⏹ Parar]**: Aprieta este botón para que pare de tomar fotos
+- ⚙️ **[⚙ Configurar]**: Para cambiar la configuración (cada cuánto, etc.)
+- 📧 **[📧 Enviar]**: Para enviar las fotos por correo cuando quieras
 
+#### La lista de fotos recientes
+Aquí ves las últimas 10 fotos que ha tomado:
+- **Nombre del archivo**: Con fecha y hora (ej: 2024-08-27_14-30-15.png)
+- **Cuándo se tomó**: La fecha y hora exacta
+- **Tamaño**: Qué tan grande es el archivo
+- **Botón "Ver"**: Para abrir la foto y verla
+
+#### Botones de abajo
+- **[— Minimizar]**: Oculta la ventana (pero sigue funcionando)
+- **[✕ Cerrar]**: Cierra completamente el programa
+
+### ¿Se puede minimizar?
+**¡Sí!** Cuando aprietes "Minimizar", Capturer se va a la barra de abajo (donde está el reloj). 
+
+Desde ahí puedes:
+- **Mostrar**: Volver a abrir la ventana
+- **📸 Tomar foto ahora**: Tomar una foto inmediatamente
+- **Salir**: Cerrar todo
+
+---
+
+## Configurar la aplicación
+
+### ¿Cómo configurar? (es muy fácil)
+
+1. **Abre la configuración**: Aprieta el botón **[⚙ Configurar]**
+2. **Verás 3 pestañas** (como carpetas): 
+   - 📸 **Fotos** (para configurar las capturas)
+   - 📧 **Correo** (para configurar el email)
+   - 💾 **Almacenamiento** (para organizar el espacio)
+
+### 📸 Pestaña "Fotos" - Lo básico
+
+Aquí decides:
+
+**¿Cada cuánto tiempo quieres una foto?**
 ```
-┌─────────────────────────────────────────┐
-│ Email - Configuración Completa         │
-├─────────────────────────────────────────┤
-│ Servidor SMTP: smtp.gmail.com           │
-│ Puerto: 587                             │
-│ Usuario: capturer@empresa.com           │
-│ Contraseña: ************** [👁]         │
-│ [Probar Email] ← Verificación Real      │
-│                                         │
-│ Destinatarios (separados por ;):       │
-│ supervisor@empresa.com;                 │
-│ admin@empresa.com;soporte@empresa.com   │
-│                                         │
-│ ☑ Habilitar reportes automáticos       │
-│                                         │
-│ Frecuencia: [Semanal ▼]                │
-│ Hora de envío: [09:00 ▼]               │
-└─────────────────────────────────────────┘
+Cada [ 30 ] minutos  ← Puedes cambiarlo
 ```
+- **15 minutos**: Muchas fotos (bueno para trabajo detallado)
+- **30 minutos**: Intermedio (recomendado para empezar)
+- **60 minutos**: Pocas fotos (para uso general)
+
+**¿Dónde se guardan las fotos?**
+```
+Carpeta: C:\Users\[TuNombre]\Documents\Capturer\Screenshots
+```
+*No cambies esto a menos que sepas lo que haces*
+
+**¿Quieres que empiece solo cuando abras el programa?**
+```
+☑ Empezar automáticamente  ← Recomendado: marcado
+```
+
+### 📧 Pestaña "Correo" - Para recibir las fotos
+
+**Aquí es donde configuras tu email** (tranquilo, es seguro):
+
+#### Si usas Gmail:
+```
+Servidor: smtp.gmail.com
+Puerto: 587
+Tu correo: tu_email@gmail.com
+Contraseña: ************** [👁] ← El ojito para ver/ocultar
+```
+
+#### Si usas Outlook/Hotmail:
+```
+Servidor: smtp-mail.outlook.com  
+Puerto: 587
+Tu correo: tu_email@outlook.com
+Contraseña: **************
+```
+
+**¿A quién le quieres enviar las fotos?**
+```
+Destinatarios: tu_jefe@empresa.com; tu_email@gmail.com
+```
+*Puedes poner varios correos separados por punto y coma (;)*
+
+**¿Cada cuándo quieres recibir las fotos?**
+```
+☑ Enviar automáticamente
+Cada: [Una semana ▼]  A las: [09:00 ▼]
+```
+Opciones:
+- **Todos los días**: Recibes fotos diariamente
+- **Una semana**: Recibes todas las fotos de la semana
+- **Un mes**: Recibes todas las fotos del mes
 
 #### 🔐 Nuevas Funcionalidades de Seguridad:
 - **👁️ Toggle de Contraseña**: Botón del ojo para mostrar/ocultar contraseña
@@ -218,108 +238,153 @@ Usuario: capturer@miempresa.com
 Contraseña: [contraseña de aplicación de 16 dígitos]
 ```
 
-**⚠️ Importante**: Para Gmail/Outlook corporativo:
-1. Habilitar verificación en 2 pasos
-2. Generar "contraseña de aplicación"
-3. Usar esa contraseña específica (no la normal)
+#### 🔑 ¿Problemas con Gmail?
 
-### 4. Pestaña "Almacenamiento" - Gestión Inteligente
+Si usas Gmail, tal vez necesites una "contraseña de aplicación":
+1. Ve a tu cuenta de Google
+2. Busca "Contraseñas de aplicaciones" 
+3. Crea una nueva para "Capturer"
+4. Usa esa contraseña (no tu contraseña normal)
 
+### 💾 Pestaña "Almacenamiento" - Organizar el espacio
+
+**¿Cuántas fotos quieres guardar?**
 ```
-┌─────────────────────────────────────────┐
-│ Almacenamiento - Gestión Automática    │
-├─────────────────────────────────────────┤
-│ Retener archivos por (días): [90]       │
-│ Tamaño máximo carpeta (GB): [10]        │
-│ ☑ Limpieza automática habilitada       │
-│                                         │
-│ Estado actual:                          │
-│ Archivos: 1,234 screenshots            │
-│ Espacio usado: 3.2 GB de 10 GB         │
-│ Archivo más antiguo: 2024-06-15        │
-└─────────────────────────────────────────┘
+Borrar fotos después de: [90] días
+Máximo espacio a usar: [5] GB
+☑ Limpieza automática
 ```
 
-**Estrategias de limpieza:**
-- **Por antigüedad**: Elimina archivos > días configurados
-- **Por tamaño**: Elimina más antiguos si se excede límite
-- **Automática**: Ejecución diaria en segundo plano
+**¿Cómo funciona?**
+- Las fotos más viejas se borran automáticamente
+- Si se llena el espacio, borra las más antiguas
+- Tú no tienes que hacer nada
 
-### 5. Guardar y Verificar
+**Estado actual:**
+```
+Fotos guardadas: 1,234
+Espacio usado: 3.2 GB de 5 GB  
+Foto más antigua: hace 45 días
+```
 
-1. **Prueba de email**: Haz clic en **[Probar Email]** - verás resultado específico:
-   - ✅ "Conexión SMTP exitosa!"
-   - ❌ "Error de autenticación. Verifique usuario y contraseña"
-   - ❌ "No se pudo conectar al servidor SMTP"
+### ✅ Probar y Guardar
 
-2. **Guardar**: Si la prueba es exitosa, haz clic en **[Guardar]**
+**¡MUY IMPORTANTE!** Antes de guardar:
 
-3. **Confirmación**: "Configuración actualizada exitosamente" + aplicación inmediata
+1. **Prueba el email**: Aprieta **[Probar Email]**
+   - ✅ "¡Funciona!" = Todo bien
+   - ❌ "Error" = Revisa tus datos
+
+2. **Guarda**: Si la prueba funciona, aprieta **[Guardar]**
+
+3. **¡Listo!**: Ya está configurado
 
 ---
 
-## Captura de Screenshots
+## Tomar capturas de pantalla
 
-### Métodos de Captura
+### ¿Cómo funciona?
 
-#### 1. Captura Automática (Recomendada)
+Una vez configurado, Capturer puede tomar fotos de 3 maneras:
 
-```
-Paso 1: Configurar intervalo
-  Configuración → Screenshots → Intervalo: 30 minutos
-
-Paso 2: Iniciar servicio
-  [Iniciar] → Estado: "Ejecutándose"
-
-Resultado:
-  ● Próxima: 14:35:20
-  ● Captura cada 30 minutos automáticamente
-  ● Archivos guardados con timestamp
-```
-
-#### 2. Captura Manual Instantánea
+#### 1. 🔄 Automáticamente (lo más cómodo)
 
 ```
-Método A: Desde interfaz principal
-  Aplicación abierta → [Capturar Ahora]
-
-Método B: Desde system tray (NUEVO)
-  Click derecho en icono → "📸 Captura de Pantalla"
+✓ Configuras: cada 30 minutos
+✓ Aprietas: [▶ Empezar] 
+✓ Resultado: Se toma una foto cada 30 minutos
 ```
 
-#### 3. Captura Programada
+**¿Qué verás?**
+- Estado: "Funcionando"
+- Próxima foto: "14:35" (te dice cuándo será la siguiente)
 
+#### 2. 🖘 Cuando tú quieras (manual)
+
+**Opción A:** Desde la ventana principal
+- Abre Capturer → [Tomar Foto Ahora]
+
+**Opción B:** Desde la barra de abajo (system tray)
+- Click derecho en el ícono de Capturer → "📸 Tomar foto"
+
+#### 3. 📅 Programado (para expertos)
+- Puedes configurar horarios específicos
+- Solo ciertos días de la semana  
+- Solo en horario laboral
+
+### ¿Qué incluye cada foto?
+
+✓ **Toda tu pantalla**: Si tienes dos monitores, los incluye ambos  
+✓ **Fecha y hora**: El nombre del archivo muestra cuándo se tomó  
+✓ **Calidad alta**: Fotos nítidas que se ven bien  
+
+**Ejemplo de nombre de archivo:**
 ```
-Configuración avanzada:
-  - Horarios específicos
-  - Días de la semana
-  - Rangos de horas laborales
-```
-
-### Proceso de Captura Detallado
-
-Una vez iniciado, Capturer ejecuta:
-
-1. **Captura**: Pantalla completa (todos los monitores)
-2. **Nomenclatura**: `2024-08-26_14-30-15.png`
-3. **Almacenamiento**: Carpeta configurada
-4. **Logging**: Registro de éxito/error
-5. **Actualización UI**: Lista de recientes + contadores
-
-### Ejemplo de Captura Exitosa
-```
-Archivo: 2024-08-26_14-30-15.png
-Ubicación: C:\Users\Usuario\Documents\Capturer\Screenshots\
-Tamaño: 1.4 MB (1920x1080, PNG)
-Estado: ✅ Captura exitosa
-Próxima: 2024-08-26_15-00-15
+2024-08-27_14-30-15.png
+↑      ↑        ↑
+Año    Fecha    Hora (2:30:15 PM)
 ```
 
 ---
 
-## Sistema de Email Mejorado
+## Funciones avanzadas con cuadrantes
 
-### Reportes Automáticos Inteligentes
+### ¿Qué son los cuadrantes? 😄
+
+Imagina que tu pantalla es como una pizza que puedes dividir en pedazos. Los cuadrantes te permiten que Capturer se enfoque solo en ciertas partes de la pantalla en lugar de toda.
+
+### ¿Cuándo es útil?
+
+- 📊 **Solo quieres una parte**: Por ejemplo, solo el área donde trabajas
+- 🔒 **Privacidad**: Ocultar partes personales de la pantalla
+- 🎯 **Enfoque específico**: Solo una aplicación o ventana importante
+- 📈 **Análisis de áreas**: Comparar cómo cambia una parte específica
+
+### ¿Cómo configurar cuadrantes?
+
+1. **Abre la configuración**: Botón [⚙ Configurar]
+2. **Busca la pestaña "Cuadrantes"** (nueva función)
+3. **Define las áreas**:
+   ```
+   ┌─────────────────────────┐
+   │ 🟩 Cuadrante 1: Trabajo     │
+   │ Esquina superior izquierda  │
+   │ Tamaño: 800x600 pixels      │
+   │ [✓ Activo]                 │
+   └─────────────────────────┘
+   ```
+
+### Ejemplos prácticos de cuadrantes:
+
+🏢 **Para oficina**:
+- Cuadrante 1: Solo la aplicación de trabajo
+- Cuadrante 2: Solo el navegador web
+
+🏠 **Para casa**:
+- Cuadrante 1: Solo la mitad izquierda (trabajo)
+- Ocultar la mitad derecha (personal)
+
+🎮 **Para gaming/streaming**:
+- Cuadrante 1: Solo el juego
+- Cuadrante 2: Solo el chat
+
+### Programación inteligente de cuadrantes
+
+Capture puede **cambiar automáticamente** qué cuadrante usar:
+
+```
+⏰ Horario laboral (9 AM - 5 PM): Solo cuadrante "Trabajo"
+🌙 Después del trabajo: Pantalla completa
+📅 Fines de semana: Solo cuadrante "Personal"
+```
+
+**¡Es como tener varios asistentes diferentes para cada momento del día!**
+
+---
+
+## Enviar por correo electrónico
+
+### 🤖 Envío automático (recomendado)
 
 #### Configuración Flexible de Frecuencia
 
