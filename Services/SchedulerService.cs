@@ -249,7 +249,31 @@ public class SchedulerService : ISchedulerService
 
             Console.WriteLine($"Sending weekly report for {startDate:yyyy-MM-dd} to {endDate:yyyy-MM-dd}");
             
-            var success = await _emailService.SendWeeklyReportAsync(config.Email.Recipients, startDate, endDate);
+            bool success;
+            
+            // Check if quadrant system is enabled for routine emails
+            if (config.Email.QuadrantSettings.UseQuadrantsInRoutineEmails && 
+                config.Email.QuadrantSettings.SelectedQuadrants.Any())
+            {
+                Console.WriteLine($"Sending routine quadrant report for {config.Email.QuadrantSettings.SelectedQuadrants.Count} quadrants");
+                if (config.Email.QuadrantSettings.SendSeparateEmailPerQuadrant)
+                {
+                    Console.WriteLine("Using separate emails per quadrant");
+                }
+                
+                success = await _emailService.SendRoutineQuadrantReportsAsync(
+                    config.Email.Recipients, 
+                    startDate, 
+                    endDate, 
+                    config.Email.QuadrantSettings.SelectedQuadrants,
+                    config.Email.UseZipFormat,
+                    config.Email.QuadrantSettings.SendSeparateEmailPerQuadrant);
+            }
+            else
+            {
+                // Standard weekly report
+                success = await _emailService.SendWeeklyReportAsync(config.Email.Recipients, startDate, endDate);
+            }
             
             if (success)
             {

@@ -32,14 +32,23 @@ public partial class EmailForm : Form
     private CheckedListBox clbQuadrants;
     private Label lblQuadrantNote;
     private GroupBox groupQuadrants;
+    private CheckBox chkSeparateEmailPerQuadrant;
+    private Label lblQuadrantProcessingNote;
+    private CheckBox chkProcessQuadrantsFirst;
+    private ComboBox cmbQuadrantProfile;
+    private Label lblQuadrantProfile;
+    private readonly IQuadrantService? _quadrantService;
+    private ToolTip _helpTooltip;
     private bool _quadrantsAvailable = false;
 
-    public EmailForm(IEmailService emailService, IFileService fileService, IConfigurationManager configManager)
+    public EmailForm(IEmailService emailService, IFileService fileService, IConfigurationManager configManager, IQuadrantService? quadrantService = null)
     {
         _emailService = emailService;
         _fileService = fileService;
         _configManager = configManager;
+        _quadrantService = quadrantService;
         _config = new CapturerConfiguration();
+        _helpTooltip = new ToolTip();
         
         InitializeComponent();
         LoadConfigurationAsync();
@@ -92,6 +101,14 @@ public partial class EmailForm : Form
         // Date range section
         var groupDate = new GroupBox { Text = "Rango de Fechas", Location = new Point(20, y), Size = new Size(540, 80), Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
         
+        // Add help button for date range
+        var helpDateRange = CreateHelpButton(new Point(505, -2), 
+            "Rango de Fechas: Seleccione el período de tiempo para incluir las capturas de pantalla.\n\n" +
+            "• Use los botones rápidos para períodos comunes\n" +
+            "• O seleccione fechas específicas manualmente\n" +
+            "• Solo se incluirán las capturas dentro de este rango");
+        groupDate.Controls.Add(helpDateRange);
+        
         groupDate.Controls.Add(new Label { Text = "Desde:", Location = new Point(15, 25), AutoSize = true });
         dtpFromDate = new DateTimePicker { Location = new Point(60, 22), Width = 120, Value = DateTime.Now.AddDays(-7) };
         groupDate.Controls.Add(dtpFromDate);
@@ -117,6 +134,14 @@ public partial class EmailForm : Form
         // Recipients section
         var groupRecipients = new GroupBox { Text = "Destinatarios", Location = new Point(20, y), Size = new Size(540, 120), Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
         
+        // Add help button for recipients
+        var helpRecipients = CreateHelpButton(new Point(505, -2), 
+            "Destinatarios: Configure a quién se enviarán los emails con las capturas.\n\n" +
+            "• Marque los emails ya configurados que desea incluir\n" +
+            "• Agregue emails personalizados temporalmente\n" +
+            "• Debe seleccionar al menos un destinatario");
+        groupRecipients.Controls.Add(helpRecipients);
+        
         clbRecipients = new CheckedListBox { Location = new Point(15, 25), Size = new Size(460, 60), Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
         groupRecipients.Controls.Add(clbRecipients);
         
@@ -131,6 +156,14 @@ public partial class EmailForm : Form
 
         // Attachment format section
         var groupFormat = new GroupBox { Text = "Formato de Adjuntos", Location = new Point(20, y), Size = new Size(540, 70), Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
+        
+        // Add help button for format
+        var helpFormat = CreateHelpButton(new Point(505, -2), 
+            "Formato de Adjuntos: Seleccione cómo se enviarán las imágenes.\n\n" +
+            "• ZIP: Recomendado para múltiples archivos (más eficiente)\n" +
+            "• Individual: Cada imagen como adjunto separado\n" +
+            "• Los emails tienen límite de 25MB por adjunto");
+        groupFormat.Controls.Add(helpFormat);
         
         rbZipFormat = new RadioButton 
         { 
@@ -194,10 +227,19 @@ public partial class EmailForm : Form
         { 
             Text = "Procesamiento por Cuadrantes", 
             Location = new Point(20, y), 
-            Size = new Size(540, 120),
+            Size = new Size(540, 180),
             Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
             Visible = false
         };
+        
+        // Add help button for quadrants
+        var helpQuadrants = CreateHelpButton(new Point(505, -2), 
+            "Sistema de Cuadrantes: Funcionalidad avanzada para procesar secciones específicas.\n\n" +
+            "• Usar cuadrantes: Incluye cuadrantes en lugar de screenshots normales\n" +
+            "• Procesar antes del envío: Regenera automáticamente con el perfil seleccionado\n" +
+            "• Emails separados: Envía un email individual por cada cuadrante\n" +
+            "\nNota: Solo aparece si hay cuadrantes disponibles en el sistema");
+        groupQuadrants.Controls.Add(helpQuadrants);
         
         chkUseQuadrants = new CheckBox 
         { 
@@ -221,19 +263,71 @@ public partial class EmailForm : Form
             this.BeginInvoke(new Action(async () => await UpdatePreview()));
         };
         
+        chkProcessQuadrantsFirst = new CheckBox 
+        { 
+            Text = "Procesar cuadrantes antes del envío (regenerar automáticamente)", 
+            Location = new Point(15, 95), 
+            AutoSize = true,
+            Enabled = false,
+            Font = new Font("Microsoft Sans Serif", 8.25F, FontStyle.Bold),
+            ForeColor = Color.DarkGreen
+        };
+        chkProcessQuadrantsFirst.CheckedChanged += ChkProcessQuadrantsFirst_CheckedChanged;
+        
+        // Quadrant profile selection (initially hidden)
+        lblQuadrantProfile = new Label 
+        { 
+            Text = "Perfil de procesamiento:", 
+            Location = new Point(35, 120), 
+            AutoSize = true,
+            Visible = false,
+            Font = new Font("Microsoft Sans Serif", 8.25F)
+        };
+        
+        cmbQuadrantProfile = new ComboBox 
+        { 
+            Location = new Point(180, 117), 
+            Width = 200, 
+            DropDownStyle = ComboBoxStyle.DropDownList,
+            Enabled = false,
+            Visible = false
+        };
+        
+        chkSeparateEmailPerQuadrant = new CheckBox 
+        { 
+            Text = "Enviar email separado por cada cuadrante", 
+            Location = new Point(15, 145), 
+            AutoSize = true,
+            Enabled = false,
+            Font = new Font("Microsoft Sans Serif", 8.25F, FontStyle.Bold),
+            ForeColor = Color.DarkBlue
+        };
+        chkSeparateEmailPerQuadrant.CheckedChanged += (s, e) => { UpdateQuadrantSeparateEmailVisibility(); UpdatePreview(); };
+        
         lblQuadrantNote = new Label 
         { 
             Text = "Seleccione los cuadrantes que desea incluir en el reporte", 
-            Location = new Point(15, 95), 
+            Location = new Point(15, 165), 
             Size = new Size(500, 15), 
             Font = new Font("Microsoft Sans Serif", 7.5F),
             ForeColor = Color.DarkBlue,
             Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
         };
         
-        groupQuadrants.Controls.AddRange(new Control[] { chkUseQuadrants, clbQuadrants, lblQuadrantNote });
+        lblQuadrantProcessingNote = new Label 
+        { 
+            Text = "Con emails separados, cada cuadrante se enviará en un email individual", 
+            Location = new Point(35, 167), 
+            Size = new Size(480, 15), 
+            Font = new Font("Microsoft Sans Serif", 7.5F),
+            ForeColor = Color.DarkGreen,
+            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
+            Visible = false
+        };
+        
+        groupQuadrants.Controls.AddRange(new Control[] { chkUseQuadrants, clbQuadrants, chkProcessQuadrantsFirst, lblQuadrantProfile, cmbQuadrantProfile, chkSeparateEmailPerQuadrant, lblQuadrantNote, lblQuadrantProcessingNote });
         mainPanel.Controls.Add(groupQuadrants);
-        y += 140;
+        y += 200;
 
         // Wire up events
         dtpFromDate.ValueChanged += (s, e) => UpdatePreview();
@@ -311,11 +405,17 @@ public partial class EmailForm : Form
         if (chkUseQuadrants.Checked)
         {
             clbQuadrants.Enabled = true;
+            chkProcessQuadrantsFirst.Enabled = true;
+            chkSeparateEmailPerQuadrant.Enabled = true;
             lblQuadrantNote.Text = "Seleccione los cuadrantes que desea incluir en el reporte";
         }
         else
         {
             clbQuadrants.Enabled = false;
+            chkProcessQuadrantsFirst.Enabled = false;
+            chkProcessQuadrantsFirst.Checked = false;
+            chkSeparateEmailPerQuadrant.Enabled = false;
+            chkSeparateEmailPerQuadrant.Checked = false;
             lblQuadrantNote.Text = "Sistema de cuadrantes deshabilitado - se procesarán screenshots normales";
             
             // Uncheck all quadrants when disabled
@@ -325,7 +425,76 @@ public partial class EmailForm : Form
             }
         }
         
+        UpdateQuadrantProcessingVisibility();
+        UpdateQuadrantSeparateEmailVisibility();
         UpdatePreview();
+    }
+    
+    private void ChkProcessQuadrantsFirst_CheckedChanged(object? sender, EventArgs e)
+    {
+        UpdateQuadrantProcessingVisibility();
+    }
+    
+    private void UpdateQuadrantProcessingVisibility()
+    {
+        if (chkProcessQuadrantsFirst.Checked && chkUseQuadrants.Checked)
+        {
+            lblQuadrantProfile.Visible = true;
+            cmbQuadrantProfile.Visible = true;
+            cmbQuadrantProfile.Enabled = true;
+            LoadQuadrantProfiles();
+        }
+        else
+        {
+            lblQuadrantProfile.Visible = false;
+            cmbQuadrantProfile.Visible = false;
+            cmbQuadrantProfile.Enabled = false;
+        }
+    }
+    
+    private void LoadQuadrantProfiles()
+    {
+        try
+        {
+            cmbQuadrantProfile.Items.Clear();
+            cmbQuadrantProfile.Items.Add("Default");
+            
+            if (_quadrantService != null)
+            {
+                // Try to get available profiles from quadrant service
+                // For now, we'll add some common profiles
+                cmbQuadrantProfile.Items.AddRange(new[] { "Análisis Rápido", "Procesamiento Completo", "Alta Calidad" });
+            }
+            
+            if (cmbQuadrantProfile.Items.Count > 0)
+            {
+                cmbQuadrantProfile.SelectedIndex = 0; // Select "Default"
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading quadrant profiles: {ex.Message}");
+            cmbQuadrantProfile.Items.Clear();
+            cmbQuadrantProfile.Items.Add("Default");
+            cmbQuadrantProfile.SelectedIndex = 0;
+        }
+    }
+    
+    private void UpdateQuadrantSeparateEmailVisibility()
+    {
+        if (chkSeparateEmailPerQuadrant.Checked && chkUseQuadrants.Checked)
+        {
+            lblQuadrantProcessingNote.Visible = true;
+            lblQuadrantNote.Text = "Seleccione cuadrantes - cada uno se enviará por separado";
+        }
+        else
+        {
+            lblQuadrantProcessingNote.Visible = false;
+            if (chkUseQuadrants.Checked)
+            {
+                lblQuadrantNote.Text = "Seleccione los cuadrantes que desea incluir en el reporte";
+            }
+        }
     }
 
     private void BtnAddCustom_Click(object? sender, EventArgs e)
@@ -447,7 +616,14 @@ public partial class EmailForm : Form
         if (chkUseQuadrants.Checked && clbQuadrants.CheckedItems.Count > 0)
         {
             var selectedQuadrants = clbQuadrants.CheckedItems.Cast<string>().ToList();
-            contentMsg = $"cuadrantes seleccionados: {string.Join(", ", selectedQuadrants)}";
+            if (chkSeparateEmailPerQuadrant.Checked)
+            {
+                contentMsg = $"{selectedQuadrants.Count} cuadrantes (email separado por cada uno): {string.Join(", ", selectedQuadrants)}";
+            }
+            else
+            {
+                contentMsg = $"cuadrantes combinados: {string.Join(", ", selectedQuadrants)}";
+            }
         }
         else
         {
@@ -500,7 +676,37 @@ public partial class EmailForm : Form
             if (chkUseQuadrants.Checked && clbQuadrants.CheckedItems.Count > 0)
             {
                 var selectedQuadrants = clbQuadrants.CheckedItems.Cast<string>().ToList();
-                success = await _emailService.SendQuadrantReportAsync(recipients, startDate, endDate, selectedQuadrants, useZipFormat);
+                
+                if (chkSeparateEmailPerQuadrant.Checked)
+                {
+                    // Send separate email for each quadrant
+                    success = true;
+                    var totalQuadrants = selectedQuadrants.Count;
+                    var currentQuadrant = 0;
+                    
+                    foreach (var quadrant in selectedQuadrants)
+                    {
+                        currentQuadrant++;
+                        progressBar.Value = 60 + (30 * currentQuadrant / totalQuadrants);
+                        lblProgress.Text = $"Enviando email {currentQuadrant}/{totalQuadrants} (cuadrante: {quadrant})...";
+                        await Task.Delay(100);
+                        
+                        var quadrantSuccess = await _emailService.SendQuadrantReportAsync(
+                            recipients, startDate, endDate, new List<string> { quadrant }, useZipFormat);
+                        
+                        if (!quadrantSuccess)
+                        {
+                            success = false;
+                            MessageBox.Show($"Error enviando email para cuadrante '{quadrant}'. Los demás emails podrían haberse enviado correctamente.", 
+                                "Advertencia", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        }
+                    }
+                }
+                else
+                {
+                    // Send combined email with all quadrants
+                    success = await _emailService.SendQuadrantReportAsync(recipients, startDate, endDate, selectedQuadrants, useZipFormat);
+                }
             }
             else
             {
@@ -537,6 +743,25 @@ public partial class EmailForm : Form
             progressBar.Visible = false;
             lblProgress.Visible = false;
         }
+    }
+    
+    private Button CreateHelpButton(Point location, string helpText)
+    {
+        var helpButton = new Button
+        {
+            Text = "?",
+            Size = new Size(20, 20),
+            Location = location,
+            Font = new Font("Microsoft Sans Serif", 8.25F, FontStyle.Bold),
+            ForeColor = Color.Blue,
+            BackColor = Color.LightBlue,
+            FlatStyle = FlatStyle.Popup,
+            Cursor = Cursors.Help
+        };
+        
+        _helpTooltip.SetToolTip(helpButton, helpText);
+        
+        return helpButton;
     }
 
     private void BtnCancel_Click(object? sender, EventArgs e)

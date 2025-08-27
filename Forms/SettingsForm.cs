@@ -30,11 +30,7 @@ public partial class SettingsForm : Form
     private TextBox txtPassword;
     private Button btnTogglePassword;
     private TextBox txtRecipients;
-    private ComboBox cmbReportFrequency;
-    private NumericUpDown numCustomDays;
-    private Label lblCustomDays;
-    private ComboBox cmbReportTime;
-    private CheckBox chkEnableReports;
+    // Routine email configuration moved to RoutineEmailForm
     
     private NumericUpDown numRetentionDays;
     private NumericUpDown numMaxSizeGB;
@@ -251,52 +247,8 @@ public partial class SettingsForm : Form
         txtRecipients = new TextBox { Location = new Point(20, y), Width = 570, Height = 60, Multiline = true };
         tab.Controls.Add(txtRecipients);
         
-        y += 75;
-        chkEnableReports = new CheckBox { Text = "Habilitar reportes automáticos", Location = new Point(20, y), AutoSize = true };
-        tab.Controls.Add(chkEnableReports);
-        tab.Controls.Add(CreateHelpButton(new Point(220, y + 2), "Envía automáticamente reportes de screenshots según la programación configurada."));
-        
-        y += 35;
-        tab.Controls.Add(new Label { Text = "Frecuencia:", Location = new Point(20, y), Size = new Size(80, 23) });
-        cmbReportFrequency = new ComboBox 
-        {
-            Location = new Point(110, y - 3), 
-            Width = 120, 
-            DropDownStyle = ComboBoxStyle.DropDownList
-        };
-        cmbReportFrequency.Items.AddRange(new[] { "Diario", "Semanal", "Mensual", "Personalizado" });
-        cmbReportFrequency.SelectedIndexChanged += CmbReportFrequency_SelectedIndexChanged;
-        tab.Controls.Add(cmbReportFrequency);
-        
-        lblCustomDays = new Label { Text = "Días:", Location = new Point(250, y), Size = new Size(40, 23), Visible = false };
-        numCustomDays = new NumericUpDown 
-        {
-            Location = new Point(290, y - 3), 
-            Width = 60, 
-            Minimum = 1, 
-            Maximum = 365, 
-            Value = 7,
-            Visible = false
-        };
-        tab.Controls.AddRange(new Control[] { lblCustomDays, numCustomDays });
-        tab.Controls.Add(CreateHelpButton(new Point(360, y), "Frecuencia con la que se enviarán los reportes automáticos."));
-        
-        y += 35;
-        tab.Controls.Add(new Label { Text = "Hora de envío:", Location = new Point(20, y), Size = new Size(100, 23) });
-        cmbReportTime = new ComboBox 
-        {
-            Location = new Point(130, y - 3), 
-            Width = 100, 
-            DropDownStyle = ComboBoxStyle.DropDownList
-        };
-        // Populate time options (every hour)
-        for (int hour = 0; hour < 24; hour++)
-        {
-            cmbReportTime.Items.Add($"{hour:D2}:00");
-        }
-        cmbReportTime.SelectedIndex = 9; // Default to 9:00 AM
-        tab.Controls.Add(cmbReportTime);
-        tab.Controls.Add(CreateHelpButton(new Point(240, y), "Hora del día a la que se enviarán los reportes automáticos (formato 24 horas)."));
+        // Note: Routine email configuration moved to dedicated RoutineEmailForm
+        // Access via "Reportes Automáticos" button on main form
     }
 
     private void CreateStorageControls(TabPage tab)
@@ -362,28 +314,7 @@ public partial class SettingsForm : Form
             txtUsername.Text = _config.Email.Username;
             txtPassword.Text = _config.Email.Password;
             txtRecipients.Text = string.Join(";", _config.Email.Recipients);
-            chkEnableReports.Checked = _config.Schedule.EnableAutomaticReports;
-            
-            // Set frequency
-            switch (_config.Schedule.Frequency)
-            {
-                case ReportFrequency.Daily:
-                    cmbReportFrequency.SelectedIndex = 0;
-                    break;
-                case ReportFrequency.Weekly:
-                    cmbReportFrequency.SelectedIndex = 1;
-                    break;
-                case ReportFrequency.Monthly:
-                    cmbReportFrequency.SelectedIndex = 2;
-                    break;
-                case ReportFrequency.Custom:
-                    cmbReportFrequency.SelectedIndex = 3;
-                    numCustomDays.Value = _config.Schedule.CustomDays;
-                    break;
-            }
-            
-            // Set report time
-            cmbReportTime.SelectedIndex = _config.Schedule.ReportTime.Hours;
+            // Routine email configuration now handled by RoutineEmailForm
             
             // Storage settings
             numRetentionDays.Value = (decimal)_config.Storage.RetentionPeriod.TotalDays;
@@ -434,27 +365,7 @@ public partial class SettingsForm : Form
             _config.Email.Password = txtPassword.Text;
             _config.Email.Recipients = txtRecipients.Text.Split(';', StringSplitOptions.RemoveEmptyEntries)
                 .Select(r => r.Trim()).ToList();
-            _config.Schedule.EnableAutomaticReports = chkEnableReports.Checked;
-            
-            // Save frequency settings
-            switch (cmbReportFrequency.SelectedIndex)
-            {
-                case 0: // Daily
-                    _config.Schedule.Frequency = ReportFrequency.Daily;
-                    break;
-                case 1: // Weekly
-                    _config.Schedule.Frequency = ReportFrequency.Weekly;
-                    break;
-                case 2: // Monthly
-                    _config.Schedule.Frequency = ReportFrequency.Monthly;
-                    break;
-                case 3: // Custom
-                    _config.Schedule.Frequency = ReportFrequency.Custom;
-                    _config.Schedule.CustomDays = (int)numCustomDays.Value;
-                    break;
-            }
-            
-            _config.Schedule.ReportTime = TimeSpan.FromHours(cmbReportTime.SelectedIndex);
+            // Routine email configuration now handled by RoutineEmailForm
             
             _config.Storage.RetentionPeriod = TimeSpan.FromDays((double)numRetentionDays.Value);
             _config.Storage.MaxFolderSizeBytes = (long)(numMaxSizeGB.Value * 1024 * 1024 * 1024);
@@ -505,12 +416,7 @@ public partial class SettingsForm : Form
         btnTogglePassword.Text = txtPassword.UseSystemPasswordChar ? "👁" : "👈";
     }
     
-    private void CmbReportFrequency_SelectedIndexChanged(object? sender, EventArgs e)
-    {
-        bool showCustomDays = cmbReportFrequency.SelectedIndex == 3; // Custom
-        lblCustomDays.Visible = showCustomDays;
-        numCustomDays.Visible = showCustomDays;
-    }
+    // CmbReportFrequency_SelectedIndexChanged removed - configuration moved to RoutineEmailForm
     
     private void CmbCaptureMode_SelectedIndexChanged(object? sender, EventArgs e)
     {

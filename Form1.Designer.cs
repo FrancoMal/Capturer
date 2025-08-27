@@ -39,6 +39,7 @@
             this.btnStopCapture = new System.Windows.Forms.Button();
             this.btnSettings = new System.Windows.Forms.Button();
             this.btnSendEmail = new System.Windows.Forms.Button();
+            this.btnRoutineEmail = new System.Windows.Forms.Button();
             this.btnCaptureNow = new System.Windows.Forms.Button();
             this.btnOpenFolder = new System.Windows.Forms.Button();
             this.btnQuadrants = new System.Windows.Forms.Button();
@@ -153,8 +154,20 @@
             this.btnSendEmail.Name = "btnSendEmail";
             this.btnSendEmail.Size = new System.Drawing.Size(100, 35);
             this.btnSendEmail.TabIndex = 9;
-            this.btnSendEmail.Text = "Enviar Email";
+            this.btnSendEmail.Text = "Email Manual";
             this.btnSendEmail.UseVisualStyleBackColor = false;
+            // 
+            // btnRoutineEmail
+            // 
+            this.btnRoutineEmail.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(138)))), ((int)(((byte)(43)))), ((int)(((byte)(226)))));
+            this.btnRoutineEmail.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnRoutineEmail.ForeColor = System.Drawing.Color.White;
+            this.btnRoutineEmail.Location = new System.Drawing.Point(345, 65);
+            this.btnRoutineEmail.Name = "btnRoutineEmail";
+            this.btnRoutineEmail.Size = new System.Drawing.Size(100, 35);
+            this.btnRoutineEmail.TabIndex = 20;
+            this.btnRoutineEmail.Text = "Reportes Automáticos";
+            this.btnRoutineEmail.UseVisualStyleBackColor = false;
             // 
             // btnCaptureNow
             // 
@@ -278,6 +291,7 @@
             this.groupBoxControls.Controls.Add(this.btnStopCapture);
             this.groupBoxControls.Controls.Add(this.btnSettings);
             this.groupBoxControls.Controls.Add(this.btnSendEmail);
+            this.groupBoxControls.Controls.Add(this.btnRoutineEmail);
             this.groupBoxControls.Controls.Add(this.btnCaptureNow);
             this.groupBoxControls.Controls.Add(this.btnOpenFolder);
             this.groupBoxControls.Controls.Add(this.btnQuadrants);
@@ -344,6 +358,7 @@
         private System.Windows.Forms.Button btnStopCapture;
         private System.Windows.Forms.Button btnSettings;
         private System.Windows.Forms.Button btnSendEmail;
+        private System.Windows.Forms.Button btnRoutineEmail;
         private System.Windows.Forms.Button btnCaptureNow;
         private System.Windows.Forms.Button btnOpenFolder;
         private System.Windows.Forms.Button btnQuadrants;

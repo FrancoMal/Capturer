@@ -11,6 +11,7 @@ public interface IEmailService
     Task<bool> SendWeeklyReportAsync(List<string> recipients, DateTime startDate, DateTime endDate);
     Task<bool> SendManualReportAsync(List<string> recipients, DateTime startDate, DateTime endDate, bool useZipFormat = true);
     Task<bool> SendQuadrantReportAsync(List<string> recipients, DateTime startDate, DateTime endDate, List<string> selectedQuadrants, bool useZipFormat = true);
+    Task<bool> SendRoutineQuadrantReportsAsync(List<string> recipients, DateTime startDate, DateTime endDate, List<string> selectedQuadrants, bool useZipFormat = true, bool separateEmailPerQuadrant = false);
     Task<bool> ValidateEmailConfigAsync();
     Task<bool> TestConnectionAsync();
     List<string> GetAvailableQuadrantFolders();
@@ -486,7 +487,226 @@ Si tienes alguna pregunta, contacta al administrador del sistema.
             return false;
         }
     }
+    
+    public async Task<bool> SendRoutineQuadrantReportsAsync(List<string> recipients, DateTime startDate, DateTime endDate, List<string> selectedQuadrants, bool useZipFormat = true, bool separateEmailPerQuadrant = false)
+    {
+        try
+        {
+            await LoadConfigurationAsync();
 
+            if (!recipients.Any())
+            {
+                Console.WriteLine("No recipients specified for routine quadrant reports");
+                return false;
+            }
+
+            if (!selectedQuadrants.Any())
+            {
+                Console.WriteLine("No quadrants selected for routine reports");
+                return false;
+            }
+
+            bool overallSuccess = true;
+            
+            if (separateEmailPerQuadrant)
+            {
+                // Send separate email for each quadrant
+                foreach (var quadrant in selectedQuadrants)
+                {
+                    try
+                    {
+                        var success = await SendSingleQuadrantReportAsync(recipients, startDate, endDate, quadrant, useZipFormat, "Reporte Automático de Cuadrante");
+                        if (!success)
+                        {
+                            Console.WriteLine($"Failed to send routine report for quadrant: {quadrant}");
+                            overallSuccess = false;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error sending routine report for quadrant {quadrant}: {ex.Message}");
+                        overallSuccess = false;
+                    }
+                }
+            }
+            else
+            {
+                // Send combined email with all quadrants
+                overallSuccess = await SendCombinedQuadrantReportAsync(recipients, startDate, endDate, selectedQuadrants, useZipFormat, "Reporte Automático de Cuadrantes");
+            }
+            
+            // Fire overall event
+            EmailSent?.Invoke(this, new EmailSentEventArgs
+            {
+                Recipients = recipients,
+                Success = overallSuccess,
+                FileCount = separateEmailPerQuadrant ? selectedQuadrants.Count : 1, // Number of emails sent
+                ErrorMessage = overallSuccess ? null : "Error en uno o más emails de cuadrantes",
+                SentDate = DateTime.Now
+            });
+
+            return overallSuccess;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error in SendRoutineQuadrantReportsAsync: {ex.Message}");
+            
+            EmailSent?.Invoke(this, new EmailSentEventArgs
+            {
+                Recipients = recipients,
+                Success = false,
+                FileCount = 0,
+                ErrorMessage = ex.Message
+            });
+            
+            return false;
+        }
+    }
+
+    private async Task<bool> SendSingleQuadrantReportAsync(List<string> recipients, DateTime startDate, DateTime endDate, string quadrantName, bool useZipFormat, string subjectPrefix)
+    {
+        try
+        {
+            // Get files from the single quadrant
+            var quadrantFiles = new List<string>();
+            if (_quadrantService != null)
+            {
+                quadrantFiles = await _quadrantService.GetQuadrantFilesAsync(new List<string> { quadrantName }, startDate, endDate);
+            }
+            else
+            {
+                quadrantFiles = await GetQuadrantFilesDirectAsync(new List<string> { quadrantName }, startDate, endDate);
+            }
+
+            // Create email message
+            var message = new MimeMessage();
+            message.From.Add(new MailboxAddress(_config.Email.SenderName, _config.Email.Username));
+            
+            foreach (var recipient in recipients)
+            {
+                message.To.Add(new MailboxAddress("", recipient));
+            }
+
+            message.Subject = $"{subjectPrefix} '{quadrantName}' - {startDate:yyyy-MM-dd} a {endDate:yyyy-MM-dd}";
+
+            // Create email body
+            var bodyBuilder = new BodyBuilder();
+            bodyBuilder.HtmlBody = CreateSingleQuadrantEmailHtml(startDate, endDate, quadrantFiles.Count, quadrantName);
+            bodyBuilder.TextBody = CreateSingleQuadrantEmailText(startDate, endDate, quadrantFiles.Count, quadrantName);
+
+            // Add attachments
+            if (quadrantFiles.Any() && useZipFormat)
+            {
+                var zipPath = await PrepareQuadrantAttachmentsAsync(quadrantFiles, new List<string> { quadrantName }, startDate, endDate);
+                if (zipPath != null)
+                {
+                    bodyBuilder.Attachments.Add(zipPath);
+                    
+                    // Schedule cleanup
+                    _ = Task.Delay(TimeSpan.FromMinutes(10)).ContinueWith(_ =>
+                    {
+                        try { File.Delete(zipPath); } catch { }
+                    });
+                }
+            }
+            else if (quadrantFiles.Any())
+            {
+                // Add individual files (up to 10 to avoid too many attachments)
+                var filesToAttach = quadrantFiles.Take(10).ToList();
+                foreach (var file in filesToAttach)
+                {
+                    if (File.Exists(file))
+                    {
+                        bodyBuilder.Attachments.Add(file);
+                    }
+                }
+            }
+
+            message.Body = bodyBuilder.ToMessageBody();
+
+            // Send email
+            return await SendEmailAsync(message);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error sending single quadrant report for '{quadrantName}': {ex.Message}");
+            return false;
+        }
+    }
+    
+    private async Task<bool> SendCombinedQuadrantReportAsync(List<string> recipients, DateTime startDate, DateTime endDate, List<string> selectedQuadrants, bool useZipFormat, string subjectPrefix)
+    {
+        // This is essentially the same as the existing SendQuadrantReportAsync but with different subject
+        try
+        {
+            // Get files from selected quadrants
+            var quadrantFiles = new List<string>();
+            if (_quadrantService != null)
+            {
+                quadrantFiles = await _quadrantService.GetQuadrantFilesAsync(selectedQuadrants, startDate, endDate);
+            }
+            else
+            {
+                quadrantFiles = await GetQuadrantFilesDirectAsync(selectedQuadrants, startDate, endDate);
+            }
+
+            // Create email message
+            var message = new MimeMessage();
+            message.From.Add(new MailboxAddress(_config.Email.SenderName, _config.Email.Username));
+            
+            foreach (var recipient in recipients)
+            {
+                message.To.Add(new MailboxAddress("", recipient));
+            }
+
+            var quadrantList = string.Join(", ", selectedQuadrants);
+            message.Subject = $"{subjectPrefix} - {startDate:yyyy-MM-dd} a {endDate:yyyy-MM-dd}";
+
+            // Create email body
+            var bodyBuilder = new BodyBuilder();
+            bodyBuilder.HtmlBody = CreateQuadrantEmailHtml(startDate, endDate, quadrantFiles.Count, quadrantList);
+            bodyBuilder.TextBody = CreateQuadrantEmailText(startDate, endDate, quadrantFiles.Count, quadrantList);
+
+            // Add attachments
+            if (quadrantFiles.Any() && useZipFormat)
+            {
+                var zipPath = await PrepareQuadrantAttachmentsAsync(quadrantFiles, selectedQuadrants, startDate, endDate);
+                if (zipPath != null)
+                {
+                    bodyBuilder.Attachments.Add(zipPath);
+                    
+                    // Schedule cleanup
+                    _ = Task.Delay(TimeSpan.FromMinutes(10)).ContinueWith(_ =>
+                    {
+                        try { File.Delete(zipPath); } catch { }
+                    });
+                }
+            }
+            else if (quadrantFiles.Any())
+            {
+                // Add individual files (up to 10 to avoid too many attachments)
+                var filesToAttach = quadrantFiles.Take(10).ToList();
+                foreach (var file in filesToAttach)
+                {
+                    if (File.Exists(file))
+                    {
+                        bodyBuilder.Attachments.Add(file);
+                    }
+                }
+            }
+
+            message.Body = bodyBuilder.ToMessageBody();
+
+            // Send email
+            return await SendEmailAsync(message);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error sending combined quadrant report: {ex.Message}");
+            return false;
+        }
+    }
+    
     public List<string> GetAvailableQuadrantFolders()
     {
         if (_quadrantService != null)
@@ -685,6 +905,76 @@ Generado: {DateTime.Now:yyyy-MM-dd HH:mm:ss}
 Acerca de los Cuadrantes:
 Los cuadrantes son secciones específicas de las capturas de pantalla que se procesan
 automáticamente para facilitar el análisis de áreas particulares de la pantalla.
+
+---
+Este reporte fue generado automáticamente por Capturer - Sistema de Cuadrantes Beta.
+Si tienes alguna pregunta, contacta al administrador del sistema.
+";
+    }
+    
+    private string CreateSingleQuadrantEmailHtml(DateTime startDate, DateTime endDate, int count, string quadrantName)
+    {
+        return $@"
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8'>
+    <title>Reporte de Cuadrante '{quadrantName}' - Capturer</title>
+</head>
+<body style='font-family: Arial, sans-serif; margin: 20px;'>
+    <h2 style='color: #2c3e50;'>📐 Reporte de Cuadrante '{quadrantName}' - Capturer</h2>
+    <div style='background-color: #f8f9fa; padding: 15px; border-left: 4px solid #007bff; margin: 20px 0;'>
+        <h3 style='margin-top: 0; color: #495057;'>Detalles del Reporte</h3>
+        <p><strong>Período:</strong> {startDate:dd/MM/yyyy} hasta {endDate:dd/MM/yyyy}</p>
+        <p><strong>Cuadrante:</strong> {quadrantName}</p>
+        <p><strong>Total de archivos:</strong> {count}</p>
+        <p><strong>Computadora:</strong> {Environment.MachineName}</p>
+        <p><strong>Generado:</strong> {DateTime.Now:dd/MM/yyyy HH:mm:ss}</p>
+    </div>
+    
+    {(count > 0 ? 
+        @"<div style='background-color: #d4edda; padding: 10px; border-radius: 5px; margin: 15px 0;'>
+            <p style='margin: 0; color: #155724;'>✓ Los archivos del cuadrante están adjuntos en este email.</p>
+        </div>" : 
+        @"<div style='background-color: #f8d7da; padding: 10px; border-radius: 5px; margin: 15px 0;'>
+            <p style='margin: 0; color: #721c24;'>⚠ No se encontraron archivos para este cuadrante en el período especificado.</p>
+        </div>")}
+    
+    <div style='background-color: #e2e3e5; padding: 10px; border-radius: 5px; margin: 20px 0; font-size: 12px;'>
+        <h4 style='margin-top: 0; color: #6c757d;'>Acerca de los Cuadrantes</h4>
+        <p style='margin: 5px 0; color: #6c757d;'>Los cuadrantes son secciones específicas de las capturas de pantalla que se procesan</p>
+        <p style='margin: 5px 0; color: #6c757d;'>automáticamente para facilitar el análisis de áreas particulares de la pantalla.</p>
+        <p style='margin: 5px 0; color: #6c757d;'>Este cuadrante ('{quadrantName}') contiene datos procesados específicamente para esta sección.</p>
+    </div>
+    
+    <hr style='margin: 30px 0; border: none; border-top: 1px solid #dee2e6;'>
+    <p style='font-size: 12px; color: #6c757d; text-align: center;'>
+        Este reporte fue generado automáticamente por Capturer - Sistema de Cuadrantes Beta.<br>
+        Si tienes alguna pregunta, contacta al administrador del sistema.
+    </p>
+</body>
+</html>
+";
+    }
+    
+    private string CreateSingleQuadrantEmailText(DateTime startDate, DateTime endDate, int count, string quadrantName)
+    {
+        return $@"
+REPORTE DE CUADRANTE '{quadrantName.ToUpper()}' - CAPTURER
+======================================================
+
+Período del reporte: {startDate:yyyy-MM-dd} hasta {endDate:yyyy-MM-dd}
+Cuadrante: {quadrantName}
+Total de archivos: {count}
+Computadora: {Environment.MachineName}
+Generado: {DateTime.Now:yyyy-MM-dd HH:mm:ss}
+
+{(count > 0 ? "Los archivos del cuadrante están adjuntos en este email." : "No se encontraron archivos para este cuadrante en el período especificado.")}
+
+Acerca de los Cuadrantes:
+Los cuadrantes son secciones específicas de las capturas de pantalla que se procesan
+automáticamente para facilitar el análisis de áreas particulares de la pantalla.
+Este cuadrante ('{quadrantName}') contiene datos procesados específicamente para esta sección.
 
 ---
 Este reporte fue generado automáticamente por Capturer - Sistema de Cuadrantes Beta.

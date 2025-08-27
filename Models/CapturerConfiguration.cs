@@ -52,6 +52,11 @@ public class EmailSettings
     public bool EnableWeeklyReports { get; set; } = true;
     public bool UseSSL { get; set; } = true;
     public string SenderName { get; set; } = "Capturer Screenshot App";
+    
+    // Enhanced routine email options
+    public bool UseZipFormat { get; set; } = true;
+    public bool SendSeparateEmails { get; set; } = false;
+    public RoutineEmailQuadrantSettings QuadrantSettings { get; set; } = new();
 }
 
 public class StorageSettings
@@ -153,4 +158,13 @@ public class ApplicationSettings
     public bool ShowNotifications { get; set; } = true;
     public string Language { get; set; } = "es-ES";
     public bool AutoCheckUpdates { get; set; } = true;
+}
+
+public class RoutineEmailQuadrantSettings
+{
+    public bool UseQuadrantsInRoutineEmails { get; set; } = false;
+    public List<string> SelectedQuadrants { get; set; } = new();
+    public bool ProcessQuadrantsFirst { get; set; } = false;
+    public string ProcessingProfile { get; set; } = "Default";
+    public bool SendSeparateEmailPerQuadrant { get; set; } = false;
 }

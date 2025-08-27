@@ -135,6 +135,7 @@ namespace Capturer
             btnStopCapture.Click += BtnStopCapture_Click;
             btnSettings.Click += BtnSettings_Click;
             btnSendEmail.Click += BtnSendEmail_Click;
+            btnRoutineEmail.Click += BtnRoutineEmail_Click;
             btnCaptureNow.Click += BtnCaptureNow_Click;
             btnOpenFolder.Click += BtnOpenFolder_Click;
             btnQuadrants.Click += BtnQuadrants_Click;
@@ -256,7 +257,7 @@ namespace Capturer
         {
             try
             {
-                var emailForm = new EmailForm(_emailService, _fileService, _configManager);
+                var emailForm = new EmailForm(_emailService, _fileService, _configManager, _quadrantService);
                 if (emailForm.ShowDialog(this) == DialogResult.OK)
                 {
                     ShowNotification("Email", "Email enviado exitosamente");
@@ -265,6 +266,39 @@ namespace Capturer
             catch (Exception ex)
             {
                 MessageBox.Show($"Error abriendo formulario de email: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void BtnRoutineEmail_Click(object? sender, EventArgs e)
+        {
+            try
+            {
+                var routineEmailForm = new RoutineEmailForm(_emailService, _fileService, _configManager, _quadrantService);
+                if (routineEmailForm.ShowDialog(this) == DialogResult.OK)
+                {
+                    ShowNotification("Configuración", "Configuración de reportes automáticos guardada exitosamente");
+                    
+                    // Restart scheduler service to apply new configuration
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            if (_schedulerService.IsRunning)
+                            {
+                                await _schedulerService.StopAsync();
+                                await _schedulerService.StartAsync();
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"Error restarting scheduler: {ex.Message}");
+                        }
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error abriendo configuración de reportes automáticos: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
