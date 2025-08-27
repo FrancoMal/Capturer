@@ -40,6 +40,7 @@
             this.btnSendEmail = new System.Windows.Forms.Button();
             this.btnCaptureNow = new System.Windows.Forms.Button();
             this.btnOpenFolder = new System.Windows.Forms.Button();
+            this.btnQuadrants = new System.Windows.Forms.Button();
             this.listViewScreenshots = new System.Windows.Forms.ListView();
             this.btnMinimizeToTray = new System.Windows.Forms.Button();
             this.btnExit = new System.Windows.Forms.Button();
@@ -176,6 +177,18 @@
             this.btnOpenFolder.Text = "Abrir Carpeta";
             this.btnOpenFolder.UseVisualStyleBackColor = false;
             // 
+            // btnQuadrants
+            // 
+            this.btnQuadrants.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(152)))), ((int)(((byte)(0)))));
+            this.btnQuadrants.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnQuadrants.ForeColor = System.Drawing.Color.White;
+            this.btnQuadrants.Location = new System.Drawing.Point(15, 70);
+            this.btnQuadrants.Name = "btnQuadrants";
+            this.btnQuadrants.Size = new System.Drawing.Size(120, 35);
+            this.btnQuadrants.TabIndex = 12;
+            this.btnQuadrants.Text = "Cuadrantes (Beta)";
+            this.btnQuadrants.UseVisualStyleBackColor = false;
+            // 
             // listViewScreenshots
             // 
             this.listViewScreenshots.Location = new System.Drawing.Point(15, 25);
@@ -264,9 +277,10 @@
             this.groupBoxControls.Controls.Add(this.btnSendEmail);
             this.groupBoxControls.Controls.Add(this.btnCaptureNow);
             this.groupBoxControls.Controls.Add(this.btnOpenFolder);
+            this.groupBoxControls.Controls.Add(this.btnQuadrants);
             this.groupBoxControls.Location = new System.Drawing.Point(15, 140);
             this.groupBoxControls.Name = "groupBoxControls";
-            this.groupBoxControls.Size = new System.Drawing.Size(720, 80);
+            this.groupBoxControls.Size = new System.Drawing.Size(720, 115);
             this.groupBoxControls.TabIndex = 15;
             this.groupBoxControls.TabStop = false;
             this.groupBoxControls.Text = "Controles";
@@ -317,6 +331,7 @@
         private System.Windows.Forms.Button btnSendEmail;
         private System.Windows.Forms.Button btnCaptureNow;
         private System.Windows.Forms.Button btnOpenFolder;
+        private System.Windows.Forms.Button btnQuadrants;
         private System.Windows.Forms.ListView listViewScreenshots;
         private System.Windows.Forms.Button btnMinimizeToTray;
         private System.Windows.Forms.Button btnExit;

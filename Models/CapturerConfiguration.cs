@@ -9,6 +9,7 @@ public class CapturerConfiguration
     public StorageSettings Storage { get; set; } = new();
     public ScheduleSettings Schedule { get; set; } = new();
     public ApplicationSettings Application { get; set; } = new();
+    public QuadrantSystemSettings QuadrantSystem { get; set; } = new();
 }
 
 public class ScreenshotSettings
@@ -98,6 +99,50 @@ public class ScreenInfo
     public bool IsPrimary { get; set; }
     public string Resolution => $"{Width}x{Height}";
     public string Description => $"{DisplayName} ({Resolution})" + (IsPrimary ? " [Principal]" : "");
+}
+
+public class QuadrantSystemSettings
+{
+    public bool IsEnabled { get; set; } = false;
+    public int MaxQuadrants { get; set; } = 36; // 6x6 grid max
+    public string ActiveConfigurationName { get; set; } = "Default";
+    public List<QuadrantConfiguration> Configurations { get; set; } = new();
+    public ScheduledProcessing ScheduledProcessing { get; set; } = new();
+    public string QuadrantsFolder { get; set; } = "Quadrants";
+    public bool ShowPreviewColors { get; set; } = true;
+    public bool EnableLogging { get; set; } = true;
+
+    public QuadrantSystemSettings()
+    {
+        QuadrantsFolder = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), 
+            "Capturer", "Quadrants");
+    }
+
+    /// <summary>
+    /// Gets the active configuration
+    /// </summary>
+    public QuadrantConfiguration? GetActiveConfiguration()
+    {
+        return Configurations.FirstOrDefault(c => c.Name == ActiveConfigurationName && c.IsActive);
+    }
+
+    /// <summary>
+    /// Adds or updates a configuration
+    /// </summary>
+    public void AddOrUpdateConfiguration(QuadrantConfiguration configuration)
+    {
+        var existing = Configurations.FirstOrDefault(c => c.Name == configuration.Name);
+        if (existing != null)
+        {
+            existing = configuration;
+            existing.LastModified = DateTime.Now;
+        }
+        else
+        {
+            Configurations.Add(configuration);
+        }
+    }
 }
 
 public class ApplicationSettings

@@ -13,6 +13,8 @@ namespace Capturer
         private readonly IEmailService _emailService;
         private readonly IFileService _fileService;
         private readonly IConfigurationManager _configManager;
+        private readonly IQuadrantService _quadrantService;
+        private readonly IQuadrantSchedulerService _quadrantSchedulerService;
         private readonly ServiceProvider _serviceProvider;
         private CapturerConfiguration _config = new();
 
@@ -24,6 +26,8 @@ namespace Capturer
             _emailService = serviceProvider.GetRequiredService<IEmailService>();
             _fileService = serviceProvider.GetRequiredService<IFileService>();
             _configManager = serviceProvider.GetRequiredService<IConfigurationManager>();
+            _quadrantService = serviceProvider.GetRequiredService<IQuadrantService>();
+            _quadrantSchedulerService = serviceProvider.GetRequiredService<IQuadrantSchedulerService>();
 
             InitializeComponent();
             InitializeApplication();
@@ -74,6 +78,7 @@ namespace Capturer
             btnSendEmail.Click += BtnSendEmail_Click;
             btnCaptureNow.Click += BtnCaptureNow_Click;
             btnOpenFolder.Click += BtnOpenFolder_Click;
+            btnQuadrants.Click += BtnQuadrants_Click;
             btnMinimizeToTray.Click += BtnMinimizeToTray_Click;
             btnExit.Click += BtnExit_Click;
 
@@ -423,15 +428,61 @@ namespace Capturer
             }
         }
 
+        private void BtnQuadrants_Click(object? sender, EventArgs e)
+        {
+            try
+            {
+                // Check if quadrant system is enabled
+                if (!_config.QuadrantSystem.IsEnabled)
+                {
+                    var result = MessageBox.Show(
+                        "El sistema de cuadrantes está deshabilitado.\n\n¿Desea habilitarlo ahora?",
+                        "Sistema de Cuadrantes - Beta",
+                        MessageBoxButtons.YesNo,
+                        MessageBoxIcon.Question);
+
+                    if (result == DialogResult.Yes)
+                    {
+                        _config.QuadrantSystem.IsEnabled = true;
+                        _configManager.SaveConfigurationAsync(_config);
+                        ShowNotification("Cuadrantes", "Sistema de cuadrantes habilitado");
+                    }
+                    else
+                    {
+                        return;
+                    }
+                }
+
+                // Open quadrant editor form
+                var quadrantEditorForm = new QuadrantEditorForm(
+                    _quadrantService, 
+                    _configManager, 
+                    _screenshotService);
+
+                quadrantEditorForm.ShowDialog(this);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error abriendo editor de cuadrantes: {ex.Message}", 
+                    "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
         private async Task CleanupAndExit()
         {
             try
             {
-                // Stop scheduler service
+                // Stop scheduler services
                 if (_schedulerService != null)
                 {
                     await _schedulerService.StopAsync();
                     _schedulerService.Dispose();
+                }
+
+                if (_quadrantSchedulerService != null)
+                {
+                    await _quadrantSchedulerService.StopAsync();
+                    _quadrantSchedulerService.Dispose();
                 }
 
                 // Dispose services

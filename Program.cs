@@ -43,8 +43,18 @@ namespace Capturer
             services.AddSingleton<IConfigurationManager, ConfigurationManager>();
             services.AddSingleton<IFileService, FileService>();
             services.AddSingleton<IScreenshotService, ScreenshotService>();
-            services.AddSingleton<IEmailService, EmailService>();
             services.AddSingleton<ISchedulerService, SchedulerService>();
+            
+            // Register quadrant system services
+            services.AddSingleton<IQuadrantService, QuadrantService>();
+            services.AddSingleton<IQuadrantSchedulerService, QuadrantSchedulerService>();
+            
+            // Register email service with quadrant service dependency
+            services.AddSingleton<IEmailService>(provider => 
+                new EmailService(
+                    provider.GetRequiredService<IConfigurationManager>(),
+                    provider.GetRequiredService<IFileService>(),
+                    provider.GetService<IQuadrantService>()));
 
             return services.BuildServiceProvider();
         }
