@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Capturer")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+37b3686f2919a6d065257da26e0c17a5314e0fd1")]
 [assembly: System.Reflection.AssemblyProductAttribute("Capturer")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Capturer")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

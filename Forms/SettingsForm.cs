@@ -62,6 +62,27 @@ public partial class SettingsForm : Form
         this.FormBorderStyle = FormBorderStyle.FixedDialog;
         this.MaximizeBox = false;
         this.MinimizeBox = false;
+        
+        // Set form icon
+        try
+        {
+            if (File.Exists("Capturer_Logo.ico"))
+            {
+                this.Icon = new Icon("Capturer_Logo.ico");
+            }
+            else
+            {
+                var stream = GetType().Assembly.GetManifestResourceStream("Capturer.Capturer_Logo.ico");
+                if (stream != null)
+                {
+                    this.Icon = new Icon(stream);
+                }
+            }
+        }
+        catch
+        {
+            // Keep default icon if loading fails
+        }
 
         var tabControl = new TabControl();
         tabControl.Dock = DockStyle.Fill;

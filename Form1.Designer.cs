@@ -29,6 +29,7 @@
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
             this.lblStatus = new System.Windows.Forms.Label();
             this.lblNextCapture = new System.Windows.Forms.Label();
             this.lblTotalScreenshots = new System.Windows.Forms.Label();
@@ -53,10 +54,12 @@
             this.groupBoxStatus = new System.Windows.Forms.GroupBox();
             this.groupBoxControls = new System.Windows.Forms.GroupBox();
             this.groupBoxRecent = new System.Windows.Forms.GroupBox();
+            this.pictureBoxLogo = new System.Windows.Forms.PictureBox();
             this.contextMenuStrip.SuspendLayout();
             this.groupBoxStatus.SuspendLayout();
             this.groupBoxControls.SuspendLayout();
             this.groupBoxRecent.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBoxLogo)).BeginInit();
             this.SuspendLayout();
             // 
             // lblStatus
@@ -295,6 +298,15 @@
             this.groupBoxRecent.TabStop = false;
             this.groupBoxRecent.Text = "Capturas Recientes";
             // 
+            // pictureBoxLogo
+            // 
+            this.pictureBoxLogo.Location = new System.Drawing.Point(15, 525);
+            this.pictureBoxLogo.Name = "pictureBoxLogo";
+            this.pictureBoxLogo.Size = new System.Drawing.Size(64, 64);
+            this.pictureBoxLogo.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
+            this.pictureBoxLogo.TabIndex = 17;
+            this.pictureBoxLogo.TabStop = false;
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
@@ -303,9 +315,11 @@
             this.Controls.Add(this.groupBoxRecent);
             this.Controls.Add(this.groupBoxControls);
             this.Controls.Add(this.groupBoxStatus);
+            this.Controls.Add(this.pictureBoxLogo);
             this.Controls.Add(this.btnMinimizeToTray);
             this.Controls.Add(this.btnExit);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.MaximizeBox = false;
             this.Name = "Form1";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
@@ -315,6 +329,7 @@
             this.groupBoxStatus.PerformLayout();
             this.groupBoxControls.ResumeLayout(false);
             this.groupBoxRecent.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBoxLogo)).EndInit();
             this.ResumeLayout(false);
         }
 
@@ -344,5 +359,6 @@
         private System.Windows.Forms.GroupBox groupBoxStatus;
         private System.Windows.Forms.GroupBox groupBoxControls;
         private System.Windows.Forms.GroupBox groupBoxRecent;
+        private System.Windows.Forms.PictureBox pictureBoxLogo;
     }
 }

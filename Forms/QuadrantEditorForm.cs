@@ -85,6 +85,27 @@ public partial class QuadrantEditorForm : Form
         this.StartPosition = FormStartPosition.CenterParent;
         this.FormBorderStyle = FormBorderStyle.Sizable;
         this.MinimumSize = new Size(800, 600);
+        
+        // Set form icon
+        try
+        {
+            if (File.Exists("Capturer_Logo.ico"))
+            {
+                this.Icon = new Icon("Capturer_Logo.ico");
+            }
+            else
+            {
+                var stream = GetType().Assembly.GetManifestResourceStream("Capturer.Capturer_Logo.ico");
+                if (stream != null)
+                {
+                    this.Icon = new Icon(stream);
+                }
+            }
+        }
+        catch
+        {
+            // Keep default icon if loading fails
+        }
 
         CreateConfigurationPanel();
         CreatePreviewPanel();

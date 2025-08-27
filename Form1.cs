@@ -38,6 +38,9 @@ namespace Capturer
             // Load configuration
             _config = await _configManager.LoadConfigurationAsync();
 
+            // Setup form icon
+            SetupFormIcon();
+
             // Setup ListView columns
             SetupListView();
 
@@ -55,6 +58,62 @@ namespace Capturer
 
             // Start update timer
             updateTimer.Start();
+        }
+
+        private void SetupFormIcon()
+        {
+            try
+            {
+                if (File.Exists("Capturer_Logo.ico"))
+                {
+                    this.Icon = new Icon("Capturer_Logo.ico");
+                }
+                else
+                {
+                    // Fallback to embedded resource
+                    var stream = GetType().Assembly.GetManifestResourceStream("Capturer.Capturer_Logo.ico");
+                    if (stream != null)
+                    {
+                        this.Icon = new Icon(stream);
+                    }
+                }
+            }
+            catch
+            {
+                // Keep default icon if loading fails
+            }
+            
+            // Setup logo image in PictureBox
+            SetupLogoPictureBox();
+        }
+
+        private void SetupLogoPictureBox()
+        {
+            try
+            {
+                if (File.Exists("Capturer_Logo.png"))
+                {
+                    pictureBoxLogo.Image = Image.FromFile("Capturer_Logo.png");
+                }
+                else
+                {
+                    // Fallback to embedded resource
+                    var stream = GetType().Assembly.GetManifestResourceStream("Capturer.Capturer_Logo.png");
+                    if (stream != null)
+                    {
+                        pictureBoxLogo.Image = Image.FromStream(stream);
+                    }
+                }
+                
+                // Add a subtle border around the logo
+                pictureBoxLogo.BorderStyle = BorderStyle.None;
+                pictureBoxLogo.BackColor = this.BackColor;
+            }
+            catch
+            {
+                // If loading fails, hide the PictureBox
+                pictureBoxLogo.Visible = false;
+            }
         }
 
         private void SetupListView()
@@ -105,8 +164,32 @@ namespace Capturer
 
         private void SetupSystemTray()
         {
-            // Set icon for system tray (you'll need to add an icon resource)
-            notifyIcon.Icon = SystemIcons.Application;
+            // Set icon for system tray using our custom logo
+            try
+            {
+                if (File.Exists("Capturer_Logo.ico"))
+                {
+                    notifyIcon.Icon = new Icon("Capturer_Logo.ico");
+                }
+                else
+                {
+                    // Fallback to embedded resource
+                    var stream = GetType().Assembly.GetManifestResourceStream("Capturer.Capturer_Logo.ico");
+                    if (stream != null)
+                    {
+                        notifyIcon.Icon = new Icon(stream);
+                    }
+                    else
+                    {
+                        notifyIcon.Icon = SystemIcons.Application;
+                    }
+                }
+            }
+            catch
+            {
+                notifyIcon.Icon = SystemIcons.Application;
+            }
+            
             notifyIcon.Text = "Capturer - Screenshot Manager";
             notifyIcon.Visible = true;
         }
