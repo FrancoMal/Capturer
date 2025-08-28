@@ -10,6 +10,8 @@ public interface IEmailService
 {
     Task<bool> SendWeeklyReportAsync(List<string> recipients, DateTime startDate, DateTime endDate);
     Task<bool> SendManualReportAsync(List<string> recipients, DateTime startDate, DateTime endDate, bool useZipFormat = true);
+    Task<bool> SendEnhancedReportAsync(List<string> recipients, DateTime startDate, DateTime endDate, List<string> screenshots, string reportType, bool useZipFormat = true);
+    Task<bool> SendUnifiedReportAsync(List<string> recipients, ReportPeriod period, List<string> baseScreenshots, string reportType, bool useZipFormat = true);
     Task<bool> SendQuadrantReportAsync(List<string> recipients, DateTime startDate, DateTime endDate, List<string> selectedQuadrants, bool useZipFormat = true);
     Task<bool> SendRoutineQuadrantReportsAsync(List<string> recipients, DateTime startDate, DateTime endDate, List<string> selectedQuadrants, bool useZipFormat = true, bool separateEmailPerQuadrant = false);
     Task<bool> ValidateEmailConfigAsync();
@@ -61,6 +63,111 @@ public class EmailService : IEmailService
     public async Task<bool> SendManualReportAsync(List<string> recipients, DateTime startDate, DateTime endDate, bool useZipFormat = true)
     {
         return await SendReportAsync(recipients, startDate, endDate, "Reporte Manual Capturer", false, useZipFormat);
+    }
+
+    public async Task<bool> SendEnhancedReportAsync(List<string> recipients, DateTime startDate, DateTime endDate, List<string> screenshots, string reportType, bool useZipFormat = true)
+    {
+        try
+        {
+            await LoadConfigurationAsync();
+
+            if (!screenshots.Any())
+            {
+                // Send empty report
+                return await SendEmptyReportAsync(recipients, startDate, endDate, reportType);
+            }
+
+            // Create and send email
+            var message = CreateEmailMessage(recipients, startDate, endDate, screenshots.Count, reportType, false);
+            var multipart = new Multipart("mixed");
+            multipart.Add(message.Body);
+            
+            var tempFiles = new List<string>();
+            
+            if (useZipFormat)
+            {
+                // Prepare ZIP attachment with provided screenshots
+                var attachmentPath = await PrepareCustomAttachmentsAsync(screenshots, startDate, endDate, reportType);
+                if (!string.IsNullOrEmpty(attachmentPath))
+                {
+                    // Read ZIP file content into memory to avoid file handle issues
+                    var zipBytes = await File.ReadAllBytesAsync(attachmentPath);
+                    var attachment = new MimePart("application", "zip")
+                    {
+                        Content = new MimeContent(new MemoryStream(zipBytes)),
+                        ContentDisposition = new ContentDisposition(ContentDisposition.Attachment),
+                        ContentTransferEncoding = ContentEncoding.Base64,
+                        FileName = Path.GetFileName(attachmentPath)
+                    };
+                    
+                    multipart.Add(attachment);
+                    tempFiles.Add(attachmentPath);
+                }
+            }
+            else
+            {
+                // Add individual files as attachments
+                long totalSize = 0;
+                foreach (var screenshotPath in screenshots)
+                {
+                    if (!File.Exists(screenshotPath)) continue;
+                    
+                    var fileInfo = new FileInfo(screenshotPath);
+                    if (totalSize + fileInfo.Length > MaxAttachmentSize)
+                    {
+                        break; // Stop adding files if we exceed the limit
+                    }
+                    
+                    // Read file content into memory to avoid file handle issues
+                    var fileBytes = await File.ReadAllBytesAsync(screenshotPath);
+                    var attachment = new MimePart("image", "png")
+                    {
+                        Content = new MimeContent(new MemoryStream(fileBytes)),
+                        ContentDisposition = new ContentDisposition(ContentDisposition.Attachment),
+                        ContentTransferEncoding = ContentEncoding.Base64,
+                        FileName = Path.GetFileName(screenshotPath)
+                    };
+                    
+                    multipart.Add(attachment);
+                    totalSize += fileInfo.Length;
+                }
+            }
+            
+            message.Body = multipart;
+
+            var success = await SendEmailAsync(message);
+
+            // Cleanup temp files
+            foreach (var tempFile in tempFiles)
+            {
+                if (File.Exists(tempFile))
+                {
+                    try { File.Delete(tempFile); } catch { /* Ignore cleanup errors */ }
+                }
+            }
+
+            // Fire event
+            EmailSent?.Invoke(this, new EmailSentEventArgs
+            {
+                Recipients = recipients,
+                AttachmentCount = screenshots.Count,
+                SentDate = DateTime.Now,
+                Success = success
+            });
+
+            return success;
+        }
+        catch (Exception ex)
+        {
+            EmailSent?.Invoke(this, new EmailSentEventArgs
+            {
+                Recipients = recipients,
+                Success = false,
+                ErrorMessage = ex.Message,
+                SentDate = DateTime.Now
+            });
+            return false;
+        }
     }
 
     private async Task<bool> SendReportAsync(List<string> recipients, DateTime startDate, DateTime endDate, string subjectPrefix, bool isWeekly, bool useZipFormat = true)
@@ -732,6 +839,254 @@ Si tienes alguna pregunta, contacta al administrador del sistema.
         }
 
         return new List<string>();
+    }
+
+    public async Task<bool> SendUnifiedReportAsync(List<string> recipients, ReportPeriod period, List<string> baseScreenshots, string reportType, bool useZipFormat = true)
+    {
+        try
+        {
+            await LoadConfigurationAsync();
+
+            if (!baseScreenshots.Any())
+            {
+                // Send empty report
+                return await SendEmptyReportAsync(recipients, period.StartDate, period.EndDate, reportType);
+            }
+
+            bool success;
+            var config = _config;
+            
+            Console.WriteLine($"Unified report: {baseScreenshots.Count} base screenshots filtered by period");
+            
+            // Check if quadrant system is enabled for routine emails
+            if (config.Email.QuadrantSettings.UseQuadrantsInRoutineEmails && 
+                config.Email.QuadrantSettings.SelectedQuadrants.Any() &&
+                _quadrantService != null)
+            {
+                Console.WriteLine($"Processing quadrants from filtered screenshots for {config.Email.QuadrantSettings.SelectedQuadrants.Count} quadrants");
+                
+                // Process quadrants from the filtered screenshots first
+                if (config.Email.QuadrantSettings.ProcessQuadrantsFirst)
+                {
+                    success = await ProcessAndSendQuadrantReportAsync(
+                        recipients, 
+                        baseScreenshots, 
+                        period,
+                        config.Email.QuadrantSettings.SelectedQuadrants,
+                        reportType,
+                        useZipFormat,
+                        config.Email.QuadrantSettings.SendSeparateEmailPerQuadrant);
+                }
+                else
+                {
+                    // Send both regular screenshots AND quadrant files
+                    success = await SendCombinedScreenshotAndQuadrantReportAsync(
+                        recipients,
+                        baseScreenshots,
+                        period,
+                        config.Email.QuadrantSettings.SelectedQuadrants,
+                        reportType,
+                        useZipFormat);
+                }
+            }
+            else
+            {
+                // Standard enhanced report with filtered screenshots
+                success = await SendEnhancedReportAsync(
+                    recipients, 
+                    period.StartDate, 
+                    period.EndDate, 
+                    baseScreenshots,
+                    reportType,
+                    useZipFormat);
+            }
+
+            return success;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error sending unified report: {ex.Message}");
+            
+            EmailSent?.Invoke(this, new EmailSentEventArgs
+            {
+                Recipients = recipients,
+                Success = false,
+                FileCount = 0,
+                ErrorMessage = ex.Message
+            });
+            
+            return false;
+        }
+    }
+
+    private async Task<bool> ProcessAndSendQuadrantReportAsync(
+        List<string> recipients, 
+        List<string> baseScreenshots, 
+        ReportPeriod period,
+        List<string> selectedQuadrants,
+        string reportType,
+        bool useZipFormat,
+        bool separateEmailPerQuadrant)
+    {
+        try
+        {
+            if (_quadrantService == null)
+            {
+                Console.WriteLine("QuadrantService not available, falling back to regular report");
+                return await SendEnhancedReportAsync(recipients, period.StartDate, period.EndDate, baseScreenshots, reportType, useZipFormat);
+            }
+
+            // Process the filtered screenshots through quadrant system
+            Console.WriteLine($"Processing {baseScreenshots.Count} filtered screenshots through quadrant system");
+            
+            var processingTask = await _quadrantService.ProcessSpecificImagesAsync(
+                baseScreenshots, 
+                null, // Use active configuration
+                null  // No progress reporting for background task
+            );
+
+            if (processingTask.Status != ProcessingStatus.Completed)
+            {
+                Console.WriteLine($"Quadrant processing failed: {string.Join("; ", processingTask.ErrorMessages)}");
+                // Fallback to regular screenshots
+                return await SendEnhancedReportAsync(recipients, period.StartDate, period.EndDate, baseScreenshots, reportType, useZipFormat);
+            }
+
+            Console.WriteLine($"Quadrant processing completed successfully: {processingTask.ProcessedFiles} files processed");
+
+            // Now get the quadrant files that were processed from our filtered screenshots
+            var quadrantFiles = await _quadrantService.GetQuadrantFilesAsync(selectedQuadrants, period.StartDate, period.EndDate);
+            
+            if (separateEmailPerQuadrant)
+            {
+                // Send separate email for each quadrant
+                bool overallSuccess = true;
+                foreach (var quadrant in selectedQuadrants)
+                {
+                    var quadrantSpecificFiles = await _quadrantService.GetQuadrantFilesAsync(new List<string> { quadrant }, period.StartDate, period.EndDate);
+                    
+                    var success = await SendEnhancedReportAsync(
+                        recipients,
+                        period.StartDate,
+                        period.EndDate,
+                        quadrantSpecificFiles,
+                        $"{reportType} - Cuadrante '{quadrant}'",
+                        useZipFormat);
+                        
+                    if (!success) overallSuccess = false;
+                }
+                return overallSuccess;
+            }
+            else
+            {
+                // Send combined quadrant report
+                return await SendEnhancedReportAsync(
+                    recipients,
+                    period.StartDate,
+                    period.EndDate,
+                    quadrantFiles,
+                    $"{reportType} - Cuadrantes",
+                    useZipFormat);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error in ProcessAndSendQuadrantReportAsync: {ex.Message}");
+            // Fallback to regular screenshots
+            return await SendEnhancedReportAsync(recipients, period.StartDate, period.EndDate, baseScreenshots, reportType, useZipFormat);
+        }
+    }
+
+    private async Task<bool> SendCombinedScreenshotAndQuadrantReportAsync(
+        List<string> recipients,
+        List<string> baseScreenshots,
+        ReportPeriod period,
+        List<string> selectedQuadrants,
+        string reportType,
+        bool useZipFormat)
+    {
+        try
+        {
+            // Get existing quadrant files (if any) that match the period
+            var quadrantFiles = new List<string>();
+            if (_quadrantService != null)
+            {
+                quadrantFiles = await _quadrantService.GetQuadrantFilesAsync(selectedQuadrants, period.StartDate, period.EndDate);
+            }
+
+            // Combine both regular screenshots and quadrant files
+            var allFiles = new List<string>();
+            allFiles.AddRange(baseScreenshots);
+            allFiles.AddRange(quadrantFiles);
+
+            Console.WriteLine($"Combined report: {baseScreenshots.Count} screenshots + {quadrantFiles.Count} quadrant files = {allFiles.Count} total");
+
+            return await SendEnhancedReportAsync(
+                recipients,
+                period.StartDate,
+                period.EndDate,
+                allFiles.Distinct().ToList(), // Remove duplicates
+                $"{reportType} - Completo con Cuadrantes",
+                useZipFormat);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error in SendCombinedScreenshotAndQuadrantReportAsync: {ex.Message}");
+            // Fallback to regular screenshots only
+            return await SendEnhancedReportAsync(recipients, period.StartDate, period.EndDate, baseScreenshots, reportType, useZipFormat);
+        }
+    }
+
+    private async Task<string?> PrepareCustomAttachmentsAsync(List<string> screenshots, DateTime startDate, DateTime endDate, string reportType)
+    {
+        if (!screenshots.Any()) return null;
+
+        var tempPath = Path.GetTempPath();
+        var reportTypeShort = reportType.Replace("Reporte ", "").Replace(" Capturer", "");
+        var zipFileName = $"{reportTypeShort}_{startDate:yyyyMMdd}-{endDate:yyyyMMdd}_{DateTime.Now:HHmmss}.zip";
+        var zipPath = Path.Combine(tempPath, zipFileName);
+
+        try
+        {
+            using var archive = ZipFile.Open(zipPath, ZipArchiveMode.Create);
+            
+            long totalSize = 0;
+            var addedFiles = new List<string>();
+
+            foreach (var screenshotPath in screenshots)
+            {
+                if (!File.Exists(screenshotPath)) continue;
+
+                var fileInfo = new FileInfo(screenshotPath);
+                
+                // Check size limit
+                if (totalSize + fileInfo.Length > MaxAttachmentSize)
+                {
+                    break; // Stop adding files if we exceed the limit
+                }
+
+                archive.CreateEntryFromFile(screenshotPath, Path.GetFileName(screenshotPath));
+                totalSize += fileInfo.Length;
+                addedFiles.Add(screenshotPath);
+            }
+
+            if (!addedFiles.Any())
+            {
+                File.Delete(zipPath);
+                return null;
+            }
+
+            Console.WriteLine($"Created custom report ZIP with {addedFiles.Count} filtered screenshots");
+            return zipPath;
+        }
+        catch (Exception ex)
+        {
+            if (File.Exists(zipPath))
+                File.Delete(zipPath);
+            
+            Console.WriteLine($"Error creating custom report ZIP: {ex.Message}");
+            return null;
+        }
     }
 
     private async Task<List<string>> GetQuadrantFilesDirectAsync(List<string> quadrantNames, DateTime startDate, DateTime endDate)

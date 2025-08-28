@@ -19,6 +19,19 @@ public partial class RoutineEmailForm : Form
     private ComboBox cmbReportTime;
     private ComboBox cmbWeeklyDay;
     
+    // New Time Filter Controls
+    private GroupBox groupTimeFilter;
+    private CheckBox chkUseTimeFilter;
+    private ComboBox cmbStartTime;
+    private ComboBox cmbEndTime;
+    private Label lblStartTime;
+    private Label lblEndTime;
+    private Label lblTimeFilterNote;
+    
+    // Week Days Filter Controls
+    private CheckBox chkIncludeWeekends;
+    private CheckedListBox clbWeekDays;
+    
     // Recipient Selection Controls
     private CheckedListBox clbRecipients;
     private TextBox txtCustomEmail;
@@ -208,6 +221,106 @@ public partial class RoutineEmailForm : Form
         
         mainPanel.Controls.Add(groupMain);
         y += 160;
+
+        // === TIME FILTER SECTION ===
+        groupTimeFilter = new GroupBox 
+        { 
+            Text = "Filtros de Horario", 
+            Location = new Point(20, y), 
+            Size = new Size(640, 120), 
+            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right 
+        };
+        
+        // Add help button for time filter
+        var helpTimeFilter = CreateHelpButton(new Point(605, -2), 
+            "Filtros de Horario: Configure qué capturas incluir según horario y días.\n\n" +
+            "• Activar filtro de horario: Solo capturas en rango específico\n" +
+            "• Hora inicio/fin: Defina ventana de tiempo (ej: 8:00 AM - 11:00 PM)\n" +
+            "• Días de la semana: Seleccione qué días incluir\n" +
+            "• Útil para monitoreo de horario laboral únicamente");
+        groupTimeFilter.Controls.Add(helpTimeFilter);
+
+        chkUseTimeFilter = new CheckBox 
+        { 
+            Text = "Usar filtro de horario", 
+            Location = new Point(15, 25), 
+            AutoSize = true 
+        };
+        chkUseTimeFilter.CheckedChanged += ChkUseTimeFilter_CheckedChanged;
+        groupTimeFilter.Controls.Add(chkUseTimeFilter);
+
+        lblStartTime = new Label { Text = "Desde:", Location = new Point(15, 55), AutoSize = true };
+        groupTimeFilter.Controls.Add(lblStartTime);
+        
+        cmbStartTime = new ComboBox 
+        { 
+            Location = new Point(60, 52), 
+            Width = 80, 
+            DropDownStyle = ComboBoxStyle.DropDownList 
+        };
+        for (int i = 0; i < 24; i++)
+        {
+            cmbStartTime.Items.Add($"{i:D2}:00");
+        }
+        cmbStartTime.SelectedIndex = 8; // Default 8:00 AM
+        groupTimeFilter.Controls.Add(cmbStartTime);
+
+        lblEndTime = new Label { Text = "Hasta:", Location = new Point(160, 55), AutoSize = true };
+        groupTimeFilter.Controls.Add(lblEndTime);
+        
+        cmbEndTime = new ComboBox 
+        { 
+            Location = new Point(200, 52), 
+            Width = 80, 
+            DropDownStyle = ComboBoxStyle.DropDownList 
+        };
+        for (int i = 0; i < 24; i++)
+        {
+            cmbEndTime.Items.Add($"{i:D2}:00");
+        }
+        cmbEndTime.SelectedIndex = 23; // Default 11:00 PM
+        groupTimeFilter.Controls.Add(cmbEndTime);
+
+        chkIncludeWeekends = new CheckBox 
+        { 
+            Text = "Incluir fines de semana", 
+            Location = new Point(300, 28), 
+            AutoSize = true,
+            Checked = true
+        };
+        chkIncludeWeekends.CheckedChanged += ChkIncludeWeekends_CheckedChanged;
+        groupTimeFilter.Controls.Add(chkIncludeWeekends);
+
+        clbWeekDays = new CheckedListBox 
+        { 
+            Location = new Point(300, 52), 
+            Size = new Size(320, 60), 
+            CheckOnClick = true,
+            MultiColumn = true,
+            ColumnWidth = 90,
+            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
+        };
+        clbWeekDays.Items.AddRange(new[] { "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo" });
+        // Check weekdays by default
+        for (int i = 0; i < 5; i++)
+        {
+            clbWeekDays.SetItemChecked(i, true);
+        }
+        groupTimeFilter.Controls.Add(clbWeekDays);
+
+        lblTimeFilterNote = new Label 
+        { 
+            Location = new Point(15, 85), 
+            Size = new Size(600, 20), 
+            Text = "Nota: Los filtros se aplicarán solo a reportes automáticos. Reportes manuales no se ven afectados.",
+            Font = new Font("Microsoft Sans Serif", 7.5F, FontStyle.Italic),
+            ForeColor = Color.Gray,
+            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
+        };
+        groupTimeFilter.Controls.Add(lblTimeFilterNote);
+
+        mainPanel.Controls.Add(groupTimeFilter);
+        y += 140;
 
         // === RECIPIENT SELECTION SECTION ===
         var groupRecipients = new GroupBox 
@@ -578,6 +691,19 @@ public partial class RoutineEmailForm : Form
             cmbReportTime.SelectedIndex = _config.Schedule.ReportTime.Hours;
             cmbWeeklyDay.SelectedIndex = (int)_config.Schedule.WeeklyReportDay;
             
+            // Load time filter settings
+            chkUseTimeFilter.Checked = _config.Schedule.UseTimeFilter;
+            cmbStartTime.SelectedIndex = _config.Schedule.StartTime.Hours;
+            cmbEndTime.SelectedIndex = _config.Schedule.EndTime.Hours;
+            chkIncludeWeekends.Checked = _config.Schedule.IncludeWeekends;
+            
+            // Load week days selection
+            for (int i = 0; i < clbWeekDays.Items.Count && i < _config.Schedule.ActiveWeekDays.Count; i++)
+            {
+                var dayOfWeek = (DayOfWeek)(i == 6 ? 0 : i + 1); // Convert to DayOfWeek (Sunday=0, Monday=1, etc.)
+                clbWeekDays.SetItemChecked(i, _config.Schedule.ActiveWeekDays.Contains(dayOfWeek));
+            }
+            
             // Load recipients
             clbRecipients.Items.Clear();
             foreach (var recipient in _config.Email.Recipients)
@@ -864,6 +990,23 @@ public partial class RoutineEmailForm : Form
             _config.Schedule.ReportTime = TimeSpan.FromHours(cmbReportTime.SelectedIndex);
             _config.Schedule.WeeklyReportDay = (DayOfWeek)cmbWeeklyDay.SelectedIndex;
             
+            // Update time filter settings
+            _config.Schedule.UseTimeFilter = chkUseTimeFilter.Checked;
+            _config.Schedule.StartTime = TimeSpan.FromHours(cmbStartTime.SelectedIndex);
+            _config.Schedule.EndTime = TimeSpan.FromHours(cmbEndTime.SelectedIndex);
+            _config.Schedule.IncludeWeekends = chkIncludeWeekends.Checked;
+            
+            // Update active week days
+            _config.Schedule.ActiveWeekDays.Clear();
+            for (int i = 0; i < clbWeekDays.Items.Count; i++)
+            {
+                if (clbWeekDays.GetItemChecked(i))
+                {
+                    var dayOfWeek = (DayOfWeek)(i == 6 ? 0 : i + 1); // Convert from UI index to DayOfWeek
+                    _config.Schedule.ActiveWeekDays.Add(dayOfWeek);
+                }
+            }
+            
             // Update recipients - only save checked items
             _config.Email.Recipients = clbRecipients.CheckedItems.Cast<string>().ToList();
             
@@ -909,6 +1052,37 @@ public partial class RoutineEmailForm : Form
     {
         this.DialogResult = DialogResult.Cancel;
         this.Close();
+    }
+
+    private void ChkUseTimeFilter_CheckedChanged(object? sender, EventArgs e)
+    {
+        bool enabled = chkUseTimeFilter.Checked;
+        
+        lblStartTime.Enabled = enabled;
+        cmbStartTime.Enabled = enabled;
+        lblEndTime.Enabled = enabled;
+        cmbEndTime.Enabled = enabled;
+        
+        UpdatePreviewInfo();
+    }
+
+    private void ChkIncludeWeekends_CheckedChanged(object? sender, EventArgs e)
+    {
+        bool includeWeekends = chkIncludeWeekends.Checked;
+        
+        // Update weekend checkboxes in day list
+        if (includeWeekends)
+        {
+            clbWeekDays.SetItemChecked(5, true); // Saturday
+            clbWeekDays.SetItemChecked(6, true); // Sunday
+        }
+        else
+        {
+            clbWeekDays.SetItemChecked(5, false); // Saturday
+            clbWeekDays.SetItemChecked(6, false); // Sunday
+        }
+        
+        UpdatePreviewInfo();
     }
 
     #endregion
@@ -969,11 +1143,19 @@ public partial class RoutineEmailForm : Form
         cmbReportTime.Enabled = enabled;
         cmbWeeklyDay.Enabled = enabled;
         groupFormat.Enabled = enabled;
+        groupTimeFilter.Enabled = enabled;
         
         if (groupQuadrants.Visible)
         {
             groupQuadrants.Enabled = enabled;
         }
+        
+        // Enable/disable time filter controls based on checkbox
+        bool timeFilterEnabled = enabled && chkUseTimeFilter.Checked;
+        lblStartTime.Enabled = timeFilterEnabled;
+        cmbStartTime.Enabled = timeFilterEnabled;
+        lblEndTime.Enabled = timeFilterEnabled;
+        cmbEndTime.Enabled = timeFilterEnabled;
         
         // Update status label
         lblCurrentStatus.Text = enabled ? "Estado: Reportes automáticos habilitados" : "Estado: Reportes automáticos deshabilitados";

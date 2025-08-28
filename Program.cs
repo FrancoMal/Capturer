@@ -43,6 +43,7 @@ namespace Capturer
             services.AddSingleton<IConfigurationManager, ConfigurationManager>();
             services.AddSingleton<IFileService, FileService>();
             services.AddSingleton<IScreenshotService, ScreenshotService>();
+            services.AddSingleton<IReportPeriodService, ReportPeriodService>();
             services.AddSingleton<ISchedulerService, SchedulerService>();
             
             // Register quadrant system services

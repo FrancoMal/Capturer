@@ -312,6 +312,187 @@ public class QuadrantService : IQuadrantService, IDisposable
         }
     }
 
+    public async Task<ProcessingTask> ProcessSpecificImagesAsync(
+        List<string> imagePaths,
+        string? configurationName = null,
+        IProgress<ProcessingProgress>? progress = null,
+        CancellationToken cancellationToken = default)
+    {
+        // Initial progress report
+        progress?.Report(new ProcessingProgress
+        {
+            CurrentOperation = "Iniciando procesamiento específico...",
+            CurrentFile = 0,
+            TotalFiles = imagePaths.Count,
+            CurrentFileName = "Preparando..."
+        });
+        
+        Console.WriteLine($"[QuadrantService] Iniciando procesamiento específico de {imagePaths.Count} imágenes");
+        
+        await _processingSemaphore.WaitAsync(cancellationToken);
+        
+        try
+        {
+            // Report configuration loading
+            progress?.Report(new ProcessingProgress
+            {
+                CurrentOperation = "Cargando configuración...",
+                CurrentFile = 0,
+                TotalFiles = imagePaths.Count,
+                CurrentFileName = "Configuración"
+            });
+            
+            // Get configuration to use
+            var config = string.IsNullOrEmpty(configurationName) 
+                ? GetActiveConfiguration() 
+                : _config.QuadrantSystem.Configurations.FirstOrDefault(c => c.Name == configurationName);
+
+            Console.WriteLine($"[QuadrantService] Configuración: {config?.Name ?? "NULL"}");
+            
+            if (config == null || !config.IsValid())
+            {
+                var errorMsg = "No hay configuración válida de cuadrantes disponible";
+                Console.WriteLine($"[QuadrantService] ERROR: {errorMsg}");
+                var task = new ProcessingTask(DateTime.Now, DateTime.Now, configurationName ?? "Unknown");
+                task.Fail(errorMsg);
+                
+                progress?.Report(new ProcessingProgress
+                {
+                    CurrentOperation = "Error: " + errorMsg,
+                    CurrentFile = 0,
+                    TotalFiles = 0,
+                    CurrentFileName = "Error"
+                });
+                
+                return task;
+            }
+
+            // Filter out non-existent files
+            var validImagePaths = imagePaths.Where(File.Exists).ToList();
+            
+            Console.WriteLine($"[QuadrantService] {validImagePaths.Count} imágenes válidas de {imagePaths.Count} especificadas");
+            
+            if (!validImagePaths.Any())
+            {
+                var msg = "No se encontraron imágenes válidas en la lista especificada";
+                Console.WriteLine($"[QuadrantService] {msg}");
+                
+                var task = new ProcessingTask(DateTime.Now, DateTime.Now, config.Name);
+                task.Status = ProcessingStatus.Completed;
+                task.Complete();
+                
+                progress?.Report(new ProcessingProgress
+                {
+                    CurrentOperation = msg,
+                    CurrentFile = 0,
+                    TotalFiles = 0,
+                    CurrentFileName = "Completado"
+                });
+                
+                return task;
+            }
+
+            // Report folder creation
+            progress?.Report(new ProcessingProgress
+            {
+                CurrentOperation = "Preparando carpetas de salida...",
+                CurrentFile = 0,
+                TotalFiles = validImagePaths.Count,
+                CurrentFileName = "Configurando estructura..."
+            });
+            
+            // Create output folder structure
+            var quadrantsBaseFolder = _config.QuadrantSystem.QuadrantsFolder;
+            Console.WriteLine($"[QuadrantService] Carpeta base: {quadrantsBaseFolder}");
+            Directory.CreateDirectory(quadrantsBaseFolder);
+
+            // Create progress wrapper to forward events
+            var progressWrapper = new Progress<ProcessingProgress>(p =>
+            {
+                Console.WriteLine($"[QuadrantService] Progreso: {p.ProgressPercentage}% - {p.CurrentOperation} - {p.CurrentFileName}");
+                progress?.Report(p);
+                ProcessingProgressChanged?.Invoke(this, new ProcessingProgressEventArgs { Progress = p });
+            });
+
+            // Report start of actual processing
+            progress?.Report(new ProcessingProgress
+            {
+                CurrentOperation = "Procesando imágenes específicas...",
+                CurrentFile = 0,
+                TotalFiles = validImagePaths.Count,
+                CurrentFileName = "Comenzando..."
+            });
+
+            Console.WriteLine($"[QuadrantService] Iniciando procesamiento con {config.GetEnabledQuadrants().Count} cuadrantes activos");
+
+            // Process specific images
+            var processingTask = await ImageCropUtils.ProcessImagesAsync(
+                validImagePaths, 
+                config, 
+                quadrantsBaseFolder,
+                progressWrapper, 
+                cancellationToken);
+
+            Console.WriteLine($"[QuadrantService] Procesamiento específico completado: {processingTask.Status}");
+            Console.WriteLine($"[QuadrantService] Archivos procesados: {processingTask.ProcessedFiles}");
+            Console.WriteLine($"[QuadrantService] Errores: {processingTask.ErrorMessages.Count}");
+            
+            // Save to history
+            _processingHistory.Add(processingTask);
+            
+            // Keep only last 100 tasks
+            if (_processingHistory.Count > 100)
+            {
+                _processingHistory.RemoveAt(0);
+            }
+
+            // Log results
+            await LogProcessingResults(processingTask);
+
+            // Fire completion event
+            ProcessingCompleted?.Invoke(this, new ProcessingCompletedEventArgs
+            {
+                Task = processingTask,
+                Success = processingTask.Status == ProcessingStatus.Completed,
+                ErrorMessage = processingTask.Status == ProcessingStatus.Failed 
+                    ? string.Join("; ", processingTask.ErrorMessages.Take(3)) 
+                    : null
+            });
+
+            return processingTask;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[QuadrantService] ERROR CRÍTICO en procesamiento específico: {ex.Message}");
+            Console.WriteLine($"[QuadrantService] Stack trace: {ex.StackTrace}");
+            
+            var errorTask = new ProcessingTask(DateTime.Now, DateTime.Now, configurationName ?? "Unknown");
+            errorTask.Fail($"Error crítico durante el procesamiento específico: {ex.Message}");
+            
+            progress?.Report(new ProcessingProgress
+            {
+                CurrentOperation = "Error crítico: " + ex.Message,
+                CurrentFile = 0,
+                TotalFiles = 0,
+                CurrentFileName = "Error"
+            });
+            
+            ProcessingCompleted?.Invoke(this, new ProcessingCompletedEventArgs
+            {
+                Task = errorTask,
+                Success = false,
+                ErrorMessage = ex.Message
+            });
+            
+            return errorTask;
+        }
+        finally
+        {
+            _processingSemaphore.Release();
+            Console.WriteLine("[QuadrantService] Liberando semáforo de procesamiento específico");
+        }
+    }
+
     public List<ProcessingTask> GetProcessingHistory()
     {
         return _processingHistory.OrderByDescending(t => t.StartTime).ToList();

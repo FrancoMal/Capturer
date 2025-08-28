@@ -2,7 +2,7 @@ using Capturer.Models;
 
 namespace Capturer.Services;
 
-public interface IQuadrantService
+public interface IQuadrantService : IDisposable
 {
     /// <summary>
     /// Gets all available quadrant configurations
@@ -37,6 +37,15 @@ public interface IQuadrantService
         DateTime endDate, 
         string? configurationName = null,
         IProgress<ProcessingProgress>? progress = null, 
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Processes specific images from a pre-filtered list
+    /// </summary>
+    Task<ProcessingTask> ProcessSpecificImagesAsync(
+        List<string> imagePaths,
+        string? configurationName = null,
+        IProgress<ProcessingProgress>? progress = null,
         CancellationToken cancellationToken = default);
 
     /// <summary>

@@ -75,6 +75,19 @@ public class ScheduleSettings
     public DayOfWeek WeeklyReportDay { get; set; } = DayOfWeek.Monday;
     public TimeSpan ReportTime { get; set; } = TimeSpan.FromHours(9); // 9:00 AM
     public bool EnableAutomaticReports { get; set; } = true;
+    
+    // Configuración de filtros de horario
+    public TimeSpan StartTime { get; set; } = TimeSpan.FromHours(8); // 8:00 AM
+    public TimeSpan EndTime { get; set; } = TimeSpan.FromHours(23); // 11:00 PM
+    public bool UseTimeFilter { get; set; } = false; // Por defecto desactivado
+    public bool IncludeWeekends { get; set; } = true; // Incluir fines de semana
+    
+    // Configuración para días específicos de la semana
+    public List<DayOfWeek> ActiveWeekDays { get; set; } = new()
+    {
+        DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, 
+        DayOfWeek.Thursday, DayOfWeek.Friday
+    };
 }
 
 public enum ReportFrequency
@@ -167,4 +180,83 @@ public class RoutineEmailQuadrantSettings
     public bool ProcessQuadrantsFirst { get; set; } = false;
     public string ProcessingProfile { get; set; } = "Default";
     public bool SendSeparateEmailPerQuadrant { get; set; } = false;
+}
+
+/// <summary>
+/// Representa un período de reporte con filtros específicos
+/// </summary>
+public class ReportPeriod
+{
+    public DateTime StartDate { get; set; }
+    public DateTime EndDate { get; set; }
+    public TimeSpan? StartTime { get; set; }
+    public TimeSpan? EndTime { get; set; }
+    public List<DayOfWeek> ActiveWeekDays { get; set; } = new();
+    
+    public static ReportPeriod GetDailyPeriod(ScheduleSettings settings)
+    {
+        var yesterday = DateTime.Now.Date.AddDays(-1);
+        return new ReportPeriod
+        {
+            StartDate = yesterday,
+            EndDate = yesterday.AddDays(1).AddSeconds(-1),
+            StartTime = settings.UseTimeFilter ? settings.StartTime : null,
+            EndTime = settings.UseTimeFilter ? settings.EndTime : null,
+            ActiveWeekDays = settings.ActiveWeekDays
+        };
+    }
+    
+    public static ReportPeriod GetWeeklyPeriod(ScheduleSettings settings)
+    {
+        var today = DateTime.Now.Date;
+        var startOfWeek = today.AddDays(-(int)today.DayOfWeek + (int)DayOfWeek.Monday);
+        var endOfWeek = startOfWeek.AddDays(6).AddDays(1).AddSeconds(-1);
+        
+        // Si hoy es lunes, tomar la semana anterior
+        if (today.DayOfWeek == DayOfWeek.Monday)
+        {
+            startOfWeek = startOfWeek.AddDays(-7);
+            endOfWeek = endOfWeek.AddDays(-7);
+        }
+        
+        return new ReportPeriod
+        {
+            StartDate = startOfWeek,
+            EndDate = endOfWeek,
+            StartTime = settings.UseTimeFilter ? settings.StartTime : null,
+            EndTime = settings.UseTimeFilter ? settings.EndTime : null,
+            ActiveWeekDays = settings.ActiveWeekDays
+        };
+    }
+    
+    public static ReportPeriod GetMonthlyPeriod(ScheduleSettings settings)
+    {
+        var today = DateTime.Now.Date;
+        var startOfMonth = new DateTime(today.Year, today.Month, 1).AddMonths(-1);
+        var endOfMonth = startOfMonth.AddMonths(1).AddSeconds(-1);
+        
+        return new ReportPeriod
+        {
+            StartDate = startOfMonth,
+            EndDate = endOfMonth,
+            StartTime = settings.UseTimeFilter ? settings.StartTime : null,
+            EndTime = settings.UseTimeFilter ? settings.EndTime : null,
+            ActiveWeekDays = settings.ActiveWeekDays
+        };
+    }
+    
+    public static ReportPeriod GetCustomPeriod(ScheduleSettings settings)
+    {
+        var endDate = DateTime.Now.Date;
+        var startDate = endDate.AddDays(-settings.CustomDays);
+        
+        return new ReportPeriod
+        {
+            StartDate = startDate,
+            EndDate = endDate.AddDays(1).AddSeconds(-1),
+            StartTime = settings.UseTimeFilter ? settings.StartTime : null,
+            EndTime = settings.UseTimeFilter ? settings.EndTime : null,
+            ActiveWeekDays = settings.ActiveWeekDays
+        };
+    }
 }
