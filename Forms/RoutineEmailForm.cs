@@ -12,6 +12,23 @@ public partial class RoutineEmailForm : Form
     private CapturerConfiguration _config;
     private ToolTip _helpTooltip;
     
+    private Button CreateModernButton(string text, Point location, Size size, Color backgroundColor)
+    {
+        return new Button
+        {
+            Text = text,
+            Location = location,
+            Size = size,
+            BackColor = backgroundColor,
+            ForeColor = Color.White,
+            FlatStyle = FlatStyle.Flat,
+            Font = new Font("Segoe UI", 8.5F, FontStyle.Regular, GraphicsUnit.Point),
+            FlatAppearance = { BorderSize = 0, MouseOverBackColor = Color.FromArgb(Math.Max(0, backgroundColor.R - 20), Math.Max(0, backgroundColor.G - 20), Math.Max(0, backgroundColor.B - 20)) },
+            Cursor = Cursors.Hand,
+            UseVisualStyleBackColor = false
+        };
+    }
+    
     // Main Configuration Controls
     private CheckBox chkEnableRoutineReports;
     private ComboBox cmbReportFrequency;
@@ -84,14 +101,16 @@ public partial class RoutineEmailForm : Form
 
     private void InitializeComponent()
     {
-        this.Size = new Size(700, 750);
-        this.Text = "Configuración de Reportes Automáticos - Capturer";
+        this.Size = new Size(750, 800);
+        this.Text = "📊 Configuración de Reportes Automáticos - Capturer v2.0";
         this.StartPosition = FormStartPosition.CenterParent;
         this.FormBorderStyle = FormBorderStyle.Sizable;
         this.MaximizeBox = true;
         this.MinimizeBox = false;
-        this.MinimumSize = new Size(700, 750);
-        this.MaximumSize = new Size(900, 950);
+        this.MinimumSize = new Size(750, 800);
+        this.MaximumSize = new Size(950, 1000);
+        this.BackColor = Color.FromArgb(248, 249, 250);
+        this.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point);
         
         // Set form icon
         try
@@ -114,12 +133,14 @@ public partial class RoutineEmailForm : Form
             // Keep default icon if loading fails
         }
 
-        // Create main scrollable panel
+        // Create main scrollable panel with modern styling
         var mainPanel = new Panel
         {
             Location = new Point(0, 0),
             Size = new Size(this.ClientSize.Width, this.ClientSize.Height),
             AutoScroll = true,
+            BackColor = Color.FromArgb(248, 249, 250),
+            Padding = new Padding(15),
             Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right
         };
         this.Controls.Add(mainPanel);

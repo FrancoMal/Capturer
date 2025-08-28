@@ -40,6 +40,23 @@ public partial class EmailForm : Form
     private readonly IQuadrantService? _quadrantService;
     private ToolTip _helpTooltip;
     private bool _quadrantsAvailable = false;
+    
+    private Button CreateModernButton(string text, Point location, Size size, Color backgroundColor)
+    {
+        return new Button
+        {
+            Text = text,
+            Location = location,
+            Size = size,
+            BackColor = backgroundColor,
+            ForeColor = Color.White,
+            FlatStyle = FlatStyle.Flat,
+            Font = new Font("Segoe UI", 8.5F, FontStyle.Regular, GraphicsUnit.Point),
+            FlatAppearance = { BorderSize = 0, MouseOverBackColor = Color.FromArgb(Math.Max(0, backgroundColor.R - 20), Math.Max(0, backgroundColor.G - 20), Math.Max(0, backgroundColor.B - 20)) },
+            Cursor = Cursors.Hand,
+            UseVisualStyleBackColor = false
+        };
+    }
 
     public EmailForm(IEmailService emailService, IFileService fileService, IConfigurationManager configManager, IQuadrantService? quadrantService = null)
     {
@@ -56,14 +73,16 @@ public partial class EmailForm : Form
 
     private void InitializeComponent()
     {
-        this.Size = new Size(600, 650);
-        this.Text = "Enviar Screenshots por Email - Capturer";
+        this.Size = new Size(650, 700);
+        this.Text = "📧 Envío Manual de Capturas - Capturer v2.0";
         this.StartPosition = FormStartPosition.CenterParent;
         this.FormBorderStyle = FormBorderStyle.Sizable;
         this.MaximizeBox = true;
         this.MinimizeBox = false;
-        this.MinimumSize = new Size(600, 650);
-        this.MaximumSize = new Size(800, 900);
+        this.MinimumSize = new Size(650, 700);
+        this.MaximumSize = new Size(900, 1000);
+        this.BackColor = Color.FromArgb(248, 249, 250);
+        this.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point);
         
         // Set form icon
         try
@@ -86,20 +105,33 @@ public partial class EmailForm : Form
             // Keep default icon if loading fails
         }
 
-        // Create main scrollable panel
+        // Create main scrollable panel with modern styling
         var mainPanel = new Panel
         {
             Location = new Point(0, 0),
             Size = new Size(this.ClientSize.Width, this.ClientSize.Height),
             AutoScroll = true,
+            BackColor = Color.FromArgb(248, 249, 250),
+            Padding = new Padding(10),
             Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right
         };
         this.Controls.Add(mainPanel);
 
         var y = 20;
 
-        // Date range section
-        var groupDate = new GroupBox { Text = "Rango de Fechas", Location = new Point(20, y), Size = new Size(540, 80), Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
+        // Date range section with modern styling
+        var groupDate = new GroupBox 
+        { 
+            Text = "📅 Rango de Fechas", 
+            Location = new Point(20, y), 
+            Size = new Size(590, 90), 
+            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
+            BackColor = Color.White,
+            Font = new Font("Segoe UI", 9.75F, FontStyle.Bold, GraphicsUnit.Point),
+            ForeColor = Color.FromArgb(52, 58, 64),
+            FlatStyle = FlatStyle.Flat,
+            Padding = new Padding(10)
+        };
         
         // Add help button for date range
         var helpDateRange = CreateHelpButton(new Point(505, -2), 
@@ -109,18 +141,20 @@ public partial class EmailForm : Form
             "• Solo se incluirán las capturas dentro de este rango");
         groupDate.Controls.Add(helpDateRange);
         
-        groupDate.Controls.Add(new Label { Text = "Desde:", Location = new Point(15, 25), AutoSize = true });
-        dtpFromDate = new DateTimePicker { Location = new Point(60, 22), Width = 120, Value = DateTime.Now.AddDays(-7) };
+        var lblFrom = new Label { Text = "Desde:", Location = new Point(20, 30), AutoSize = true, Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point) };
+        groupDate.Controls.Add(lblFrom);
+        dtpFromDate = new DateTimePicker { Location = new Point(70, 27), Width = 130, Value = DateTime.Now.AddDays(-7), Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point) };
         groupDate.Controls.Add(dtpFromDate);
         
-        groupDate.Controls.Add(new Label { Text = "Hasta:", Location = new Point(200, 25), AutoSize = true });
-        dtpToDate = new DateTimePicker { Location = new Point(245, 22), Width = 120, Value = DateTime.Now };
+        var lblTo = new Label { Text = "Hasta:", Location = new Point(220, 30), AutoSize = true, Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point) };
+        groupDate.Controls.Add(lblTo);
+        dtpToDate = new DateTimePicker { Location = new Point(270, 27), Width = 130, Value = DateTime.Now, Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point) };
         groupDate.Controls.Add(dtpToDate);
         
-        var btnToday = new Button { Text = "Hoy", Location = new Point(15, 50), Size = new Size(60, 23) };
-        var btnLast7Days = new Button { Text = "Últimos 7 días", Location = new Point(85, 50), Size = new Size(90, 23) };
-        var btnLast30Days = new Button { Text = "Últimos 30 días", Location = new Point(185, 50), Size = new Size(90, 23) };
-        var btnThisMonth = new Button { Text = "Este mes", Location = new Point(285, 50), Size = new Size(90, 23) };
+        var btnToday = CreateModernButton("Hoy", new Point(20, 55), new Size(70, 28), Color.FromArgb(13, 110, 253));
+        var btnLast7Days = CreateModernButton("7 días", new Point(100, 55), new Size(70, 28), Color.FromArgb(25, 135, 84));
+        var btnLast30Days = CreateModernButton("30 días", new Point(180, 55), new Size(70, 28), Color.FromArgb(111, 66, 193));
+        var btnThisMonth = CreateModernButton("Este mes", new Point(260, 55), new Size(80, 28), Color.FromArgb(220, 124, 95));
         
         btnToday.Click += (s, e) => { dtpFromDate.Value = DateTime.Now.Date; dtpToDate.Value = DateTime.Now.Date; UpdatePreview(); };
         btnLast7Days.Click += (s, e) => { dtpFromDate.Value = DateTime.Now.AddDays(-7); dtpToDate.Value = DateTime.Now; UpdatePreview(); };

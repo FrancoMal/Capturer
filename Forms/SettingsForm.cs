@@ -10,6 +10,23 @@ public partial class SettingsForm : Form
     private CapturerConfiguration _config;
     private ToolTip _helpTooltip;
     
+    private Button CreateModernButton(string text, Point location, Size size, Color backgroundColor)
+    {
+        return new Button
+        {
+            Text = text,
+            Location = location,
+            Size = size,
+            BackColor = backgroundColor,
+            ForeColor = Color.White,
+            FlatStyle = FlatStyle.Flat,
+            Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point),
+            FlatAppearance = { BorderSize = 0, MouseOverBackColor = Color.FromArgb(Math.Max(0, backgroundColor.R - 20), Math.Max(0, backgroundColor.G - 20), Math.Max(0, backgroundColor.B - 20)) },
+            Cursor = Cursors.Hand,
+            UseVisualStyleBackColor = false
+        };
+    }
+    
     // Controls
     private NumericUpDown numCaptureInterval;
     private TextBox txtScreenshotFolder;
@@ -52,12 +69,14 @@ public partial class SettingsForm : Form
 
     private void InitializeComponent()
     {
-        this.Size = new Size(650, 600);
-        this.Text = "Configuración - Capturer";
+        this.Size = new Size(700, 650);
+        this.Text = "⚙️ Configuración del Sistema - Capturer v2.0";
         this.StartPosition = FormStartPosition.CenterParent;
         this.FormBorderStyle = FormBorderStyle.FixedDialog;
         this.MaximizeBox = false;
         this.MinimizeBox = false;
+        this.BackColor = Color.FromArgb(248, 249, 250);
+        this.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point);
         
         // Set form icon
         try
@@ -80,21 +99,38 @@ public partial class SettingsForm : Form
             // Keep default icon if loading fails
         }
 
-        var tabControl = new TabControl();
-        tabControl.Dock = DockStyle.Fill;
+        var tabControl = new TabControl
+        {
+            Dock = DockStyle.Fill,
+            Font = new Font("Segoe UI", 9.75F, FontStyle.Regular, GraphicsUnit.Point),
+            Padding = new Point(15, 8),
+            Appearance = TabAppearance.FlatButtons
+        };
         
-        // Screenshot tab
-        var screenshotTab = new TabPage("Screenshots");
+        // Screenshot tab with modern styling
+        var screenshotTab = new TabPage("📷 Capturas")
+        {
+            BackColor = Color.White,
+            Padding = new Padding(20)
+        };
         CreateScreenshotControls(screenshotTab);
         tabControl.TabPages.Add(screenshotTab);
         
-        // Email tab
-        var emailTab = new TabPage("Email");
+        // Email tab with modern styling
+        var emailTab = new TabPage("📧 Email")
+        {
+            BackColor = Color.White,
+            Padding = new Padding(20)
+        };
         CreateEmailControls(emailTab);
         tabControl.TabPages.Add(emailTab);
         
-        // Storage tab
-        var storageTab = new TabPage("Almacenamiento");
+        // Storage tab with modern styling
+        var storageTab = new TabPage("💾 Almacenamiento")
+        {
+            BackColor = Color.White,
+            Padding = new Padding(20)
+        };
         CreateStorageControls(storageTab);
         tabControl.TabPages.Add(storageTab);
         
