@@ -41,6 +41,13 @@ public partial class SettingsForm : Form
     private NumericUpDown numImageQuality;
     private Label lblQuality;
     
+    // Privacy blur controls
+    private CheckBox chkEnableBlur;
+    private NumericUpDown numBlurIntensity;
+    private ComboBox cmbBlurMode;
+    private Label lblBlurIntensity;
+    private Label lblBlurMode;
+    
     private TextBox txtSmtpServer;
     private NumericUpDown numSmtpPort;
     private TextBox txtUsername;
@@ -236,6 +243,56 @@ public partial class SettingsForm : Form
         tab.Controls.Add(chkIncludeCursor);
         tab.Controls.Add(CreateHelpButton(new Point(200, y + 2), "Si está habilitado, el cursor del mouse aparecerá en las capturas de pantalla."));
         
+        // Privacy blur section
+        y += 35;
+        var lblPrivacySection = new Label { Text = "Configuración de Privacidad:", Location = new Point(20, y), AutoSize = true, Font = new Font("Segoe UI", 9F, FontStyle.Bold) };
+        tab.Controls.Add(lblPrivacySection);
+        
+        y += 25;
+        chkEnableBlur = new CheckBox { Text = "Activar desenfoque de privacidad", Location = new Point(20, y), AutoSize = true };
+        tab.Controls.Add(chkEnableBlur);
+        tab.Controls.Add(CreateHelpButton(new Point(240, y + 2), "Aplica un efecto de desenfoque a las capturas para proteger información sensible y mantener privacidad."));
+        
+        y += 25;
+        lblBlurIntensity = new Label { Text = "Intensidad de desenfoque (1-10):", Location = new Point(40, y), Size = new Size(180, 23) };
+        numBlurIntensity = new NumericUpDown 
+        { 
+            Location = new Point(220, y), 
+            Size = new Size(80, 23),
+            Minimum = 1,
+            Maximum = 10,
+            Value = 3,
+            Enabled = false
+        };
+        tab.Controls.Add(lblBlurIntensity);
+        tab.Controls.Add(numBlurIntensity);
+        tab.Controls.Add(CreateHelpButton(new Point(310, y), "Intensidad del desenfoque: 1-3 (ligero), 4-6 (medio), 7-10 (fuerte). Mayor intensidad impacta el rendimiento."));
+        
+        y += 25;
+        lblBlurMode = new Label { Text = "Tipo de desenfoque:", Location = new Point(40, y), Size = new Size(180, 23) };
+        cmbBlurMode = new ComboBox 
+        { 
+            Location = new Point(220, y), 
+            Size = new Size(120, 23),
+            DropDownStyle = ComboBoxStyle.DropDownList,
+            Enabled = false
+        };
+        cmbBlurMode.Items.AddRange(new object[] { "Gaussiano", "Cuadrado", "Movimiento" });
+        cmbBlurMode.SelectedIndex = 0;
+        tab.Controls.Add(lblBlurMode);
+        tab.Controls.Add(cmbBlurMode);
+        tab.Controls.Add(CreateHelpButton(new Point(350, y), "Gaussiano: mejor calidad pero más lento. Cuadrado: más rápido. Movimiento: simula movimiento de cámara."));
+        
+        // Wire up blur checkbox event
+        chkEnableBlur.CheckedChanged += (s, e) =>
+        {
+            var enabled = chkEnableBlur.Checked;
+            lblBlurIntensity.Enabled = enabled;
+            numBlurIntensity.Enabled = enabled;
+            lblBlurMode.Enabled = enabled;
+            cmbBlurMode.Enabled = enabled;
+        };
+        
         // Initialize screen selection
         RefreshScreenList();
     }
@@ -334,6 +391,11 @@ public partial class SettingsForm : Form
             
             numImageQuality.Value = _config.Screenshot.Quality;
             
+            // Privacy blur settings
+            chkEnableBlur.Checked = _config.Screenshot.EnablePrivacyBlur;
+            numBlurIntensity.Value = _config.Screenshot.BlurIntensity;
+            cmbBlurMode.SelectedIndex = (int)_config.Screenshot.BlurMode;
+            
             // Update UI visibility based on format and mode
             CmbImageFormat_SelectedIndexChanged(null, EventArgs.Empty);
             CmbCaptureMode_SelectedIndexChanged(null, EventArgs.Empty);
@@ -394,6 +456,11 @@ public partial class SettingsForm : Form
                 _ => "png"
             };
             _config.Screenshot.Quality = (int)numImageQuality.Value;
+            
+            // Privacy blur settings
+            _config.Screenshot.EnablePrivacyBlur = chkEnableBlur.Checked;
+            _config.Screenshot.BlurIntensity = (int)numBlurIntensity.Value;
+            _config.Screenshot.BlurMode = (BlurMode)cmbBlurMode.SelectedIndex;
             
             _config.Email.SmtpServer = txtSmtpServer.Text;
             _config.Email.SmtpPort = (int)numSmtpPort.Value;

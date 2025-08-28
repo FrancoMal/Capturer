@@ -23,6 +23,11 @@ public class ScreenshotSettings
     public int SelectedScreenIndex { get; set; } = 0; // Index of specific screen when using SingleScreen mode
     public List<ScreenInfo> AvailableScreens { get; set; } = new(); // Runtime populated
     
+    // Privacy settings
+    public bool EnablePrivacyBlur { get; set; } = false;
+    public int BlurIntensity { get; set; } = 3; // 1-10 scale, 3 = light blur, 5 = medium, 8+ = heavy
+    public BlurMode BlurMode { get; set; } = BlurMode.Gaussian;
+    
     // Legacy support - will be migrated to CaptureMode
     public int ScreenIndex
     {
@@ -103,6 +108,13 @@ public enum ScreenCaptureMode
     AllScreens = 0,     // Capture all monitors as one large image
     SingleScreen = 1,   // Capture specific monitor
     PrimaryScreen = 2   // Capture primary monitor only
+}
+
+public enum BlurMode
+{
+    Gaussian = 0,       // Gaussian blur (most common)
+    Box = 1,           // Box blur (faster)
+    Motion = 2         // Motion blur (for privacy)
 }
 
 public class ScreenInfo

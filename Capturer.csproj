@@ -9,6 +9,7 @@
     <StartupObject>Capturer.Program</StartupObject>
     <ApplicationIcon>Capturer_Logo.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>
