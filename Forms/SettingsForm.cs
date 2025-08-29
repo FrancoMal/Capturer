@@ -76,12 +76,13 @@ public partial class SettingsForm : Form
 
     private void InitializeComponent()
     {
-        this.Size = new Size(700, 650);
+        this.Size = new Size(720, 700);
         this.Text = "⚙️ Configuración del Sistema - Capturer v2.0";
         this.StartPosition = FormStartPosition.CenterParent;
-        this.FormBorderStyle = FormBorderStyle.FixedDialog;
-        this.MaximizeBox = false;
-        this.MinimizeBox = false;
+        this.FormBorderStyle = FormBorderStyle.Sizable; // Allow resizing
+        this.MaximizeBox = true;
+        this.MinimizeBox = true;
+        this.MinimumSize = new Size(650, 500); // Set minimum size
         this.BackColor = Color.FromArgb(248, 249, 250);
         this.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point);
         
@@ -114,31 +115,55 @@ public partial class SettingsForm : Form
             Appearance = TabAppearance.FlatButtons
         };
         
-        // Screenshot tab with modern styling
+        // Screenshot tab with scrollable content
         var screenshotTab = new TabPage("📷 Capturas")
         {
             BackColor = Color.White,
-            Padding = new Padding(20)
+            AutoScroll = true,
+            Padding = new Padding(5)
         };
-        CreateScreenshotControls(screenshotTab);
+        var screenshotScrollPanel = new Panel
+        {
+            AutoScroll = true,
+            Dock = DockStyle.Fill,
+            Padding = new Padding(15)
+        };
+        screenshotTab.Controls.Add(screenshotScrollPanel);
+        CreateScreenshotControls(screenshotTab); // Keep original TabPage parameter
         tabControl.TabPages.Add(screenshotTab);
         
-        // Email tab with modern styling
+        // Email tab with scrollable content
         var emailTab = new TabPage("📧 Email")
         {
             BackColor = Color.White,
-            Padding = new Padding(20)
+            AutoScroll = true,
+            Padding = new Padding(5)
         };
-        CreateEmailControls(emailTab);
+        var emailScrollPanel = new Panel
+        {
+            AutoScroll = true,
+            Dock = DockStyle.Fill,
+            Padding = new Padding(15)
+        };
+        emailTab.Controls.Add(emailScrollPanel);
+        CreateEmailControls(emailTab); // Keep original TabPage parameter
         tabControl.TabPages.Add(emailTab);
         
-        // Storage tab with modern styling
+        // Storage tab with scrollable content
         var storageTab = new TabPage("💾 Almacenamiento")
         {
             BackColor = Color.White,
-            Padding = new Padding(20)
+            AutoScroll = true,
+            Padding = new Padding(5)
         };
-        CreateStorageControls(storageTab);
+        var storageScrollPanel = new Panel
+        {
+            AutoScroll = true,
+            Dock = DockStyle.Fill,
+            Padding = new Padding(15)
+        };
+        storageTab.Controls.Add(storageScrollPanel);
+        CreateStorageControls(storageTab); // Keep original TabPage parameter
         tabControl.TabPages.Add(storageTab);
         
         this.Controls.Add(tabControl);

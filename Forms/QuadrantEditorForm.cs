@@ -69,7 +69,7 @@ public partial class QuadrantEditorForm : Form
         _screenshotService = screenshotService;
         
         InitializeComponent();
-        LoadConfigurationAsync();
+        _ = LoadConfigurationAsync(); // Fire and forget initialization
         SetupEventHandlers();
         
         // Initialize with default resolution - will be updated when user selects preview image
@@ -85,6 +85,7 @@ public partial class QuadrantEditorForm : Form
         this.StartPosition = FormStartPosition.CenterParent;
         this.FormBorderStyle = FormBorderStyle.Sizable;
         this.MinimumSize = new Size(800, 600);
+        this.AutoScroll = true; // Enable automatic scrolling
         
         // Set form icon
         try
@@ -372,7 +373,7 @@ public partial class QuadrantEditorForm : Form
         _quadrantService.ProcessingCompleted += QuadrantService_ProcessingCompleted;
     }
 
-    private async void LoadConfigurationAsync()
+    private async Task LoadConfigurationAsync()
     {
         try
         {
@@ -1151,7 +1152,7 @@ public partial class QuadrantEditorForm : Form
     {
         try
         {
-            LoadConfigurationAsync();
+            await LoadConfigurationAsync();
             var detectedSize = await DetectImageResolutionAsync();
             
             // Don't auto-update resolution anymore - only use selected preview image resolution
@@ -1374,7 +1375,7 @@ public partial class QuadrantEditorForm : Form
         }
     }
     
-    private void LoadPreviewImage(string imagePath)
+    private async Task LoadPreviewImage(string imagePath)
     {
         try
         {
@@ -1412,28 +1413,7 @@ public partial class QuadrantEditorForm : Form
                 (_currentConfiguration.ScreenResolution.Width != _screenResolution.Width ||
                  _currentConfiguration.ScreenResolution.Height != _screenResolution.Height))
             {
-                // Ask user if they want to adjust quadrants to new resolution
-                var result = MessageBox.Show(
-                    $"La resolución de la imagen seleccionada ({_screenResolution.Width}x{_screenResolution.Height}) " +
-                    $"es diferente a la configuración actual ({_currentConfiguration.ScreenResolution.Width}x{_currentConfiguration.ScreenResolution.Height}).\n\n" +
-                    "¿Desea ajustar automáticamente los cuadrantes a la nueva resolución?\n\n" +
-                    "• SÍ: Los cuadrantes se reescalarán proporcionalmente\n" +
-                    "• NO: Los cuadrantes mantendrán sus posiciones exactas (recomendado si ya están configurados correctamente)",
-                    "Resolución diferente detectada",
-                    MessageBoxButtons.YesNo,
-                    MessageBoxIcon.Question);
-                    
-                if (result == DialogResult.Yes)
-                {
-                    AdjustQuadrantsToNewResolution(_currentConfiguration.ScreenResolution, _screenResolution);
-                    MessageBox.Show("Cuadrantes ajustados automáticamente. Recuerde guardar la configuración.", 
-                        "Ajuste completado", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                }
-                else
-                {
-                    MessageBox.Show("Los cuadrantes mantienen sus posiciones actuales. La resolución de referencia ha sido actualizada.", 
-                        "Posiciones mantenidas", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                }
+                await HandleResolutionChangeAsync(_currentConfiguration.ScreenResolution, _screenResolution);
                 
                 // Always update configuration resolution to match the preview image
                 _currentConfiguration.ScreenResolution = _screenResolution;
@@ -1494,6 +1474,92 @@ public partial class QuadrantEditorForm : Form
     }
     
     #endregion
+
+    /// <summary>
+    /// Maneja el cambio de resolución respetando las preferencias del usuario
+    /// </summary>
+    private async Task HandleResolutionChangeAsync(Size oldResolution, Size newResolution)
+    {
+        try
+        {
+            // Cargar la configuración actual para verificar las preferencias
+            await LoadConfigurationAsync();
+            
+            var quadrantSettings = _config.QuadrantSystem;
+            
+            // Si el usuario ha configurado no preguntar más, aplicar la preferencia guardada
+            if (quadrantSettings.RememberResolutionChoice && quadrantSettings.ResolutionHandling != "ask")
+            {
+                switch (quadrantSettings.ResolutionHandling)
+                {
+                    case "auto-adjust":
+                        AdjustQuadrantsToNewResolution(oldResolution, newResolution);
+                        ShowNotificationMessage("Cuadrantes ajustados automáticamente según preferencia guardada.", "Ajuste automático");
+                        break;
+                    case "keep-current":
+                        ShowNotificationMessage("Posiciones mantenidas según preferencia guardada. Resolución de referencia actualizada.", "Posiciones mantenidas");
+                        break;
+                }
+                return;
+            }
+            
+            // Si llegamos aquí, necesitamos preguntar al usuario (primera vez o configurado para preguntar siempre)
+            var dialogForm = new ResolutionChoiceDialog(oldResolution, newResolution);
+            var result = dialogForm.ShowDialog(this);
+            
+            if (result == DialogResult.OK)
+            {
+                var choice = dialogForm.UserChoice;
+                var rememberChoice = dialogForm.RememberChoice;
+                
+                // Aplicar la elección del usuario
+                switch (choice)
+                {
+                    case "auto-adjust":
+                        AdjustQuadrantsToNewResolution(oldResolution, newResolution);
+                        ShowNotificationMessage("Cuadrantes ajustados automáticamente.", "Ajuste completado");
+                        break;
+                    case "keep-current":
+                        ShowNotificationMessage("Posiciones mantenidas. Resolución de referencia actualizada.", "Posiciones mantenidas");
+                        break;
+                }
+                
+                // Guardar la preferencia si el usuario lo solicitó
+                if (rememberChoice)
+                {
+                    quadrantSettings.RememberResolutionChoice = true;
+                    quadrantSettings.ResolutionHandling = choice;
+                    await _configManager.SaveConfigurationAsync(_config);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error handling resolution change: {ex.Message}");
+            // En caso de error, mantener las posiciones actuales
+            ShowNotificationMessage("Error procesando cambio de resolución. Posiciones mantenidas.", "Error", true);
+        }
+    }
+    
+    /// <summary>
+    /// Muestra un mensaje de notificación menos intrusivo
+    /// </summary>
+    private void ShowNotificationMessage(string message, string title, bool isError = false)
+    {
+        // Usar un mensaje más sutil en lugar de MessageBox molesto
+        var icon = isError ? MessageBoxIcon.Warning : MessageBoxIcon.Information;
+        
+        // Solo mostrar si realmente es importante
+        if (isError || message.Contains("error"))
+        {
+            MessageBox.Show(message, title, MessageBoxButtons.OK, icon);
+        }
+        else
+        {
+            // Para mensajes informativos, solo log en consola
+            Console.WriteLine($"[QuadrantEditor] {title}: {message}");
+        }
+    }
 
     protected override void Dispose(bool disposing)
     {

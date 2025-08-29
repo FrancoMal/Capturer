@@ -16,6 +16,9 @@ public interface IScreenshotService
     List<ScreenInfo> GetAvailableScreens();
     Task RefreshScreenConfigurationAsync();
     event EventHandler<ScreenshotCapturedEventArgs>? ScreenshotCaptured;
+    
+    // Integración con monitoreo de actividad
+    void SetQuadrantService(QuadrantService quadrantService);
 }
 
 public class ScreenshotService : IScreenshotService, IDisposable
@@ -26,6 +29,9 @@ public class ScreenshotService : IScreenshotService, IDisposable
     private CapturerConfiguration _config = new();
     private DateTime? _nextCaptureTime;
     private TimeSpan _captureInterval;
+    
+    // Integración con monitoreo de actividad
+    private QuadrantService? _quadrantService;
 
     public bool IsCapturing => _isCapturing;
     public DateTime? NextCaptureTime => _nextCaptureTime;
@@ -126,10 +132,25 @@ public class ScreenshotService : IScreenshotService, IDisposable
 
             var screenshotInfo = await SaveScreenshotAsync(screenshot);
             
+            // Procesar monitoreo de actividad si está habilitado
+            List<QuadrantActivityResult>? activityResults = null;
+            if (_quadrantService != null)
+            {
+                try
+                {
+                    activityResults = await _quadrantService.ProcessScreenshotForActivityAsync(screenshot);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error en monitoreo de actividad: {ex.Message}");
+                }
+            }
+            
             ScreenshotCaptured?.Invoke(this, new ScreenshotCapturedEventArgs 
             { 
                 Screenshot = screenshotInfo, 
-                Success = true 
+                Success = true,
+                ActivityResults = activityResults
             });
 
             return screenshotInfo;
@@ -330,6 +351,12 @@ public class ScreenshotService : IScreenshotService, IDisposable
             await _captureTimer.DisposeAsync();
             _captureTimer = null;
         }
+    }
+
+    public void SetQuadrantService(QuadrantService quadrantService)
+    {
+        _quadrantService = quadrantService;
+        Console.WriteLine("[ScreenshotService] Monitoreo de actividad de cuadrantes habilitado");
     }
 
     public void Dispose()

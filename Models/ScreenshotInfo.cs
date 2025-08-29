@@ -1,3 +1,5 @@
+using Capturer.Services;
+
 namespace Capturer.Models;
 
 public class ScreenshotInfo
@@ -17,6 +19,7 @@ public class ScreenshotCapturedEventArgs : EventArgs
     public ScreenshotInfo Screenshot { get; set; } = null!;
     public bool Success { get; set; }
     public string? ErrorMessage { get; set; }
+    public List<QuadrantActivityResult>? ActivityResults { get; set; }
 }
 
 public class EmailSentEventArgs : EventArgs

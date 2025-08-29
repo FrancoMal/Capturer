@@ -1,4 +1,5 @@
 using System.Drawing;
+using System.Windows.Forms;
 using Capturer.Models;
 using Capturer.Utils;
 
@@ -11,6 +12,10 @@ public class QuadrantService : IQuadrantService, IDisposable
     private CapturerConfiguration _config = new();
     private readonly List<ProcessingTask> _processingHistory = new();
     private readonly SemaphoreSlim _processingSemaphore = new(1, 1);
+    
+    // Servicio de monitoreo de actividad
+    private readonly QuadrantActivityService _activityService;
+    public QuadrantActivityService ActivityService => _activityService;
 
     public event EventHandler<ProcessingProgressEventArgs>? ProcessingProgressChanged;
     public event EventHandler<ProcessingCompletedEventArgs>? ProcessingCompleted;
@@ -19,6 +24,7 @@ public class QuadrantService : IQuadrantService, IDisposable
     {
         _configManager = configManager;
         _fileService = fileService;
+        _activityService = new QuadrantActivityService();
         LoadConfigurationAsync().ConfigureAwait(false);
     }
 
@@ -51,7 +57,62 @@ public class QuadrantService : IQuadrantService, IDisposable
 
     public QuadrantConfiguration? GetActiveConfiguration()
     {
-        return _config.QuadrantSystem.GetActiveConfiguration();
+        var activeConfig = _config.QuadrantSystem.GetActiveConfiguration();
+        
+        // Si no hay configuración válida, crear una por defecto
+        if (activeConfig == null)
+        {
+            Console.WriteLine("[QuadrantService] No hay configuración activa, creando configuración por defecto");
+            
+            // Detectar resolución de pantalla actual
+            var screenResolution = GetCurrentScreenResolution();
+            var defaultConfig = QuadrantConfiguration.CreateDefault(screenResolution);
+            
+            // Agregar la configuración por defecto al sistema
+            _config.QuadrantSystem.Configurations.Add(defaultConfig);
+            _config.QuadrantSystem.ActiveConfigurationName = defaultConfig.Name;
+            
+            // Guardar la configuración de forma asíncrona pero no bloquear
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await _configManager.SaveConfigurationAsync(_config);
+                    Console.WriteLine("[QuadrantService] Configuración por defecto guardada exitosamente");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[QuadrantService] Error guardando configuración por defecto: {ex.Message}");
+                }
+            });
+            
+            return defaultConfig;
+        }
+        
+        return activeConfig;
+    }
+    
+    /// <summary>
+    /// Obtiene la resolución de pantalla actual del sistema
+    /// </summary>
+    private Size GetCurrentScreenResolution()
+    {
+        try
+        {
+            // Obtener la resolución de la pantalla primaria
+            var screen = Screen.PrimaryScreen;
+            if (screen != null)
+            {
+                return screen.Bounds.Size;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[QuadrantService] Error obteniendo resolución de pantalla: {ex.Message}");
+        }
+        
+        // Fallback a resolución común
+        return new Size(1920, 1080);
     }
 
     public async Task<bool> SaveConfigurationAsync(QuadrantConfiguration configuration)
@@ -624,8 +685,68 @@ public class QuadrantService : IQuadrantService, IDisposable
         }
     }
 
+    /// <summary>
+    /// Procesa una captura completa en tiempo real para monitoreo de actividad
+    /// </summary>
+    public async Task<List<QuadrantActivityResult>> ProcessScreenshotForActivityAsync(Bitmap screenshot)
+    {
+        var results = new List<QuadrantActivityResult>();
+        
+        try
+        {
+            var config = GetActiveConfiguration();
+            if (config == null)
+            {
+                Console.WriteLine("[QuadrantService] No hay configuración activa para monitoreo");
+                return results;
+            }
+
+            var enabledQuadrants = config.GetEnabledQuadrants();
+            Console.WriteLine($"[QuadrantService] Procesando {enabledQuadrants.Count} cuadrantes para monitoreo de actividad");
+
+            foreach (var quadrant in enabledQuadrants)
+            {
+                try
+                {
+                    // Recortar el cuadrante de la captura completa
+                    using var quadrantImage = ImageCropUtils.CropImage(screenshot, quadrant);
+                    
+                    if (quadrantImage != null)
+                    {
+                        // Comparar con la imagen anterior y obtener estadísticas de actividad
+                        var result = _activityService.CompareQuadrant(quadrantImage, quadrant.Name);
+                        results.Add(result);
+                    }
+                    else
+                    {
+                        Console.WriteLine($"[QuadrantService] No se pudo recortar el cuadrante {quadrant.Name}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[QuadrantService] Error procesando cuadrante {quadrant.Name}: {ex.Message}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[QuadrantService] Error en procesamiento de actividad: {ex.Message}");
+        }
+
+        return results;
+    }
+
+    /// <summary>
+    /// Obtiene las estadísticas de actividad de todos los cuadrantes
+    /// </summary>
+    public Dictionary<string, QuadrantActivityStats> GetActivityStatistics()
+    {
+        return _activityService.GetAllActivityStats();
+    }
+
     public void Dispose()
     {
         _processingSemaphore?.Dispose();
+        _activityService?.Dispose();
     }
 }

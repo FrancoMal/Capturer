@@ -141,6 +141,12 @@ public class QuadrantSystemSettings
     public string QuadrantsFolder { get; set; } = "Quadrants";
     public bool ShowPreviewColors { get; set; } = true;
     public bool EnableLogging { get; set; } = true;
+    
+    /// <summary>
+    /// Configuración para recordar preferencias de resolución
+    /// </summary>
+    public bool RememberResolutionChoice { get; set; } = false;
+    public string ResolutionHandling { get; set; } = "ask"; // "ask", "auto-adjust", "keep-current"
 
     public QuadrantSystemSettings()
     {
@@ -150,11 +156,34 @@ public class QuadrantSystemSettings
     }
 
     /// <summary>
-    /// Gets the active configuration
+    /// Gets the active configuration, automatically selecting a default if none is active
     /// </summary>
     public QuadrantConfiguration? GetActiveConfiguration()
     {
-        return Configurations.FirstOrDefault(c => c.Name == ActiveConfigurationName && c.IsActive);
+        // Buscar la configuración activa por nombre
+        var activeConfig = Configurations.FirstOrDefault(c => c.Name == ActiveConfigurationName && c.IsActive);
+        
+        if (activeConfig != null)
+            return activeConfig;
+        
+        // Si no hay configuración activa, buscar cualquier configuración activa
+        activeConfig = Configurations.FirstOrDefault(c => c.IsActive);
+        if (activeConfig != null)
+        {
+            ActiveConfigurationName = activeConfig.Name;
+            return activeConfig;
+        }
+        
+        // Si no hay ninguna configuración activa, activar la primera disponible
+        var firstConfig = Configurations.FirstOrDefault();
+        if (firstConfig != null)
+        {
+            firstConfig.IsActive = true;
+            ActiveConfigurationName = firstConfig.Name;
+            return firstConfig;
+        }
+        
+        return null;
     }
 
     /// <summary>

@@ -43,6 +43,7 @@
             this.btnCaptureNow = new System.Windows.Forms.Button();
             this.btnOpenFolder = new System.Windows.Forms.Button();
             this.btnQuadrants = new System.Windows.Forms.Button();
+            this.btnActivityDashboard = new System.Windows.Forms.Button();
             this.listViewScreenshots = new System.Windows.Forms.ListView();
             this.btnMinimizeToTray = new System.Windows.Forms.Button();
             this.btnExit = new System.Windows.Forms.Button();
@@ -246,6 +247,22 @@
             this.btnQuadrants.Text = "🔲 Cuadrantes";
             this.btnQuadrants.UseVisualStyleBackColor = false;
             // 
+            // btnActivityDashboard
+            // 
+            this.btnActivityDashboard.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(111)))), ((int)(((byte)(66)))), ((int)(((byte)(193)))));
+            this.btnActivityDashboard.FlatAppearance.BorderSize = 0;
+            this.btnActivityDashboard.FlatAppearance.MouseDownBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(94)))), ((int)(((byte)(56)))), ((int)(((byte)(164)))));
+            this.btnActivityDashboard.FlatAppearance.MouseOverBackColor = System.Drawing.Color.FromArgb(((int)(((byte)(103)))), ((int)(((byte)(61)))), ((int)(((byte)(179)))));
+            this.btnActivityDashboard.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnActivityDashboard.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            this.btnActivityDashboard.ForeColor = System.Drawing.Color.White;
+            this.btnActivityDashboard.Location = new System.Drawing.Point(440, 80);
+            this.btnActivityDashboard.Name = "btnActivityDashboard";
+            this.btnActivityDashboard.Size = new System.Drawing.Size(130, 40);
+            this.btnActivityDashboard.TabIndex = 13;
+            this.btnActivityDashboard.Text = "📊 Dashboard";
+            this.btnActivityDashboard.UseVisualStyleBackColor = false;
+            // 
             // listViewScreenshots
             // 
             this.listViewScreenshots.BorderStyle = System.Windows.Forms.BorderStyle.None;
@@ -353,6 +370,7 @@
             this.groupBoxControls.Controls.Add(this.btnCaptureNow);
             this.groupBoxControls.Controls.Add(this.btnOpenFolder);
             this.groupBoxControls.Controls.Add(this.btnQuadrants);
+            this.groupBoxControls.Controls.Add(this.btnActivityDashboard);
             this.groupBoxControls.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.groupBoxControls.Font = new System.Drawing.Font("Segoe UI", 9.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
             this.groupBoxControls.Location = new System.Drawing.Point(20, 155);
@@ -391,6 +409,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.AutoScroll = true; // Enable automatic scrolling
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(248)))), ((int)(((byte)(249)))), ((int)(((byte)(250)))));
             this.ClientSize = new System.Drawing.Size(780, 680);
             this.Controls.Add(this.groupBoxRecent);
@@ -430,6 +449,7 @@
         private System.Windows.Forms.Button btnCaptureNow;
         private System.Windows.Forms.Button btnOpenFolder;
         private System.Windows.Forms.Button btnQuadrants;
+        private System.Windows.Forms.Button btnActivityDashboard;
         private System.Windows.Forms.ListView listViewScreenshots;
         private System.Windows.Forms.Button btnMinimizeToTray;
         private System.Windows.Forms.Button btnExit;

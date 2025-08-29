@@ -17,6 +17,9 @@ namespace Capturer
         private readonly IQuadrantSchedulerService _quadrantSchedulerService;
         private readonly ServiceProvider _serviceProvider;
         private CapturerConfiguration _config = new();
+        
+        // Dashboard de actividad
+        private ActivityDashboardForm? _activityDashboard;
 
         public Form1(ServiceProvider serviceProvider)
         {
@@ -46,6 +49,9 @@ namespace Capturer
 
             // Wire up event handlers
             WireUpEvents();
+            
+            // Configurar integración de monitoreo de actividad
+            SetupActivityMonitoring();
 
             // Setup system tray
             SetupSystemTray();
@@ -139,6 +145,7 @@ namespace Capturer
             btnCaptureNow.Click += BtnCaptureNow_Click;
             btnOpenFolder.Click += BtnOpenFolder_Click;
             btnQuadrants.Click += BtnQuadrants_Click;
+            btnActivityDashboard.Click += BtnActivityDashboard_Click;
             btnMinimizeToTray.Click += BtnMinimizeToTray_Click;
             btnExit.Click += BtnExit_Click;
 
@@ -585,6 +592,107 @@ namespace Capturer
             }
         }
 
+        private void BtnActivityDashboard_Click(object? sender, EventArgs e)
+        {
+            try
+            {
+                // Verificar que el sistema de cuadrantes esté habilitado
+                if (!_config.QuadrantSystem.IsEnabled)
+                {
+                    var result = MessageBox.Show(
+                        "El dashboard de actividad requiere que el sistema de cuadrantes esté habilitado.\n\n¿Desea habilitar los cuadrantes ahora?",
+                        "Dashboard de Actividad",
+                        MessageBoxButtons.YesNo,
+                        MessageBoxIcon.Question);
+
+                    if (result == DialogResult.Yes)
+                    {
+                        _config.QuadrantSystem.IsEnabled = true;
+                        _configManager.SaveConfigurationAsync(_config);
+                        ShowNotification("Sistema habilitado", "Cuadrantes y monitoreo de actividad habilitados");
+                    }
+                    else
+                    {
+                        return;
+                    }
+                }
+
+                // Verificar que haya al menos una configuración de cuadrantes
+                var activeConfig = _quadrantService.GetActiveConfiguration();
+                if (activeConfig == null)
+                {
+                    MessageBox.Show(
+                        "Error: No se pudo obtener una configuración de cuadrantes válida.\n\nIntente reiniciar la aplicación o contacte soporte técnico.",
+                        "Dashboard de Actividad - Error",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Error);
+                    return;
+                }
+                
+                // Si no hay cuadrantes habilitados, ofrecer configurar
+                if (!activeConfig.GetEnabledQuadrants().Any())
+                {
+                    var result = MessageBox.Show(
+                        $"La configuración '{activeConfig.Name}' no tiene cuadrantes habilitados.\n\n¿Desea configurar los cuadrantes ahora?",
+                        "Dashboard de Actividad",
+                        MessageBoxButtons.YesNo,
+                        MessageBoxIcon.Information);
+
+                    if (result == DialogResult.Yes)
+                    {
+                        BtnQuadrants_Click(sender, e);
+                    }
+                    return;
+                }
+
+                // Si el dashboard ya está abierto, traerlo al frente
+                if (_activityDashboard != null && !_activityDashboard.IsDisposed)
+                {
+                    _activityDashboard.BringToFront();
+                    _activityDashboard.WindowState = FormWindowState.Normal;
+                    return;
+                }
+
+                // Crear y mostrar el dashboard
+                var quadrantService = _quadrantService as QuadrantService;
+                if (quadrantService?.ActivityService != null)
+                {
+                    _activityDashboard = new ActivityDashboardForm(quadrantService.ActivityService, quadrantService);
+                    _activityDashboard.Show();
+                    
+                    ShowNotification("Dashboard", "Dashboard de actividad abierto");
+                }
+                else
+                {
+                    MessageBox.Show("Error: No se pudo acceder al servicio de actividad", 
+                        "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error abriendo dashboard de actividad: {ex.Message}", 
+                    "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void SetupActivityMonitoring()
+        {
+            try
+            {
+                // Conectar el servicio de screenshots con el servicio de cuadrantes para monitoreo
+                if (_screenshotService is ScreenshotService screenshotService && 
+                    _quadrantService is QuadrantService quadrantService)
+                {
+                    screenshotService.SetQuadrantService(quadrantService);
+                    Console.WriteLine("[Form1] Monitoreo de actividad configurado correctamente");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Form1] Error configurando monitoreo de actividad: {ex.Message}");
+            }
+        }
+
         private async Task CleanupAndExit()
         {
             try
@@ -600,6 +708,13 @@ namespace Capturer
                 {
                     await _quadrantSchedulerService.StopAsync();
                     _quadrantSchedulerService.Dispose();
+                }
+
+                // Close activity dashboard if open
+                if (_activityDashboard != null && !_activityDashboard.IsDisposed)
+                {
+                    _activityDashboard.Close();
+                    _activityDashboard = null;
                 }
 
                 // Dispose services
