@@ -12,6 +12,7 @@ public partial class ActivityDashboardForm : Form
 {
     private readonly QuadrantActivityService _activityService;
     private readonly QuadrantService _quadrantService;
+    private readonly ActivityReportService _reportService;
     private System.Windows.Forms.Timer? _refreshTimer;
     private System.Windows.Forms.Timer? _monitoringTimer;
     private DataGridView? _statsGrid;
@@ -22,15 +23,32 @@ public partial class ActivityDashboardForm : Form
     private QuadrantActivityConfiguration _dashboardConfig = new();
     private string _tempActivityFolder = "";
     private Dictionary<string, string> _lastTempFiles = new(); // Track last temp files per quadrant for cleanup
+    
+    // Countdown timer functionality
+    private DateTime _nextMonitoringTime = DateTime.Now;
+    private System.Windows.Forms.Timer? _countdownTimer;
+    private Label? _countdownLabel;
+    
+    // Pause/Resume functionality
+    private bool _isPaused = false;
+    private Button? _pauseResumeButton;
+    private DateTime _pauseStartTime;
+    
+    // System tray functionality
+    private NotifyIcon? _notifyIcon;
+    private ContextMenuStrip? _trayContextMenu;
 
     public ActivityDashboardForm(QuadrantActivityService activityService, QuadrantService quadrantService)
     {
         _activityService = activityService ?? throw new ArgumentNullException(nameof(activityService));
         _quadrantService = quadrantService ?? throw new ArgumentNullException(nameof(quadrantService));
+        _reportService = new ActivityReportService(_activityService);
         InitializeTempFolder();
         InitializeComponent();
+        SetupSystemTray();
         SetupEventHandlers();
         StartRefreshTimer();
+        StartCountdownTimer();
     }
 
     private void InitializeComponent()
@@ -134,13 +152,13 @@ public partial class ActivityDashboardForm : Form
         {
             Dock = DockStyle.Fill,
             ColumnCount = 1,
-            RowCount = 8,
+            RowCount = 13,  // Aumentamos para pause button
             Padding = new Padding(10),
             AutoSize = true
         };
 
         // Configurar filas
-        for (int i = 0; i < 8; i++)
+        for (int i = 0; i < 13; i++)  // Más filas para pause functionality
         {
             contentPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         }
@@ -221,6 +239,17 @@ public partial class ActivityDashboardForm : Form
             Font = new Font("Segoe UI", 9F, FontStyle.Italic),
             ForeColor = Color.DarkGreen,
             AutoSize = true,
+            Anchor = AnchorStyles.Left,
+            Name = "infoLabel"
+        };
+
+        // Etiqueta de countdown
+        _countdownLabel = new Label
+        {
+            Text = "Próxima verificación: --:--",
+            Font = new Font("Segoe UI", 8F, FontStyle.Bold),
+            ForeColor = Color.DarkBlue,
+            AutoSize = true,
             Anchor = AnchorStyles.Left
         };
 
@@ -248,15 +277,70 @@ public partial class ActivityDashboardForm : Form
             Anchor = AnchorStyles.Left
         };
 
+        // Export buttons
+        var exportSeparatorLabel = new Label
+        {
+            Text = "─────────────────────",
+            ForeColor = Color.LightGray,
+            Font = new Font("Segoe UI", 8F),
+            AutoSize = true,
+            Anchor = AnchorStyles.Left
+        };
+
+        var exportHtmlButton = new Button
+        {
+            Text = "📊 Exportar HTML",
+            Size = new Size(150, 25),
+            BackColor = Color.FromArgb(0, 150, 136),
+            ForeColor = Color.White,
+            FlatStyle = FlatStyle.Flat,
+            Font = new Font("Segoe UI", 8F),
+            Anchor = AnchorStyles.Left
+        };
+        exportHtmlButton.FlatAppearance.BorderSize = 0;
+        exportHtmlButton.Click += async (s, e) => await ExportReportAsync("HTML");
+
+        var exportCsvButton = new Button
+        {
+            Text = "📄 Exportar CSV", 
+            Size = new Size(150, 25),
+            BackColor = Color.FromArgb(76, 175, 80),
+            ForeColor = Color.White,
+            FlatStyle = FlatStyle.Flat,
+            Font = new Font("Segoe UI", 8F),
+            Anchor = AnchorStyles.Left
+        };
+        exportCsvButton.FlatAppearance.BorderSize = 0;
+        exportCsvButton.Click += async (s, e) => await ExportReportAsync("CSV");
+
+        // Pause/Resume button
+        _pauseResumeButton = new Button
+        {
+            Text = "⏸️ Pausar Monitoreo",
+            Size = new Size(150, 30),
+            BackColor = Color.FromArgb(255, 152, 0),
+            ForeColor = Color.White,
+            FlatStyle = FlatStyle.Flat,
+            Font = new Font("Segoe UI", 9F, FontStyle.Bold),
+            Anchor = AnchorStyles.Left
+        };
+        _pauseResumeButton.FlatAppearance.BorderSize = 0;
+        _pauseResumeButton.Click += OnPauseResumeClick;
+
         // Agregar controles al panel
         contentPanel.Controls.Add(configButton, 0, 0);
         contentPanel.Controls.Add(separatorLabel, 0, 1);
-        contentPanel.Controls.Add(thresholdLabel, 0, 2);
-        contentPanel.Controls.Add(thresholdNumeric, 0, 3);
-        contentPanel.Controls.Add(toleranceLabel, 0, 4);
-        contentPanel.Controls.Add(toleranceNumeric, 0, 5);
-        contentPanel.Controls.Add(resetButton, 0, 6);
-        contentPanel.Controls.Add(infoLabel, 0, 7);
+        contentPanel.Controls.Add(_pauseResumeButton, 0, 2);
+        contentPanel.Controls.Add(thresholdLabel, 0, 3);
+        contentPanel.Controls.Add(thresholdNumeric, 0, 4);
+        contentPanel.Controls.Add(toleranceLabel, 0, 5);
+        contentPanel.Controls.Add(toleranceNumeric, 0, 6);
+        contentPanel.Controls.Add(resetButton, 0, 7);
+        contentPanel.Controls.Add(infoLabel, 0, 8);
+        contentPanel.Controls.Add(_countdownLabel!, 0, 9);
+        contentPanel.Controls.Add(exportSeparatorLabel, 0, 10);
+        contentPanel.Controls.Add(exportHtmlButton, 0, 11);
+        contentPanel.Controls.Add(exportCsvButton, 0, 12);
 
         panel.Controls.Add(contentPanel);
         panel.Controls.Add(titleLabel);
@@ -432,6 +516,143 @@ public partial class ActivityDashboardForm : Form
         _refreshTimer.Start();
     }
 
+    private void StartCountdownTimer()
+    {
+        _countdownTimer = new System.Windows.Forms.Timer
+        {
+            Interval = 1000 // Update every second
+        };
+        _countdownTimer.Tick += UpdateCountdownDisplay;
+        _countdownTimer.Start();
+    }
+
+    private void SetupSystemTray()
+    {
+        try
+        {
+            // Create system tray icon
+            _notifyIcon = new NotifyIcon
+            {
+                Text = "Dashboard de Actividad - Capturer",
+                Visible = false
+            };
+
+            // Try to load icon
+            try
+            {
+                if (File.Exists("Capturer_Logo.ico"))
+                {
+                    _notifyIcon.Icon = new Icon("Capturer_Logo.ico");
+                }
+                else
+                {
+                    // Fallback to embedded resource or default icon
+                    var stream = GetType().Assembly.GetManifestResourceStream("Capturer.Capturer_Logo.ico");
+                    if (stream != null)
+                    {
+                        _notifyIcon.Icon = new Icon(stream);
+                    }
+                    else
+                    {
+                        _notifyIcon.Icon = SystemIcons.Application;
+                    }
+                }
+            }
+            catch
+            {
+                _notifyIcon.Icon = SystemIcons.Application;
+            }
+
+            // Create context menu
+            _trayContextMenu = new ContextMenuStrip();
+            
+            var showItem = new ToolStripMenuItem("Mostrar Dashboard")
+            {
+                Font = new Font("Segoe UI", 9F, FontStyle.Bold)
+            };
+            showItem.Click += (s, e) => ShowFromTray();
+
+            var pauseResumeItem = new ToolStripMenuItem(_isPaused ? "▶️ Reanudar Monitoreo" : "⏸️ Pausar Monitoreo");
+            pauseResumeItem.Click += (s, e) => 
+            {
+                OnPauseResumeClick(null, EventArgs.Empty);
+                pauseResumeItem.Text = _isPaused ? "▶️ Reanudar Monitoreo" : "⏸️ Pausar Monitoreo";
+            };
+
+            var exportHtmlItem = new ToolStripMenuItem("📊 Exportar HTML");
+            exportHtmlItem.Click += async (s, e) => await ExportReportAsync("HTML");
+
+            var exportCsvItem = new ToolStripMenuItem("📄 Exportar CSV");
+            exportCsvItem.Click += async (s, e) => await ExportReportAsync("CSV");
+
+            var separatorItem = new ToolStripSeparator();
+
+            var hideItem = new ToolStripMenuItem("Minimizar a bandeja");
+            hideItem.Click += (s, e) => HideToTray();
+
+            var exitItem = new ToolStripMenuItem("Cerrar Dashboard");
+            exitItem.Click += (s, e) => Close();
+
+            _trayContextMenu.Items.AddRange(new ToolStripItem[]
+            {
+                showItem,
+                separatorItem,
+                pauseResumeItem,
+                exportHtmlItem,
+                exportCsvItem,
+                new ToolStripSeparator(),
+                hideItem,
+                exitItem
+            });
+
+            _notifyIcon.ContextMenuStrip = _trayContextMenu;
+            _notifyIcon.DoubleClick += (s, e) => ShowFromTray();
+
+            Console.WriteLine("[ActivityDashboard] System tray configurado");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ActivityDashboard] Error configurando system tray: {ex.Message}");
+        }
+    }
+
+    private void UpdateCountdownDisplay(object? sender, EventArgs e)
+    {
+        if (_countdownLabel == null) return;
+
+        if (InvokeRequired)
+        {
+            Invoke(() => UpdateCountdownDisplay(sender, e));
+            return;
+        }
+
+        if (_isPaused)
+        {
+            var pausedDuration = DateTime.Now - _pauseStartTime;
+            _countdownLabel.Text = $"⏸️ Pausado desde hace: {pausedDuration:mm\\:ss}";
+            _countdownLabel.ForeColor = Color.DarkRed;
+        }
+        else if (_dashboardConfig.IsMonitoringEnabled && _monitoringTimer != null)
+        {
+            var timeRemaining = _nextMonitoringTime - DateTime.Now;
+            if (timeRemaining.TotalSeconds > 0)
+            {
+                _countdownLabel.Text = $"Próxima verificación: {timeRemaining:mm\\:ss}";
+                _countdownLabel.ForeColor = Color.DarkBlue;
+            }
+            else
+            {
+                _countdownLabel.Text = "Verificando ahora...";
+                _countdownLabel.ForeColor = Color.DarkOrange;
+            }
+        }
+        else
+        {
+            _countdownLabel.Text = "Monitoreo detenido";
+            _countdownLabel.ForeColor = Color.Gray;
+        }
+    }
+
     private void RefreshDisplay()
     {
         if (InvokeRequired)
@@ -539,6 +760,9 @@ public partial class ActivityDashboardForm : Form
         };
         _monitoringTimer.Tick += OnMonitoringTick;
         _monitoringTimer.Start();
+        
+        // Set next monitoring time
+        _nextMonitoringTime = DateTime.Now.AddMilliseconds(_dashboardConfig.TotalIntervalMilliseconds);
 
         Console.WriteLine($"[ActivityDashboard] Monitoreo iniciado con intervalo de {_dashboardConfig.MonitoringInterval.TotalSeconds}s");
     }
@@ -556,7 +780,13 @@ public partial class ActivityDashboardForm : Form
     {
         try
         {
-            await PerformActivityMonitoringCapture();
+            if (!_isPaused)
+            {
+                await PerformActivityMonitoringCapture();
+                
+                // Update next monitoring time
+                _nextMonitoringTime = DateTime.Now.AddMilliseconds(_dashboardConfig.TotalIntervalMilliseconds);
+            }
         }
         catch (Exception ex)
         {
@@ -748,6 +978,11 @@ public partial class ActivityDashboardForm : Form
             StopMonitoring();
             _refreshTimer?.Stop();
             _refreshTimer?.Dispose();
+            _countdownTimer?.Stop();
+            _countdownTimer?.Dispose();
+            _notifyIcon?.Dispose();
+            _trayContextMenu?.Dispose();
+            _reportService?.Dispose();
             _activityService.ActivityChanged -= OnActivityChanged;
             
             // Clean up temporary files when form is disposed
@@ -786,5 +1021,183 @@ public partial class ActivityDashboardForm : Form
         {
             Console.WriteLine($"[ActivityDashboard] Error en limpieza final: {ex.Message}");
         }
+    }
+
+    /// <summary>
+    /// Exporta el reporte actual de actividad
+    /// </summary>
+    private async Task ExportReportAsync(string format)
+    {
+        try
+        {
+            // Generate report from current session
+            var currentReport = _reportService.GetCurrentSessionReport();
+            if (currentReport == null || currentReport.Entries.Count == 0)
+            {
+                MessageBox.Show("No hay datos de actividad para exportar. " +
+                               "Espere a que se generen datos de monitoreo.",
+                               "Sin datos", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            // Update report info
+            currentReport.ReportEndTime = DateTime.Now;
+            currentReport.QuadrantConfigurationName = _dashboardConfig.SelectedQuadrantConfigName;
+            currentReport.ReportType = "Dashboard Export";
+            currentReport.Comments = $"Reporte exportado desde el Dashboard de Actividad en formato {format}";
+
+            // Export the report
+            var exportPath = await _reportService.ExportReportAsync(currentReport, format);
+            
+            // Show success message with option to open
+            var result = MessageBox.Show(
+                $"Reporte exportado exitosamente:\n\n{exportPath}\n\n¿Desea abrir el archivo?",
+                "Exportación Exitosa",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Information);
+
+            if (result == DialogResult.Yes)
+            {
+                try
+                {
+                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = exportPath,
+                        UseShellExecute = true
+                    });
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"No se pudo abrir el archivo automáticamente:\n{ex.Message}\n\nRuta: {exportPath}",
+                                   "Error al abrir", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
+            }
+
+            Console.WriteLine($"[ActivityDashboard] Reporte exportado en formato {format}: {exportPath}");
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error al exportar el reporte:\n{ex.Message}",
+                           "Error de exportación", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            Console.WriteLine($"[ActivityDashboard] Error en exportación {format}: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Maneja el botón de pausa/reanudar
+    /// </summary>
+    private void OnPauseResumeClick(object? sender, EventArgs e)
+    {
+        if (_isPaused)
+        {
+            // Resume monitoring
+            _isPaused = false;
+            if (_dashboardConfig.IsMonitoringEnabled)
+            {
+                StartMonitoring();
+            }
+            
+            if (_pauseResumeButton != null)
+            {
+                _pauseResumeButton.Text = "⏸️ Pausar Monitoreo";
+                _pauseResumeButton.BackColor = Color.FromArgb(255, 152, 0);
+            }
+            
+            Console.WriteLine("[ActivityDashboard] Monitoreo reanudado por el usuario");
+        }
+        else
+        {
+            // Pause monitoring
+            _isPaused = true;
+            _pauseStartTime = DateTime.Now;
+            StopMonitoring();
+            
+            if (_pauseResumeButton != null)
+            {
+                _pauseResumeButton.Text = "▶️ Reanudar Monitoreo";
+                _pauseResumeButton.BackColor = Color.FromArgb(76, 175, 80);
+            }
+            
+            Console.WriteLine("[ActivityDashboard] Monitoreo pausado por el usuario");
+        }
+    }
+
+    /// <summary>
+    /// Minimiza el formulario a la bandeja del sistema
+    /// </summary>
+    public void HideToTray()
+    {
+        try
+        {
+            if (_notifyIcon != null)
+            {
+                Hide();
+                _notifyIcon.Visible = true;
+                _notifyIcon.ShowBalloonTip(2000, "Dashboard de Actividad", 
+                    "El dashboard continúa ejecutándose en segundo plano", ToolTipIcon.Info);
+                Console.WriteLine("[ActivityDashboard] Minimizado a bandeja del sistema");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ActivityDashboard] Error al minimizar a bandeja: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Muestra el formulario desde la bandeja del sistema
+    /// </summary>
+    public void ShowFromTray()
+    {
+        try
+        {
+            if (_notifyIcon != null)
+            {
+                _notifyIcon.Visible = false;
+                Show();
+                WindowState = FormWindowState.Normal;
+                BringToFront();
+                Activate();
+                Console.WriteLine("[ActivityDashboard] Restaurado desde bandeja del sistema");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ActivityDashboard] Error al restaurar desde bandeja: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Override del evento FormClosing para manejar minimización a tray
+    /// </summary>
+    protected override void OnFormClosing(FormClosingEventArgs e)
+    {
+        if (e.CloseReason == CloseReason.UserClosing && _notifyIcon != null)
+        {
+            // Ask user if they want to minimize to tray or exit
+            var result = MessageBox.Show(
+                "¿Desea minimizar el dashboard a la bandeja del sistema?\n\n" +
+                "Sí: Minimizar a bandeja (continúa ejecutándose)\n" +
+                "No: Cerrar completamente el dashboard",
+                "Cerrar Dashboard",
+                MessageBoxButtons.YesNoCancel,
+                MessageBoxIcon.Question,
+                MessageBoxDefaultButton.Button1);
+
+            if (result == DialogResult.Yes)
+            {
+                e.Cancel = true;
+                HideToTray();
+                return;
+            }
+            else if (result == DialogResult.Cancel)
+            {
+                e.Cancel = true;
+                return;
+            }
+            // If No, continue with normal close
+        }
+
+        base.OnFormClosing(e);
     }
 }
