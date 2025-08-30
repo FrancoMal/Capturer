@@ -30,6 +30,7 @@ public partial class RoutineEmailForm : Form
     }
     
     // Main Configuration Controls
+    private GroupBox groupMain;
     private CheckBox chkEnableRoutineReports;
     private ComboBox cmbReportFrequency;
     private NumericUpDown numCustomDays;
@@ -50,6 +51,7 @@ public partial class RoutineEmailForm : Form
     private CheckedListBox clbWeekDays;
     
     // Recipient Selection Controls
+    private GroupBox groupRecipients;
     private CheckedListBox clbRecipients;
     private TextBox txtCustomEmail;
     private Button btnAddCustom;
@@ -83,6 +85,7 @@ public partial class RoutineEmailForm : Form
     private Button btnPreviewSchedule;
     
     // Status and Preview
+    private GroupBox groupPreview;
     private Label lblCurrentStatus;
     private Label lblNextScheduledEmail;
     private Label lblPreviewInfo;
@@ -151,7 +154,7 @@ public partial class RoutineEmailForm : Form
         var y = 20;
 
         // === MAIN CONFIGURATION SECTION ===
-        var groupMain = new GroupBox 
+        groupMain = new GroupBox 
         { 
             Text = "Configuración de Reportes Automáticos", 
             Location = new Point(20, y), 
@@ -347,7 +350,7 @@ public partial class RoutineEmailForm : Form
         y += 140;
 
         // === RECIPIENT SELECTION SECTION ===
-        var groupRecipients = new GroupBox 
+        groupRecipients = new GroupBox 
         { 
             Text = "Destinatarios", 
             Location = new Point(20, y), 
@@ -592,7 +595,7 @@ public partial class RoutineEmailForm : Form
         y += 220;
 
         // === PREVIEW AND CONTROL SECTION ===
-        var groupPreview = new GroupBox 
+        groupPreview = new GroupBox 
         { 
             Text = "Vista Previa y Control", 
             Location = new Point(20, y), 
@@ -762,10 +765,94 @@ public partial class RoutineEmailForm : Form
             UpdateUIState();
             UpdateQuadrantProfileVisibility();
             UpdatePreviewInfo();
+            
+            // Reorganize layout based on visible elements (with slight delay to ensure all controls are ready)
+            this.BeginInvoke(new Action(() => ReorganizeLayout()));
         }
         catch (Exception ex)
         {
             MessageBox.Show($"Error cargando configuración: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
+    private void ReorganizeLayout()
+    {
+        try
+        {
+            var y = 20;
+            
+            // Reposition elements based on visibility using direct references
+            if (groupMain != null)
+            {
+                groupMain.Location = new Point(20, y);
+                y += 160;
+            }
+            
+            if (groupTimeFilter != null)
+            {
+                groupTimeFilter.Location = new Point(20, y);
+                y += 140;
+            }
+            
+            if (groupRecipients != null)
+            {
+                groupRecipients.Location = new Point(20, y);
+                y += 180;
+            }
+            
+            if (groupFormat != null)
+            {
+                groupFormat.Location = new Point(20, y);
+                y += 120;
+            }
+            
+            // Only add space for quadrants if they are visible
+            if (groupQuadrants != null && groupQuadrants.Visible)
+            {
+                groupQuadrants.Location = new Point(20, y);
+                y += 220;
+            }
+            
+            if (groupPreview != null)
+            {
+                groupPreview.Location = new Point(20, y);
+                y += 100;
+            }
+            
+            // Update buttons and progress bar position
+            var mainPanel = this.Controls.Cast<Control>().FirstOrDefault(c => c is Panel) as Panel;
+            if (mainPanel != null)
+            {
+                // Position progress bar and buttons
+                if (progressBar != null)
+                {
+                    progressBar.Location = new Point(20, y + 10);
+                    y += 30;
+                }
+                
+                if (lblProgress != null)
+                {
+                    lblProgress.Location = new Point(20, y + 5);
+                    y += 30;
+                }
+                
+                // Reposition control buttons
+                var buttonY = y + 10;
+                if (btnSave != null) btnSave.Location = new Point(20, buttonY);
+                if (btnTestEmail != null) btnTestEmail.Location = new Point(120, buttonY);
+                if (btnPreviewSchedule != null) btnPreviewSchedule.Location = new Point(220, buttonY);
+                if (btnCancel != null) btnCancel.Location = new Point(320, buttonY);
+                
+                y += 50; // Height of buttons
+                
+                // Update scroll size
+                mainPanel.AutoScrollMinSize = new Size(640, y + 20);
+            }
+        }
+        catch (Exception ex)
+        {
+            // If reorganization fails, just log it and continue
+            Console.WriteLine($"Error reorganizing layout: {ex.Message}");
         }
     }
 
@@ -806,11 +893,14 @@ public partial class RoutineEmailForm : Form
             else
             {
                 groupQuadrants.Visible = false;
+                // Reorganize layout when quadrants are not available
+                this.BeginInvoke(new Action(() => ReorganizeLayout()));
             }
         }
         catch (Exception ex)
         {
             groupQuadrants.Visible = false;
+            this.BeginInvoke(new Action(() => ReorganizeLayout()));
             Console.WriteLine($"Error loading quadrants: {ex.Message}");
         }
     }

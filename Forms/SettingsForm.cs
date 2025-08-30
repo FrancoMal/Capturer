@@ -120,16 +120,9 @@ public partial class SettingsForm : Form
         {
             BackColor = Color.White,
             AutoScroll = true,
-            Padding = new Padding(5)
-        };
-        var screenshotScrollPanel = new Panel
-        {
-            AutoScroll = true,
-            Dock = DockStyle.Fill,
             Padding = new Padding(15)
         };
-        screenshotTab.Controls.Add(screenshotScrollPanel);
-        CreateScreenshotControls(screenshotTab); // Keep original TabPage parameter
+        CreateScreenshotControls(screenshotTab);
         tabControl.TabPages.Add(screenshotTab);
         
         // Email tab with scrollable content
@@ -137,16 +130,9 @@ public partial class SettingsForm : Form
         {
             BackColor = Color.White,
             AutoScroll = true,
-            Padding = new Padding(5)
-        };
-        var emailScrollPanel = new Panel
-        {
-            AutoScroll = true,
-            Dock = DockStyle.Fill,
             Padding = new Padding(15)
         };
-        emailTab.Controls.Add(emailScrollPanel);
-        CreateEmailControls(emailTab); // Keep original TabPage parameter
+        CreateEmailControls(emailTab);
         tabControl.TabPages.Add(emailTab);
         
         // Storage tab with scrollable content
@@ -154,18 +140,12 @@ public partial class SettingsForm : Form
         {
             BackColor = Color.White,
             AutoScroll = true,
-            Padding = new Padding(5)
-        };
-        var storageScrollPanel = new Panel
-        {
-            AutoScroll = true,
-            Dock = DockStyle.Fill,
             Padding = new Padding(15)
         };
-        storageTab.Controls.Add(storageScrollPanel);
-        CreateStorageControls(storageTab); // Keep original TabPage parameter
+        CreateStorageControls(storageTab);
         tabControl.TabPages.Add(storageTab);
         
+        // Add the TabControl to the form
         this.Controls.Add(tabControl);
         
         // Bottom buttons
