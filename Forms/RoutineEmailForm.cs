@@ -65,7 +65,10 @@ public partial class RoutineEmailForm : Form
     // Quadrant Processing Controls
     private GroupBox groupQuadrants;
     private CheckBox chkUseQuadrants;
+    private Button btnSelectQuadrants;
     private CheckedListBox clbQuadrants;
+    private Label lblSelectedQuadrants;
+    private List<string> _selectedQuadrantsList = new();
     private CheckBox chkProcessQuadrantsFirst;
     private ComboBox cmbQuadrantProfile;
     private Label lblQuadrantProfile;
@@ -102,7 +105,7 @@ public partial class RoutineEmailForm : Form
     private void InitializeComponent()
     {
         this.Size = new Size(750, 800);
-        this.Text = "📊 Configuración de Reportes Automáticos - Capturer v2.0";
+        this.Text = "📊 Configuración de Reportes Automáticos - Capturer v2.4";
         this.StartPosition = FormStartPosition.CenterParent;
         this.FormBorderStyle = FormBorderStyle.Sizable;
         this.MaximizeBox = true;
@@ -492,20 +495,36 @@ public partial class RoutineEmailForm : Form
         chkUseQuadrants.CheckedChanged += ChkUseQuadrants_CheckedChanged;
         groupQuadrants.Controls.Add(chkUseQuadrants);
         
-        clbQuadrants = new CheckedListBox 
-        { 
-            Location = new Point(15, 50), 
-            Size = new Size(480, 60),
+        btnSelectQuadrants = CreateModernButton("🔲 Seleccionar Cuadrantes...", new Point(15, 50), new Size(200, 30), Color.FromArgb(0, 123, 255));
+        btnSelectQuadrants.Enabled = false;
+        btnSelectQuadrants.Click += BtnSelectQuadrants_Click;
+        groupQuadrants.Controls.Add(btnSelectQuadrants);
+        
+        clbQuadrants = new CheckedListBox
+        {
+            Location = new Point(15, 85),
+            Size = new Size(280, 80),
             CheckOnClick = true,
             Enabled = false,
-            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
+            Visible = false  // Hide the checkbox list - now using dialog selection
         };
         groupQuadrants.Controls.Add(clbQuadrants);
+        
+        lblSelectedQuadrants = new Label
+        {
+            Text = "Ningún cuadrante seleccionado",
+            Location = new Point(220, 55),
+            Size = new Size(280, 20),
+            ForeColor = Color.Gray,
+            Font = new Font("Segoe UI", 8.5F, FontStyle.Italic),
+            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
+        };
+        groupQuadrants.Controls.Add(lblSelectedQuadrants);
         
         chkProcessQuadrantsFirst = new CheckBox 
         { 
             Text = "Procesar cuadrantes antes del envío (regenerar automáticamente)", 
-            Location = new Point(15, 115), 
+            Location = new Point(15, 85), 
             AutoSize = true,
             Enabled = false,
             Font = new Font("Microsoft Sans Serif", 8.25F, FontStyle.Bold),
@@ -518,7 +537,7 @@ public partial class RoutineEmailForm : Form
         lblQuadrantProfile = new Label 
         { 
             Text = "Perfil de procesamiento:", 
-            Location = new Point(35, 140), 
+            Location = new Point(35, 110), 
             AutoSize = true,
             Visible = false,
             Font = new Font("Microsoft Sans Serif", 8.25F)
@@ -527,7 +546,7 @@ public partial class RoutineEmailForm : Form
         
         cmbQuadrantProfile = new ComboBox 
         { 
-            Location = new Point(180, 137), 
+            Location = new Point(180, 107), 
             Width = 200, 
             DropDownStyle = ComboBoxStyle.DropDownList,
             Enabled = false,
@@ -539,7 +558,7 @@ public partial class RoutineEmailForm : Form
         chkSeparateEmailPerQuadrant = new CheckBox 
         { 
             Text = "Enviar email separado por cada cuadrante", 
-            Location = new Point(15, 165), 
+            Location = new Point(15, 135), 
             AutoSize = true,
             Enabled = false,
             Font = new Font("Microsoft Sans Serif", 8.25F, FontStyle.Bold),
@@ -561,7 +580,7 @@ public partial class RoutineEmailForm : Form
         lblQuadrantProcessingNote = new Label 
         { 
             Text = "Los cuadrantes seleccionados se incluirán en cada reporte automático", 
-            Location = new Point(15, 185), 
+            Location = new Point(15, 155), 
             Size = new Size(600, 15), 
             Font = new Font("Microsoft Sans Serif", 7.5F),
             ForeColor = Color.DarkBlue,
@@ -960,6 +979,61 @@ public partial class RoutineEmailForm : Form
             btnTestEmail.Enabled = true;
             btnTestEmail.Text = "Enviar Test";
             HideProgress();
+        }
+    }
+
+    private void BtnSelectQuadrants_Click(object? sender, EventArgs e)
+    {
+        try
+        {
+            var availableQuadrants = _emailService.GetAvailableQuadrantFolders();
+            
+            if (!availableQuadrants.Any())
+            {
+                MessageBox.Show("No hay cuadrantes disponibles en el sistema.", "Información", 
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+            
+            using var dialog = new QuadrantSelectionDialog(availableQuadrants, _selectedQuadrantsList);
+            
+            if (dialog.ShowDialog() == DialogResult.OK)
+            {
+                _selectedQuadrantsList = dialog.SelectedQuadrants;
+                UpdateSelectedQuadrantsLabel();
+                
+                // Update the checkbox list to match dialog selection (for backwards compatibility)
+                UpdateQuadrantsCheckboxFromSelection();
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error al abrir la selección de cuadrantes: {ex.Message}", "Error", 
+                MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
+    private void UpdateSelectedQuadrantsLabel()
+    {
+        if (_selectedQuadrantsList.Count == 0)
+        {
+            lblSelectedQuadrants.Text = "Ningún cuadrante seleccionado";
+            lblSelectedQuadrants.ForeColor = Color.Gray;
+        }
+        else
+        {
+            lblSelectedQuadrants.Text = $"Seleccionados: {string.Join(", ", _selectedQuadrantsList)}";
+            lblSelectedQuadrants.ForeColor = Color.FromArgb(40, 167, 69);
+        }
+    }
+
+    private void UpdateQuadrantsCheckboxFromSelection()
+    {
+        // Update checkbox list to match the dialog selection for backwards compatibility
+        for (int i = 0; i < clbQuadrants.Items.Count; i++)
+        {
+            var item = clbQuadrants.Items[i].ToString();
+            clbQuadrants.SetItemChecked(i, _selectedQuadrantsList.Contains(item));
         }
     }
 

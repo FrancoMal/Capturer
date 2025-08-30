@@ -29,7 +29,8 @@ public partial class EmailForm : Form
     
     // New Quadrant Controls
     private CheckBox chkUseQuadrants;
-    private CheckedListBox clbQuadrants;
+    private Button btnSelectQuadrants;
+    private Label lblSelectedQuadrants;
     private Label lblQuadrantNote;
     private GroupBox groupQuadrants;
     private CheckBox chkSeparateEmailPerQuadrant;
@@ -37,6 +38,7 @@ public partial class EmailForm : Form
     private CheckBox chkProcessQuadrantsFirst;
     private ComboBox cmbQuadrantProfile;
     private Label lblQuadrantProfile;
+    private List<string> _selectedQuadrantsList = new();
     private readonly IQuadrantService? _quadrantService;
     private ToolTip _helpTooltip;
     private bool _quadrantsAvailable = false;
@@ -74,7 +76,7 @@ public partial class EmailForm : Form
     private void InitializeComponent()
     {
         this.Size = new Size(650, 700);
-        this.Text = "📧 Envío Manual de Capturas - Capturer v2.0";
+        this.Text = "📧 Envío Manual de Capturas - Capturer v2.4";
         this.StartPosition = FormStartPosition.CenterParent;
         this.FormBorderStyle = FormBorderStyle.Sizable;
         this.MaximizeBox = true;
@@ -283,18 +285,17 @@ public partial class EmailForm : Form
         };
         chkUseQuadrants.CheckedChanged += ChkUseQuadrants_CheckedChanged;
         
-        clbQuadrants = new CheckedListBox 
-        { 
-            Location = new Point(15, 50), 
-            Size = new Size(500, 40),
-            CheckOnClick = true,
-            Enabled = false,
-            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
-        };
-        clbQuadrants.ItemCheck += (s, e) => 
+        btnSelectQuadrants = CreateModernButton("🔲 Seleccionar Cuadrantes...", new Point(15, 50), new Size(200, 30), Color.FromArgb(0, 123, 255));
+        btnSelectQuadrants.Enabled = false;
+        btnSelectQuadrants.Click += BtnSelectQuadrants_Click;
+        
+        lblSelectedQuadrants = new Label
         {
-            // Use BeginInvoke to ensure the checkbox state is updated before UpdatePreview
-            this.BeginInvoke(new Action(async () => await UpdatePreview()));
+            Text = "Ningún cuadrante seleccionado",
+            Location = new Point(220, 55),
+            Size = new Size(280, 20),
+            ForeColor = Color.Gray,
+            Font = new Font("Segoe UI", 8.5F, FontStyle.Italic)
         };
         
         chkProcessQuadrantsFirst = new CheckBox 
@@ -359,7 +360,7 @@ public partial class EmailForm : Form
             Visible = false
         };
         
-        groupQuadrants.Controls.AddRange(new Control[] { chkUseQuadrants, clbQuadrants, chkProcessQuadrantsFirst, lblQuadrantProfile, cmbQuadrantProfile, chkSeparateEmailPerQuadrant, lblQuadrantNote, lblQuadrantProcessingNote });
+        groupQuadrants.Controls.AddRange(new Control[] { chkUseQuadrants, btnSelectQuadrants, lblSelectedQuadrants, chkProcessQuadrantsFirst, lblQuadrantProfile, cmbQuadrantProfile, chkSeparateEmailPerQuadrant, lblQuadrantNote, lblQuadrantProcessingNote });
         mainPanel.Controls.Add(groupQuadrants);
         y += 200;
 
@@ -413,12 +414,6 @@ public partial class EmailForm : Form
             {
                 _quadrantsAvailable = true;
                 groupQuadrants.Visible = true;
-                
-                clbQuadrants.Items.Clear();
-                foreach (var quadrant in availableQuadrants)
-                {
-                    clbQuadrants.Items.Add(quadrant, false);
-                }
             }
             else
             {
@@ -438,25 +433,23 @@ public partial class EmailForm : Form
     {
         if (chkUseQuadrants.Checked)
         {
-            clbQuadrants.Enabled = true;
+            btnSelectQuadrants.Enabled = true;
             chkProcessQuadrantsFirst.Enabled = true;
             chkSeparateEmailPerQuadrant.Enabled = true;
             lblQuadrantNote.Text = "Seleccione los cuadrantes que desea incluir en el reporte";
         }
         else
         {
-            clbQuadrants.Enabled = false;
+            btnSelectQuadrants.Enabled = false;
             chkProcessQuadrantsFirst.Enabled = false;
             chkProcessQuadrantsFirst.Checked = false;
             chkSeparateEmailPerQuadrant.Enabled = false;
             chkSeparateEmailPerQuadrant.Checked = false;
             lblQuadrantNote.Text = "Sistema de cuadrantes deshabilitado - se procesarán screenshots normales";
             
-            // Uncheck all quadrants when disabled
-            for (int i = 0; i < clbQuadrants.Items.Count; i++)
-            {
-                clbQuadrants.SetItemChecked(i, false);
-            }
+            // Clear selected quadrants when disabled
+            _selectedQuadrantsList.Clear();
+            UpdateSelectedQuadrantsLabel();
         }
         
         UpdateQuadrantProcessingVisibility();
@@ -553,9 +546,9 @@ public partial class EmailForm : Form
             var endDate = dtpToDate.Value.Date.AddDays(1).AddSeconds(-1);
             
             // Check if we're using quadrants and have some selected
-            if (chkUseQuadrants.Checked && clbQuadrants.CheckedItems.Count > 0)
+            if (chkUseQuadrants.Checked && _selectedQuadrantsList.Count > 0)
             {
-                var selectedQuadrants = clbQuadrants.CheckedItems.Cast<string>().ToList();
+                var selectedQuadrants = _selectedQuadrantsList;
                 var quadrantFiles = new List<string>();
                 long totalSize = 0;
                 
@@ -647,9 +640,9 @@ public partial class EmailForm : Form
         string formatMsg = rbZipFormat.Checked ? "en formato ZIP" : "como archivos individuales";
         string contentMsg = "";
         
-        if (chkUseQuadrants.Checked && clbQuadrants.CheckedItems.Count > 0)
+        if (chkUseQuadrants.Checked && _selectedQuadrantsList.Count > 0)
         {
-            var selectedQuadrants = clbQuadrants.CheckedItems.Cast<string>().ToList();
+            var selectedQuadrants = _selectedQuadrantsList;
             if (chkSeparateEmailPerQuadrant.Checked)
             {
                 contentMsg = $"{selectedQuadrants.Count} cuadrantes (email separado por cada uno): {string.Join(", ", selectedQuadrants)}";
@@ -707,9 +700,9 @@ public partial class EmailForm : Form
             bool success;
             
             // Check if we're using quadrants
-            if (chkUseQuadrants.Checked && clbQuadrants.CheckedItems.Count > 0)
+            if (chkUseQuadrants.Checked && _selectedQuadrantsList.Count > 0)
             {
-                var selectedQuadrants = clbQuadrants.CheckedItems.Cast<string>().ToList();
+                var selectedQuadrants = _selectedQuadrantsList;
                 
                 if (chkSeparateEmailPerQuadrant.Checked)
                 {
@@ -796,6 +789,49 @@ public partial class EmailForm : Form
         _helpTooltip.SetToolTip(helpButton, helpText);
         
         return helpButton;
+    }
+
+    private void BtnSelectQuadrants_Click(object? sender, EventArgs e)
+    {
+        try
+        {
+            var availableQuadrants = _emailService.GetAvailableQuadrantFolders();
+            
+            if (!availableQuadrants.Any())
+            {
+                MessageBox.Show("No hay cuadrantes disponibles en el sistema.", "Información", 
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+            
+            using var dialog = new QuadrantSelectionDialog(availableQuadrants, _selectedQuadrantsList);
+            
+            if (dialog.ShowDialog() == DialogResult.OK)
+            {
+                _selectedQuadrantsList = dialog.SelectedQuadrants;
+                UpdateSelectedQuadrantsLabel();
+                UpdatePreview();
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error abriendo selector de cuadrantes: {ex.Message}", "Error", 
+                MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
+    private void UpdateSelectedQuadrantsLabel()
+    {
+        if (_selectedQuadrantsList.Count == 0)
+        {
+            lblSelectedQuadrants.Text = "Ningún cuadrante seleccionado";
+            lblSelectedQuadrants.ForeColor = Color.Gray;
+        }
+        else
+        {
+            lblSelectedQuadrants.Text = $"Seleccionados: {string.Join(", ", _selectedQuadrantsList)}";
+            lblSelectedQuadrants.ForeColor = Color.FromArgb(40, 167, 69);
+        }
     }
 
     private void BtnCancel_Click(object? sender, EventArgs e)
