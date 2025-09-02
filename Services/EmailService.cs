@@ -424,9 +424,22 @@ Si tienes alguna pregunta, contacta al administrador del sistema.
             using var client = new SmtpClient();
             
             Console.WriteLine($"Attempting to connect to SMTP server: {_config.Email.SmtpServer}:{_config.Email.SmtpPort}");
+            Console.WriteLine($"Security mode: {_config.Email.SecurityMode}");
             
-            await client.ConnectAsync(_config.Email.SmtpServer, _config.Email.SmtpPort, 
-                _config.Email.UseSSL ? SecureSocketOptions.StartTls : SecureSocketOptions.None);
+            // Configure security based on mode
+            var securityOptions = _config.Email.SecurityMode switch
+            {
+                Models.SmtpSecurityMode.None => SecureSocketOptions.None,
+                Models.SmtpSecurityMode.StartTls => SecureSocketOptions.StartTls,
+                Models.SmtpSecurityMode.Ssl => SecureSocketOptions.SslOnConnect,
+                Models.SmtpSecurityMode.Auto => SecureSocketOptions.Auto,
+                _ => SecureSocketOptions.StartTls
+            };
+            
+            // Set timeout
+            client.Timeout = _config.Email.ConnectionTimeout * 1000;
+            
+            await client.ConnectAsync(_config.Email.SmtpServer, _config.Email.SmtpPort, securityOptions);
 
             if (!string.IsNullOrEmpty(_config.Email.Username))
             {
@@ -470,8 +483,19 @@ Si tienes alguna pregunta, contacta al administrador del sistema.
             await LoadConfigurationAsync();
 
             using var client = new SmtpClient();
-            await client.ConnectAsync(_config.Email.SmtpServer, _config.Email.SmtpPort,
-                _config.Email.UseSSL ? SecureSocketOptions.StartTls : SecureSocketOptions.None);
+            
+            var securityOptions = _config.Email.SecurityMode switch
+            {
+                Models.SmtpSecurityMode.None => SecureSocketOptions.None,
+                Models.SmtpSecurityMode.StartTls => SecureSocketOptions.StartTls,
+                Models.SmtpSecurityMode.Ssl => SecureSocketOptions.SslOnConnect,
+                Models.SmtpSecurityMode.Auto => SecureSocketOptions.Auto,
+                _ => SecureSocketOptions.StartTls
+            };
+            
+            client.Timeout = _config.Email.ConnectionTimeout * 1000;
+            
+            await client.ConnectAsync(_config.Email.SmtpServer, _config.Email.SmtpPort, securityOptions);
 
             if (!string.IsNullOrEmpty(_config.Email.Username))
             {
@@ -479,6 +503,7 @@ Si tienes alguna pregunta, contacta al administrador del sistema.
             }
 
             await client.DisconnectAsync(true);
+            Console.WriteLine("SMTP connection test successful!");
             return true;
         }
         catch (Exception ex)

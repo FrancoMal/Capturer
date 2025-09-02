@@ -928,6 +928,7 @@ public partial class RoutineEmailForm : Form
     private void ChkUseQuadrants_CheckedChanged(object? sender, EventArgs e)
     {
         clbQuadrants.Enabled = chkUseQuadrants.Checked;
+        btnSelectQuadrants.Enabled = chkUseQuadrants.Checked;  // Enable/disable dialog button
         chkProcessQuadrantsFirst.Enabled = chkUseQuadrants.Checked;
         chkSeparateEmailPerQuadrant.Enabled = chkUseQuadrants.Checked;
         btnTestQuadrantProcessing.Enabled = chkUseQuadrants.Checked;
@@ -938,12 +939,57 @@ public partial class RoutineEmailForm : Form
             {
                 clbQuadrants.SetItemChecked(i, false);
             }
+            _selectedQuadrantsList.Clear();
+            UpdateSelectedQuadrantsLabel();
             chkProcessQuadrantsFirst.Checked = false;
             chkSeparateEmailPerQuadrant.Checked = false;
         }
         
         UpdateQuadrantProfileVisibility();
         UpdatePreviewInfo();
+    }
+    
+    private void BtnSelectQuadrants_Click(object? sender, EventArgs e)
+    {
+        try
+        {
+            var availableQuadrants = _emailService.GetAvailableQuadrantFolders();
+            
+            if (!availableQuadrants.Any())
+            {
+                MessageBox.Show("No hay cuadrantes disponibles en el sistema.", "Información", 
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+            
+            using var dialog = new QuadrantSelectionDialog(availableQuadrants, _selectedQuadrantsList);
+            
+            if (dialog.ShowDialog() == DialogResult.OK)
+            {
+                _selectedQuadrantsList = dialog.SelectedQuadrants;
+                UpdateSelectedQuadrantsLabel();
+                UpdatePreviewInfo();
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error abriendo selector de cuadrantes: {ex.Message}", "Error", 
+                MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+    
+    private void UpdateSelectedQuadrantsLabel()
+    {
+        if (_selectedQuadrantsList.Any())
+        {
+            lblSelectedQuadrants.Text = $"{_selectedQuadrantsList.Count} cuadrante(s): {string.Join(", ", _selectedQuadrantsList.Take(3))}{(_selectedQuadrantsList.Count > 3 ? "..." : "")}";
+            lblSelectedQuadrants.ForeColor = Color.DarkGreen;
+        }
+        else
+        {
+            lblSelectedQuadrants.Text = "Ningún cuadrante seleccionado";
+            lblSelectedQuadrants.ForeColor = Color.Gray;
+        }
     }
 
     private void ChkProcessQuadrantsFirst_CheckedChanged(object? sender, EventArgs e)
@@ -1072,50 +1118,6 @@ public partial class RoutineEmailForm : Form
         }
     }
 
-    private void BtnSelectQuadrants_Click(object? sender, EventArgs e)
-    {
-        try
-        {
-            var availableQuadrants = _emailService.GetAvailableQuadrantFolders();
-            
-            if (!availableQuadrants.Any())
-            {
-                MessageBox.Show("No hay cuadrantes disponibles en el sistema.", "Información", 
-                    MessageBoxButtons.OK, MessageBoxIcon.Information);
-                return;
-            }
-            
-            using var dialog = new QuadrantSelectionDialog(availableQuadrants, _selectedQuadrantsList);
-            
-            if (dialog.ShowDialog() == DialogResult.OK)
-            {
-                _selectedQuadrantsList = dialog.SelectedQuadrants;
-                UpdateSelectedQuadrantsLabel();
-                
-                // Update the checkbox list to match dialog selection (for backwards compatibility)
-                UpdateQuadrantsCheckboxFromSelection();
-            }
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show($"Error al abrir la selección de cuadrantes: {ex.Message}", "Error", 
-                MessageBoxButtons.OK, MessageBoxIcon.Error);
-        }
-    }
-
-    private void UpdateSelectedQuadrantsLabel()
-    {
-        if (_selectedQuadrantsList.Count == 0)
-        {
-            lblSelectedQuadrants.Text = "Ningún cuadrante seleccionado";
-            lblSelectedQuadrants.ForeColor = Color.Gray;
-        }
-        else
-        {
-            lblSelectedQuadrants.Text = $"Seleccionados: {string.Join(", ", _selectedQuadrantsList)}";
-            lblSelectedQuadrants.ForeColor = Color.FromArgb(40, 167, 69);
-        }
-    }
 
     private void UpdateQuadrantsCheckboxFromSelection()
     {
@@ -1274,49 +1276,6 @@ public partial class RoutineEmailForm : Form
 
     #region Helper Methods
     
-    private void LoadQuadrantProfiles()
-    {
-        try
-        {
-            cmbQuadrantProfile.Items.Clear();
-            
-            // Load from quadrant system if available
-            if (_quadrantService != null)
-            {
-                var configurations = _config.QuadrantSystem.Configurations;
-                foreach (var config in configurations)
-                {
-                    cmbQuadrantProfile.Items.Add(config.Name);
-                }
-            }
-            
-            // Add default profile if no profiles exist
-            if (cmbQuadrantProfile.Items.Count == 0)
-            {
-                cmbQuadrantProfile.Items.Add("Default");
-            }
-            
-            // Select the configured profile or first available
-            var profileToSelect = _config.Email.QuadrantSettings.ProcessingProfile;
-            var index = cmbQuadrantProfile.Items.IndexOf(profileToSelect);
-            cmbQuadrantProfile.SelectedIndex = index >= 0 ? index : 0;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error loading quadrant profiles: {ex.Message}");
-            cmbQuadrantProfile.Items.Clear();
-            cmbQuadrantProfile.Items.Add("Default");
-            cmbQuadrantProfile.SelectedIndex = 0;
-        }
-    }
-    
-    private void UpdateQuadrantProfileVisibility()
-    {
-        bool showProfile = chkUseQuadrants.Checked && chkProcessQuadrantsFirst.Checked;
-        lblQuadrantProfile.Visible = showProfile;
-        cmbQuadrantProfile.Visible = showProfile;
-        cmbQuadrantProfile.Enabled = showProfile;
-    }
 
     private void UpdateUIState()
     {
@@ -1484,6 +1443,96 @@ public partial class RoutineEmailForm : Form
         _helpTooltip.SetToolTip(helpButton, helpText);
         
         return helpButton;
+    }
+    
+    private void UpdateQuadrantProfileVisibility()
+    {
+        // Profile selection is always available when quadrants are enabled (like EmailForm)
+        if (chkUseQuadrants.Checked)
+        {
+            lblQuadrantProfile.Visible = true;
+            cmbQuadrantProfile.Visible = true;
+            cmbQuadrantProfile.Enabled = true;
+            LoadQuadrantProfiles();
+            
+            // ProcessQuadrantsFirst checkbox only affects processing order, not profile visibility
+            chkProcessQuadrantsFirst.Visible = true;
+        }
+        else
+        {
+            lblQuadrantProfile.Visible = false;
+            cmbQuadrantProfile.Visible = false;
+            cmbQuadrantProfile.Enabled = false;
+            chkProcessQuadrantsFirst.Visible = false;
+        }
+    }
+    
+    private void LoadQuadrantProfiles()
+    {
+        try
+        {
+            cmbQuadrantProfile.Items.Clear();
+            
+            if (_quadrantService != null)
+            {
+                // Load actual quadrant configurations (real profiles)
+                var configurations = _quadrantService.GetConfigurations();
+                
+                if (configurations.Any())
+                {
+                    foreach (var config in configurations.Where(c => c.IsActive))
+                    {
+                        cmbQuadrantProfile.Items.Add(config.Name);
+                    }
+                    
+                    // Select the saved profile from configuration
+                    var savedProfile = _config.Email.QuadrantSettings.ProcessingProfile;
+                    if (!string.IsNullOrEmpty(savedProfile))
+                    {
+                        var savedIndex = cmbQuadrantProfile.Items.Cast<string>()
+                            .ToList().IndexOf(savedProfile);
+                        if (savedIndex >= 0)
+                            cmbQuadrantProfile.SelectedIndex = savedIndex;
+                    }
+                    
+                    // Fallback to active configuration if saved profile not found
+                    if (cmbQuadrantProfile.SelectedIndex < 0)
+                    {
+                        var activeConfig = _quadrantService.GetActiveConfiguration();
+                        if (activeConfig != null)
+                        {
+                            var activeIndex = cmbQuadrantProfile.Items.Cast<string>()
+                                .ToList().IndexOf(activeConfig.Name);
+                            if (activeIndex >= 0)
+                                cmbQuadrantProfile.SelectedIndex = activeIndex;
+                        }
+                    }
+                }
+                
+                // Fallback if no configurations found
+                if (cmbQuadrantProfile.Items.Count == 0)
+                {
+                    cmbQuadrantProfile.Items.Add("Default");
+                }
+            }
+            else
+            {
+                // Fallback if no quadrant service
+                cmbQuadrantProfile.Items.Add("Default");
+            }
+            
+            if (cmbQuadrantProfile.Items.Count > 0 && cmbQuadrantProfile.SelectedIndex < 0)
+            {
+                cmbQuadrantProfile.SelectedIndex = 0;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading quadrant profiles: {ex.Message}");
+            cmbQuadrantProfile.Items.Clear();
+            cmbQuadrantProfile.Items.Add("Default");
+            cmbQuadrantProfile.SelectedIndex = 0;
+        }
     }
 
     #endregion

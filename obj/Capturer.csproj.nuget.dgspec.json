@@ -78,6 +78,10 @@
               "target": "Package",
               "version": "[13.0.3, )"
             },
+            "SSH.NET": {
+              "target": "Package",
+              "version": "[2023.0.1, )"
+            },
             "System.Drawing.Common": {
               "target": "Package",
               "version": "[8.0.0, )"

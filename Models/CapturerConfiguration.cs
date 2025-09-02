@@ -55,13 +55,22 @@ public class EmailSettings
     public string Password { get; set; } = ""; // Will be encrypted
     public List<string> Recipients { get; set; } = new();
     public bool EnableWeeklyReports { get; set; } = true;
-    public bool UseSSL { get; set; } = true;
+    public SmtpSecurityMode SecurityMode { get; set; } = SmtpSecurityMode.StartTls;
     public string SenderName { get; set; } = "Capturer Screenshot App";
+    public int ConnectionTimeout { get; set; } = 30;
+    public FtpSettings FtpSettings { get; set; } = new();
     
-    // Enhanced routine email options
+    // Legacy compatibility
+    public bool UseSSL
+    {
+        get => SecurityMode == SmtpSecurityMode.Ssl;
+        set => SecurityMode = value ? SmtpSecurityMode.Ssl : SmtpSecurityMode.StartTls;
+    }
+    
+    // Enhanced email options (shared between manual and auto)
     public bool UseZipFormat { get; set; } = true;
     public bool SendSeparateEmails { get; set; } = false;
-    public RoutineEmailQuadrantSettings QuadrantSettings { get; set; } = new();
+    public SharedQuadrantSettings QuadrantSettings { get; set; } = new();
 }
 
 public class StorageSettings
@@ -115,6 +124,36 @@ public enum BlurMode
     Gaussian = 0,       // Gaussian blur (most common)
     Box = 1,           // Box blur (faster)
     Motion = 2         // Motion blur (for privacy)
+}
+
+public enum SmtpSecurityMode
+{
+    None = 0,          // Sin seguridad (puerto 25)
+    StartTls = 1,      // STARTTLS (puertos 587, 25)
+    Ssl = 2,           // SSL/TLS implícito (puerto 465)
+    Auto = 3           // Detección automática
+}
+
+public enum FileDeliveryMode
+{
+    EmailOnly = 0,     // Solo por email
+    FtpOnly = 1,       // Solo por FTP
+    EmailAndFtp = 2    // Email + backup FTP
+}
+
+public class FtpSettings
+{
+    public bool Enabled { get; set; } = false;
+    public string Server { get; set; } = "";
+    public int Port { get; set; } = 21;
+    public string Username { get; set; } = "";
+    public string Password { get; set; } = ""; // Will be encrypted
+    public string RemoteDirectory { get; set; } = "/uploads/capturer/";
+    public bool UsePassiveMode { get; set; } = true;
+    public bool UseSftp { get; set; } = false;
+    public int TimeoutSeconds { get; set; } = 30;
+    public FileDeliveryMode DeliveryMode { get; set; } = FileDeliveryMode.EmailOnly;
+    public bool CompressBeforeUpload { get; set; } = true;
 }
 
 public class ScreenInfo
@@ -214,13 +253,21 @@ public class ApplicationSettings
     public bool AutoCheckUpdates { get; set; } = true;
 }
 
-public class RoutineEmailQuadrantSettings
+public class SharedQuadrantSettings
 {
-    public bool UseQuadrantsInRoutineEmails { get; set; } = false;
+    // Shared settings for both manual and auto reports
+    public bool UseQuadrantsInEmails { get; set; } = false;
     public List<string> SelectedQuadrants { get; set; } = new();
     public bool ProcessQuadrantsFirst { get; set; } = false;
     public string ProcessingProfile { get; set; } = "Default";
     public bool SendSeparateEmailPerQuadrant { get; set; } = false;
+    
+    // Legacy compatibility for routine emails
+    public bool UseQuadrantsInRoutineEmails 
+    { 
+        get => UseQuadrantsInEmails; 
+        set => UseQuadrantsInEmails = value; 
+    }
 }
 
 /// <summary>

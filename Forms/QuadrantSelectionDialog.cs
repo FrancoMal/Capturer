@@ -15,7 +15,7 @@ public partial class QuadrantSelectionDialog : Form
 
     public List<string> SelectedQuadrants => _selectedQuadrants.ToList();
 
-    public QuadrantSelectionDialog(List<string> availableQuadrants, List<string> preSelectedQuadrants = null)
+    public QuadrantSelectionDialog(List<string> availableQuadrants, List<string>? preSelectedQuadrants = null)
     {
         _availableQuadrants = availableQuadrants ?? new List<string>();
         _selectedQuadrants = preSelectedQuadrants?.ToList() ?? new List<string>();

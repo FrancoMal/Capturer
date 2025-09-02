@@ -50,10 +50,14 @@ public partial class SettingsForm : Form
     
     private TextBox txtSmtpServer;
     private NumericUpDown numSmtpPort;
+    private ComboBox cmbSecurityMode;
+    private Label lblSecurityMode;
     private TextBox txtUsername;
     private TextBox txtPassword;
     private Button btnTogglePassword;
     private TextBox txtRecipients;
+    private Button btnTestConnection;
+    private TextBox txtSenderName;
     // Routine email configuration moved to RoutineEmailForm
     
     private NumericUpDown numRetentionDays;
@@ -318,6 +322,27 @@ public partial class SettingsForm : Form
         tab.Controls.Add(CreateHelpButton(new Point(280, y), "Puerto del servidor SMTP. Común: 587 (TLS), 465 (SSL), 25 (sin cifrado)."));
         
         y += 35;
+        lblSecurityMode = new Label { Text = "Seguridad:", Location = new Point(20, y), Size = new Size(120, 23) };
+        tab.Controls.Add(lblSecurityMode);
+        cmbSecurityMode = new ComboBox 
+        {
+            Location = new Point(150, y - 3), 
+            Width = 150, 
+            DropDownStyle = ComboBoxStyle.DropDownList
+        };
+        cmbSecurityMode.Items.AddRange(new[] { "Sin seguridad", "STARTTLS", "SSL/TLS", "Automático" });
+        cmbSecurityMode.SelectedIndex = 1; // Default to STARTTLS
+        cmbSecurityMode.SelectedIndexChanged += CmbSecurityMode_SelectedIndexChanged;
+        tab.Controls.Add(cmbSecurityMode);
+        tab.Controls.Add(CreateHelpButton(new Point(310, y), "Modo de seguridad SMTP. STARTTLS (587), SSL/TLS (465), Sin seguridad (25), Automático detecta el mejor."));
+        
+        y += 35;
+        tab.Controls.Add(new Label { Text = "Nombre del remitente:", Location = new Point(20, y), Size = new Size(120, 23) });
+        txtSenderName = new TextBox { Location = new Point(150, y - 3), Width = 280 };
+        tab.Controls.Add(txtSenderName);
+        tab.Controls.Add(CreateHelpButton(new Point(440, y), "Nombre que aparecerá como remitente en los emails enviados."));
+        
+        y += 35;
         tab.Controls.Add(new Label { Text = "Usuario:", Location = new Point(20, y), Size = new Size(120, 23) });
         txtUsername = new TextBox { Location = new Point(150, y - 3), Width = 280 };
         tab.Controls.Add(txtUsername);
@@ -339,6 +364,12 @@ public partial class SettingsForm : Form
         tab.Controls.Add(CreateHelpButton(new Point(440, y), "Contraseña de la cuenta de email. Se almacena de forma segura y encriptada. Use el botón del ojo para mostrar/ocultar."));
         
         y += 35;
+        btnTestConnection = CreateModernButton("🔧 Probar Conexión", new Point(150, y), new Size(140, 30), Color.FromArgb(40, 167, 69));
+        btnTestConnection.Click += BtnTestConnection_Click;
+        tab.Controls.Add(btnTestConnection);
+        tab.Controls.Add(CreateHelpButton(new Point(300, y + 5), "Prueba la conectividad con el servidor SMTP usando la configuración actual."));
+        
+        y += 45;
         tab.Controls.Add(new Label { Text = "Destinatarios (separados por ;):", Location = new Point(20, y), AutoSize = true });
         tab.Controls.Add(CreateHelpButton(new Point(250, y), "Lista de emails que recibirán los reportes. Separar múltiples direcciones con punto y coma (;)."));
         y += 25;
@@ -414,6 +445,8 @@ public partial class SettingsForm : Form
             // Email settings
             txtSmtpServer.Text = _config.Email.SmtpServer;
             numSmtpPort.Value = _config.Email.SmtpPort;
+            cmbSecurityMode.SelectedIndex = (int)_config.Email.SecurityMode;
+            txtSenderName.Text = _config.Email.SenderName;
             txtUsername.Text = _config.Email.Username;
             txtPassword.Text = _config.Email.Password;
             txtRecipients.Text = string.Join(";", _config.Email.Recipients);
@@ -469,6 +502,8 @@ public partial class SettingsForm : Form
             
             _config.Email.SmtpServer = txtSmtpServer.Text;
             _config.Email.SmtpPort = (int)numSmtpPort.Value;
+            _config.Email.SecurityMode = (SmtpSecurityMode)cmbSecurityMode.SelectedIndex;
+            _config.Email.SenderName = txtSenderName.Text;
             _config.Email.Username = txtUsername.Text;
             _config.Email.Password = txtPassword.Text;
             _config.Email.Recipients = txtRecipients.Text.Split(';', StringSplitOptions.RemoveEmptyEntries)
@@ -596,6 +631,89 @@ public partial class SettingsForm : Form
         {
             MessageBox.Show($"Error refrescando lista de pantallas: {ex.Message}", "Error", 
                 MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
+    }
+    
+    private void CmbSecurityMode_SelectedIndexChanged(object? sender, EventArgs e)
+    {
+        // Auto-adjust port based on security mode
+        if (cmbSecurityMode.SelectedIndex == 0) // None
+        {
+            numSmtpPort.Value = 25;
+        }
+        else if (cmbSecurityMode.SelectedIndex == 1) // STARTTLS
+        {
+            numSmtpPort.Value = 587;
+        }
+        else if (cmbSecurityMode.SelectedIndex == 2) // SSL
+        {
+            numSmtpPort.Value = 465;
+        }
+        // Auto mode keeps current port
+    }
+    
+    private async void BtnTestConnection_Click(object? sender, EventArgs e)
+    {
+        btnTestConnection.Enabled = false;
+        btnTestConnection.Text = "🔄 Probando...";
+        
+        try
+        {
+            // Update config with current form values
+            _config.Email.SmtpServer = txtSmtpServer.Text.Trim();
+            _config.Email.SmtpPort = (int)numSmtpPort.Value;
+            _config.Email.SecurityMode = (SmtpSecurityMode)cmbSecurityMode.SelectedIndex;
+            _config.Email.Username = txtUsername.Text.Trim();
+            _config.Email.Password = txtPassword.Text;
+            _config.Email.SenderName = txtSenderName.Text.Trim();
+            
+            // Validate required fields
+            if (string.IsNullOrWhiteSpace(_config.Email.SmtpServer))
+            {
+                MessageBox.Show("⚠️ El servidor SMTP es requerido.", "Configuración incompleta", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                txtSmtpServer.Focus();
+                return;
+            }
+            
+            if (string.IsNullOrWhiteSpace(_config.Email.Username))
+            {
+                MessageBox.Show("⚠️ El usuario es requerido.", "Configuración incompleta", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                txtUsername.Focus();
+                return;
+            }
+            
+            if (string.IsNullOrWhiteSpace(_config.Email.Password))
+            {
+                MessageBox.Show("⚠️ La contraseña es requerida.", "Configuración incompleta", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                txtPassword.Focus();
+                return;
+            }
+            
+            // Create temporary EmailService for testing
+            var emailService = new EmailService(_configManager, new FileService(_configManager), null);
+            
+            // Force reload configuration with current values
+            await _configManager.SaveConfigurationAsync(_config);
+            
+            var success = await emailService.TestConnectionAsync();
+            
+            if (success)
+            {
+                MessageBox.Show("✅ ¡Conexión exitosa!\n\nLa configuración SMTP está funcionando correctamente.", "Test de Conexión", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            else
+            {
+                MessageBox.Show("❌ Error de conexión\n\nNo se pudo conectar al servidor SMTP.\n\nVerifique:\n• Servidor y puerto correctos\n• Credenciales válidas\n• Configuración de seguridad\n• Conexión a internet", "Test de Conexión", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"❌ Error durante el test:\n\n{ex.Message}", "Error de Test", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+        finally
+        {
+            btnTestConnection.Enabled = true;
+            btnTestConnection.Text = "🔧 Probar Conexión";
         }
     }
     

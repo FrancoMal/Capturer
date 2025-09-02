@@ -101,3 +101,5 @@ C:\Users\ftmal\Desktop\Capturer\obj\Debug\net8.0-windows\refint\Capturer.dll
 C:\Users\ftmal\Desktop\Capturer\obj\Debug\net8.0-windows\Capturer.pdb
 C:\Users\ftmal\Desktop\Capturer\obj\Debug\net8.0-windows\Capturer.genruntimeconfig.cache
 C:\Users\ftmal\Desktop\Capturer\obj\Debug\net8.0-windows\ref\Capturer.dll
+C:\Users\Usuario\Desktop\Capturer\Capturer\bin\Debug\net8.0-windows\Renci.SshNet.dll
+C:\Users\Usuario\Desktop\Capturer\Capturer\bin\Debug\net8.0-windows\SshNet.Security.Cryptography.dll

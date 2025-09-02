@@ -464,18 +464,23 @@ public partial class EmailForm : Form
     
     private void UpdateQuadrantProcessingVisibility()
     {
-        if (chkProcessQuadrantsFirst.Checked && chkUseQuadrants.Checked)
+        // Profile selection is always available when quadrants are enabled (like RoutineEmailForm)
+        if (chkUseQuadrants.Checked)
         {
             lblQuadrantProfile.Visible = true;
             cmbQuadrantProfile.Visible = true;
             cmbQuadrantProfile.Enabled = true;
             LoadQuadrantProfiles();
+            
+            // ProcessQuadrantsFirst checkbox only affects processing order, not profile visibility
+            chkProcessQuadrantsFirst.Visible = true;
         }
         else
         {
             lblQuadrantProfile.Visible = false;
             cmbQuadrantProfile.Visible = false;
             cmbQuadrantProfile.Enabled = false;
+            chkProcessQuadrantsFirst.Visible = false;
         }
     }
     
@@ -484,18 +489,45 @@ public partial class EmailForm : Form
         try
         {
             cmbQuadrantProfile.Items.Clear();
-            cmbQuadrantProfile.Items.Add("Default");
             
             if (_quadrantService != null)
             {
-                // Try to get available profiles from quadrant service
-                // For now, we'll add some common profiles
-                cmbQuadrantProfile.Items.AddRange(new[] { "Análisis Rápido", "Procesamiento Completo", "Alta Calidad" });
+                // Load actual quadrant configurations (real profiles)
+                var configurations = _quadrantService.GetConfigurations();
+                
+                if (configurations.Any())
+                {
+                    foreach (var config in configurations.Where(c => c.IsActive))
+                    {
+                        cmbQuadrantProfile.Items.Add(config.Name);
+                    }
+                    
+                    // Select the active configuration or first one
+                    var activeConfig = _quadrantService.GetActiveConfiguration();
+                    if (activeConfig != null)
+                    {
+                        var activeIndex = cmbQuadrantProfile.Items.Cast<string>()
+                            .ToList().IndexOf(activeConfig.Name);
+                        if (activeIndex >= 0)
+                            cmbQuadrantProfile.SelectedIndex = activeIndex;
+                    }
+                }
+                
+                // Fallback if no configurations found
+                if (cmbQuadrantProfile.Items.Count == 0)
+                {
+                    cmbQuadrantProfile.Items.Add("Default");
+                }
+            }
+            else
+            {
+                // Fallback if no quadrant service
+                cmbQuadrantProfile.Items.Add("Default");
             }
             
-            if (cmbQuadrantProfile.Items.Count > 0)
+            if (cmbQuadrantProfile.Items.Count > 0 && cmbQuadrantProfile.SelectedIndex < 0)
             {
-                cmbQuadrantProfile.SelectedIndex = 0; // Select "Default"
+                cmbQuadrantProfile.SelectedIndex = 0;
             }
         }
         catch (Exception ex)

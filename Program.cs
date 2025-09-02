@@ -50,6 +50,9 @@ namespace Capturer
             services.AddSingleton<IQuadrantService, QuadrantService>();
             services.AddSingleton<IQuadrantSchedulerService, QuadrantSchedulerService>();
             
+            // Register FTP service
+            services.AddSingleton<IFtpService, FtpService>();
+            
             // Register email service with quadrant service dependency
             services.AddSingleton<IEmailService>(provider => 
                 new EmailService(

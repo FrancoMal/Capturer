@@ -237,56 +237,91 @@ public class SchedulerService : ISchedulerService
 
     private async Task SendAutomaticReportAsync()
     {
+        const int MaxRetries = 3;
+        const int RetryDelayMs = 5000;
+        
         try
         {
+            Console.WriteLine("[SCHEDULER] Starting automatic report generation...");
             var config = await _configManager.LoadConfigurationAsync();
             
             if (!config.Email.Recipients.Any())
             {
-                Console.WriteLine("No recipients configured for automatic report");
+                Console.WriteLine("[SCHEDULER] ERROR: No recipients configured for automatic report");
                 return;
             }
 
             // Calculate the appropriate period based on configuration
             var period = _reportPeriodService.GetCurrentReportPeriod(config.Schedule);
             
-            Console.WriteLine($"Sending {config.Schedule.Frequency} report for {period.StartDate:yyyy-MM-dd} to {period.EndDate:yyyy-MM-dd}");
+            Console.WriteLine($"[SCHEDULER] Generating {config.Schedule.Frequency} report for {period.StartDate:yyyy-MM-dd} to {period.EndDate:yyyy-MM-dd}");
             if (period.StartTime.HasValue && period.EndTime.HasValue)
             {
-                Console.WriteLine($"Time filter: {period.StartTime:hh\\:mm} to {period.EndTime:hh\\:mm}");
+                Console.WriteLine($"[SCHEDULER] Time filter: {period.StartTime:hh\\:mm} to {period.EndTime:hh\\:mm}");
             }
-            
-            bool success;
-            List<string> screenshots;
             
             // Get filtered screenshots based on the period
-            screenshots = await _fileService.GetScreenshotsByReportPeriodAsync(period);
+            var screenshots = await _fileService.GetScreenshotsByReportPeriodAsync(period);
+            Console.WriteLine($"[SCHEDULER] Found {screenshots.Count} screenshots matching the period criteria");
             
-            Console.WriteLine($"Found {screenshots.Count} screenshots matching the period criteria");
-            
-            // Use the new unified reporting system that handles both regular screenshots AND quadrants
-            var reportType = GetReportTypeString(config.Schedule.Frequency);
-            success = await _emailService.SendUnifiedReportAsync(
-                config.Email.Recipients,
-                period,
-                screenshots,
-                reportType,
-                config.Email.UseZipFormat);
-                
-            Console.WriteLine($"Unified report system used - includes quadrants if configured: {config.Email.QuadrantSettings.UseQuadrantsInRoutineEmails}");
-            
-            if (success)
+            if (!screenshots.Any())
             {
-                Console.WriteLine($"Automatic {config.Schedule.Frequency} report sent successfully");
+                Console.WriteLine($"[SCHEDULER] WARNING: No screenshots found for period, sending empty report");
             }
-            else
+            
+            bool success = false;
+            Exception? lastException = null;
+            
+            // Retry mechanism for email sending
+            for (int attempt = 1; attempt <= MaxRetries; attempt++)
             {
-                Console.WriteLine($"Failed to send automatic {config.Schedule.Frequency} report");
+                try
+                {
+                    Console.WriteLine($"[SCHEDULER] Attempt {attempt}/{MaxRetries} - Sending unified report...");
+                    
+                    var reportType = GetReportTypeString(config.Schedule.Frequency);
+                    success = await _emailService.SendUnifiedReportAsync(
+                        config.Email.Recipients,
+                        period,
+                        screenshots,
+                        reportType,
+                        config.Email.UseZipFormat);
+                        
+                    if (success)
+                    {
+                        Console.WriteLine($"[SCHEDULER] SUCCESS: {config.Schedule.Frequency} report sent successfully on attempt {attempt}");
+                        Console.WriteLine($"[SCHEDULER] Report details: {screenshots.Count} files, {config.Email.Recipients.Count} recipients, quadrants: {config.Email.QuadrantSettings.UseQuadrantsInRoutineEmails}");
+                        break;
+                    }
+                    else
+                    {
+                        Console.WriteLine($"[SCHEDULER] FAILED: Attempt {attempt} failed - no exception thrown but result was false");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    lastException = ex;
+                    Console.WriteLine($"[SCHEDULER] ERROR: Attempt {attempt} failed with exception: {ex.Message}");
+                    
+                    if (attempt < MaxRetries)
+                    {
+                        Console.WriteLine($"[SCHEDULER] Waiting {RetryDelayMs}ms before retry...");
+                        await Task.Delay(RetryDelayMs);
+                    }
+                }
+            }
+            
+            if (!success)
+            {
+                var errorMsg = lastException?.Message ?? "Unknown error - no exception details";
+                Console.WriteLine($"[SCHEDULER] CRITICAL: All {MaxRetries} attempts failed. Last error: {errorMsg}");
+                Console.WriteLine($"[SCHEDULER] Report details for debugging: Recipients={config.Email.Recipients.Count}, Screenshots={screenshots.Count}, SMTP={config.Email.SmtpServer}:{config.Email.SmtpPort}");
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error sending automatic report: {ex.Message}");
+            Console.WriteLine($"[SCHEDULER] FATAL ERROR in automatic report generation: {ex.Message}");
+            Console.WriteLine($"[SCHEDULER] Stack trace: {ex.StackTrace}");
         }
     }
 
