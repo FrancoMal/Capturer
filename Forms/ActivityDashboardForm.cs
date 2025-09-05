@@ -40,7 +40,7 @@ public partial class ActivityDashboardForm : Form
     private NotifyIcon? _notifyIcon;
     private ContextMenuStrip? _trayContextMenu;
 
-    private readonly CapturerConfiguration? _capturerConfig;
+    private CapturerConfiguration? _capturerConfig;
 
     public ActivityDashboardForm(QuadrantActivityService activityService, QuadrantService quadrantService, CapturerConfiguration? config = null, IEmailService? emailService = null)
     {
@@ -597,11 +597,22 @@ public partial class ActivityDashboardForm : Form
     {
         try
         {
+            // Check if system tray is enabled for ActivityDashboard
+            if (_capturerConfig?.Application.SystemTray.EnableActivityDashboardSystemTray != true)
+            {
+                Console.WriteLine("[ActivityDashboard] System tray deshabilitado en configuración");
+                // Ensure NotifyIcon is null and not created
+                _notifyIcon = null;
+                return; // Don't create system tray if disabled
+            }
+
+            Console.WriteLine("[ActivityDashboard] Creando system tray habilitado");
+
             // Create system tray icon
             _notifyIcon = new NotifyIcon
             {
                 Text = "Dashboard de Actividad - Capturer",
-                Visible = false
+                Visible = false // Start invisible, will be shown only when needed
             };
 
             // Try to load icon
@@ -1092,6 +1103,46 @@ public partial class ActivityDashboardForm : Form
     }
 
     /// <summary>
+    /// Updates system tray configuration when settings change
+    /// </summary>
+    public void UpdateSystemTrayConfiguration(CapturerConfiguration? newConfig = null)
+    {
+        try
+        {
+            // Update configuration if provided
+            if (newConfig != null)
+            {
+                var oldConfig = _capturerConfig;
+                _capturerConfig = newConfig;
+                Console.WriteLine($"[ActivityDashboard] Configuración actualizada - System tray enabled: {_capturerConfig?.Application.SystemTray.EnableActivityDashboardSystemTray}");
+            }
+
+            bool shouldHaveSystemTray = _capturerConfig?.Application.SystemTray.EnableActivityDashboardSystemTray == true;
+
+            if (shouldHaveSystemTray && _notifyIcon == null)
+            {
+                // System tray was disabled but now should be enabled - recreate it
+                Console.WriteLine("[ActivityDashboard] Habilitando system tray...");
+                SetupSystemTray();
+            }
+            else if (!shouldHaveSystemTray && _notifyIcon != null)
+            {
+                // System tray was enabled but now should be disabled - dispose it
+                Console.WriteLine("[ActivityDashboard] Deshabilitando system tray...");
+                _notifyIcon.Visible = false;
+                _notifyIcon.Dispose();
+                _notifyIcon = null;
+                _trayContextMenu?.Dispose();
+                _trayContextMenu = null;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ActivityDashboard] Error actualizando configuración system tray: {ex.Message}");
+        }
+    }
+
+    /// <summary>
     /// Exporta el reporte actual de actividad
     /// </summary>
     private async Task ExportReportAsync(string format)
@@ -1197,13 +1248,26 @@ public partial class ActivityDashboardForm : Form
     {
         try
         {
-            if (_notifyIcon != null)
+            // Only hide to tray if system tray is enabled AND NotifyIcon was created
+            if (_notifyIcon != null && _capturerConfig?.Application.SystemTray.EnableActivityDashboardSystemTray == true)
             {
                 Hide();
                 _notifyIcon.Visible = true;
-                _notifyIcon.ShowBalloonTip(2000, "Dashboard de Actividad", 
-                    "El dashboard continúa ejecutándose en segundo plano", ToolTipIcon.Info);
+                
+                // Show notification only if enabled
+                if (_capturerConfig?.Application.SystemTray.ShowTrayNotifications == true)
+                {
+                    int duration = _capturerConfig?.Application.SystemTray.NotificationDurationMs ?? 3000;
+                    _notifyIcon.ShowBalloonTip(duration, "Dashboard de Actividad", 
+                        "El dashboard continúa ejecutándose en segundo plano", ToolTipIcon.Info);
+                }
                 Console.WriteLine("[ActivityDashboard] Minimizado a bandeja del sistema");
+            }
+            else
+            {
+                // Fallback to normal minimize if system tray is disabled
+                WindowState = FormWindowState.Minimized;
+                Console.WriteLine($"[ActivityDashboard] Minimizado normalmente (system tray deshabilitado) - NotifyIcon: {_notifyIcon != null}, Enabled: {_capturerConfig?.Application.SystemTray.EnableActivityDashboardSystemTray}");
             }
         }
         catch (Exception ex)
@@ -1240,30 +1304,44 @@ public partial class ActivityDashboardForm : Form
     /// </summary>
     protected override void OnFormClosing(FormClosingEventArgs e)
     {
-        if (e.CloseReason == CloseReason.UserClosing && _notifyIcon != null)
+        if (e.CloseReason == CloseReason.UserClosing)
         {
-            // Ask user if they want to minimize to tray or exit
-            var result = MessageBox.Show(
-                "¿Desea minimizar el dashboard a la bandeja del sistema?\n\n" +
-                "Sí: Minimizar a bandeja (continúa ejecutándose)\n" +
-                "No: Cerrar completamente el dashboard",
-                "Cerrar Dashboard",
-                MessageBoxButtons.YesNoCancel,
-                MessageBoxIcon.Question,
-                MessageBoxDefaultButton.Button1);
-
-            if (result == DialogResult.Yes)
+            // Check if system tray is enabled and should hide on close
+            if (_capturerConfig?.Application.SystemTray.EnableActivityDashboardSystemTray == true &&
+                _capturerConfig?.Application.SystemTray.HideOnClose == true &&
+                _notifyIcon != null)
             {
+                // Automatically hide to tray without asking
                 e.Cancel = true;
                 HideToTray();
                 return;
             }
-            else if (result == DialogResult.Cancel)
+            else if (_notifyIcon != null && _capturerConfig?.Application.SystemTray.EnableActivityDashboardSystemTray == true)
             {
-                e.Cancel = true;
-                return;
+                // System tray is enabled but HideOnClose is false - ask user
+                var result = MessageBox.Show(
+                    "¿Desea minimizar el dashboard a la bandeja del sistema?\n\n" +
+                    "Sí: Minimizar a bandeja (continúa ejecutándose)\n" +
+                    "No: Cerrar completamente el dashboard",
+                    "Cerrar Dashboard",
+                    MessageBoxButtons.YesNoCancel,
+                    MessageBoxIcon.Question,
+                    MessageBoxDefaultButton.Button1);
+
+                if (result == DialogResult.Yes)
+                {
+                    e.Cancel = true;
+                    HideToTray();
+                    return;
+                }
+                else if (result == DialogResult.Cancel)
+                {
+                    e.Cancel = true;
+                    return;
+                }
+                // If No, continue with normal close
             }
-            // If No, continue with normal close
+            // If system tray is disabled, just close normally
         }
 
         base.OnFormClosing(e);

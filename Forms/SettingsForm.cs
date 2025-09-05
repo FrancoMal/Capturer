@@ -64,6 +64,16 @@ public partial class SettingsForm : Form
     private NumericUpDown numMaxSizeGB;
     private CheckBox chkAutoCleanup;
     
+    // Application controls
+    private CheckBox chkMinimizeToTray;
+    private CheckBox chkShowNotifications;
+    private CheckBox chkEnableCapturerSystemTray;
+    private CheckBox chkEnableActivityDashboardSystemTray;
+    private CheckBox chkShowOnStartup;
+    private CheckBox chkHideOnClose;
+    private CheckBox chkShowTrayNotifications;
+    private NumericUpDown numNotificationDuration;
+    
     private Button btnSave;
     private Button btnCancel;
 
@@ -148,6 +158,16 @@ public partial class SettingsForm : Form
         };
         CreateStorageControls(storageTab);
         tabControl.TabPages.Add(storageTab);
+        
+        // Application tab with scrollable content
+        var applicationTab = new TabPage("⚙️ Aplicación")
+        {
+            BackColor = Color.White,
+            AutoScroll = true,
+            Padding = new Padding(15)
+        };
+        CreateApplicationControls(applicationTab);
+        tabControl.TabPages.Add(applicationTab);
         
         // Add the TabControl to the form
         this.Controls.Add(tabControl);
@@ -401,6 +421,109 @@ public partial class SettingsForm : Form
         tab.Controls.Add(CreateHelpButton(new Point(200, y + 2), "Habilita la eliminación automática de archivos antiguos basado en los criterios de retención y tamaño máximo."));
     }
 
+    private void CreateApplicationControls(TabPage tab)
+    {
+        var y = 20;
+
+        // System Tray Section
+        var groupSystemTray = new GroupBox
+        {
+            Text = "🖥️ Configuración del System Tray",
+            Location = new Point(20, y),
+            Size = new Size(650, 180),
+            Font = new Font("Segoe UI", 9F, FontStyle.Bold)
+        };
+
+        y = 25;
+        chkEnableCapturerSystemTray = new CheckBox 
+        { 
+            Text = "Habilitar system tray para Capturer", 
+            Location = new Point(15, y), 
+            AutoSize = true 
+        };
+        groupSystemTray.Controls.Add(chkEnableCapturerSystemTray);
+
+        y += 25;
+        chkEnableActivityDashboardSystemTray = new CheckBox 
+        { 
+            Text = "Habilitar system tray para Dashboard de Actividad", 
+            Location = new Point(15, y), 
+            AutoSize = true 
+        };
+        groupSystemTray.Controls.Add(chkEnableActivityDashboardSystemTray);
+
+        y += 30;
+        chkShowOnStartup = new CheckBox 
+        { 
+            Text = "Mostrar icono al iniciar", 
+            Location = new Point(15, y), 
+            AutoSize = true 
+        };
+        groupSystemTray.Controls.Add(chkShowOnStartup);
+
+        chkHideOnClose = new CheckBox 
+        { 
+            Text = "Ocultar al cerrar ventana", 
+            Location = new Point(250, y), 
+            AutoSize = true 
+        };
+        groupSystemTray.Controls.Add(chkHideOnClose);
+
+        y += 25;
+        chkShowTrayNotifications = new CheckBox 
+        { 
+            Text = "Mostrar notificaciones", 
+            Location = new Point(15, y), 
+            AutoSize = true 
+        };
+        groupSystemTray.Controls.Add(chkShowTrayNotifications);
+
+        y += 30;
+        groupSystemTray.Controls.Add(new Label { Text = "Duración notificaciones (ms):", Location = new Point(15, y), Size = new Size(200, 23) });
+        numNotificationDuration = new NumericUpDown 
+        { 
+            Location = new Point(220, y - 3), 
+            Width = 100, 
+            Minimum = 1000, 
+            Maximum = 10000, 
+            Value = 3000,
+            Increment = 500
+        };
+        groupSystemTray.Controls.Add(numNotificationDuration);
+
+        tab.Controls.Add(groupSystemTray);
+        y += 200;
+
+        // Legacy Application Settings Section
+        var groupLegacy = new GroupBox
+        {
+            Text = "⚙️ Configuración General",
+            Location = new Point(20, y),
+            Size = new Size(650, 100),
+            Font = new Font("Segoe UI", 9F, FontStyle.Bold)
+        };
+
+        var yLegacy = 25;
+        chkMinimizeToTray = new CheckBox 
+        { 
+            Text = "Minimizar a system tray (legacy)", 
+            Location = new Point(15, yLegacy), 
+            AutoSize = true 
+        };
+        groupLegacy.Controls.Add(chkMinimizeToTray);
+
+        yLegacy += 25;
+        chkShowNotifications = new CheckBox 
+        { 
+            Text = "Mostrar notificaciones (legacy)", 
+            Location = new Point(15, yLegacy), 
+            AutoSize = true 
+        };
+        groupLegacy.Controls.Add(chkShowNotifications);
+
+        tab.Controls.Add(groupLegacy);
+    }
+
     private async void LoadConfigurationAsync()
     {
         try
@@ -456,6 +579,16 @@ public partial class SettingsForm : Form
             numRetentionDays.Value = (decimal)_config.Storage.RetentionPeriod.TotalDays;
             numMaxSizeGB.Value = (decimal)(_config.Storage.MaxFolderSizeBytes / 1024 / 1024 / 1024);
             chkAutoCleanup.Checked = _config.Storage.AutoCleanup;
+            
+            // Application settings
+            chkMinimizeToTray.Checked = _config.Application.MinimizeToTray;
+            chkShowNotifications.Checked = _config.Application.ShowNotifications;
+            chkEnableCapturerSystemTray.Checked = _config.Application.SystemTray.EnableCapturerSystemTray;
+            chkEnableActivityDashboardSystemTray.Checked = _config.Application.SystemTray.EnableActivityDashboardSystemTray;
+            chkShowOnStartup.Checked = _config.Application.SystemTray.ShowOnStartup;
+            chkHideOnClose.Checked = _config.Application.SystemTray.HideOnClose;
+            chkShowTrayNotifications.Checked = _config.Application.SystemTray.ShowTrayNotifications;
+            numNotificationDuration.Value = _config.Application.SystemTray.NotificationDurationMs;
         }
         catch (Exception ex)
         {
@@ -513,6 +646,16 @@ public partial class SettingsForm : Form
             _config.Storage.RetentionPeriod = TimeSpan.FromDays((double)numRetentionDays.Value);
             _config.Storage.MaxFolderSizeBytes = (long)(numMaxSizeGB.Value * 1024 * 1024 * 1024);
             _config.Storage.AutoCleanup = chkAutoCleanup.Checked;
+            
+            // Application settings
+            _config.Application.MinimizeToTray = chkMinimizeToTray.Checked;
+            _config.Application.ShowNotifications = chkShowNotifications.Checked;
+            _config.Application.SystemTray.EnableCapturerSystemTray = chkEnableCapturerSystemTray.Checked;
+            _config.Application.SystemTray.EnableActivityDashboardSystemTray = chkEnableActivityDashboardSystemTray.Checked;
+            _config.Application.SystemTray.ShowOnStartup = chkShowOnStartup.Checked;
+            _config.Application.SystemTray.HideOnClose = chkHideOnClose.Checked;
+            _config.Application.SystemTray.ShowTrayNotifications = chkShowTrayNotifications.Checked;
+            _config.Application.SystemTray.NotificationDurationMs = (int)numNotificationDuration.Value;
             
             // Save configuration
             await _configManager.SaveConfigurationAsync(_config);

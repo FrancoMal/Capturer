@@ -172,6 +172,13 @@ namespace Capturer
 
         private void SetupSystemTray()
         {
+            // Only setup system tray if enabled in configuration
+            if (!_config.Application.SystemTray.EnableCapturerSystemTray)
+            {
+                notifyIcon.Visible = false;
+                return;
+            }
+
             // Set icon for system tray using our custom logo
             try
             {
@@ -199,7 +206,7 @@ namespace Capturer
             }
             
             notifyIcon.Text = "Capturer - Screenshot Manager";
-            notifyIcon.Visible = true;
+            notifyIcon.Visible = _config.Application.SystemTray.ShowOnStartup;
         }
 
         private async void BtnStartCapture_Click(object? sender, EventArgs e)
@@ -251,6 +258,15 @@ namespace Capturer
         private async void LoadConfigurationAsync()
         {
             _config = await _configManager.LoadConfigurationAsync();
+            
+            // Update system tray configuration
+            UpdateSystemTrayConfiguration();
+            
+            // Update ActivityDashboard system tray configuration if it exists
+            if (_activityDashboard != null && !_activityDashboard.IsDisposed)
+            {
+                _activityDashboard.UpdateSystemTrayConfiguration(_config);
+            }
             
             // Restart scheduler service with new configuration if it's running
             if (_schedulerService.IsRunning)
@@ -470,7 +486,8 @@ namespace Capturer
 
         private void MinimizeToTray()
         {
-            if (_config.Application.MinimizeToTray)
+            // Check if system tray is enabled and MinimizeToTray is enabled
+            if (_config.Application.MinimizeToTray && _config.Application.SystemTray.EnableCapturerSystemTray)
             {
                 Hide();
                 ShowNotification("Capturer", "Aplicación minimizada al área de notificación");
@@ -490,15 +507,22 @@ namespace Capturer
 
         private void ShowNotification(string title, string message)
         {
-            if (_config.Application.ShowNotifications)
+            // Show notification only if system tray is enabled and notifications are enabled
+            if (_config.Application.ShowNotifications && 
+                _config.Application.SystemTray.EnableCapturerSystemTray && 
+                _config.Application.SystemTray.ShowTrayNotifications)
             {
-                notifyIcon.ShowBalloonTip(3000, title, message, ToolTipIcon.Info);
+                notifyIcon.ShowBalloonTip(_config.Application.SystemTray.NotificationDurationMs, title, message, ToolTipIcon.Info);
             }
         }
 
         private async void Form1_FormClosing(object? sender, FormClosingEventArgs e)
         {
-            if (_config.Application.MinimizeToTray && e.CloseReason == CloseReason.UserClosing)
+            // Check if should minimize to tray instead of closing
+            if (_config.Application.MinimizeToTray && 
+                _config.Application.SystemTray.EnableCapturerSystemTray &&
+                _config.Application.SystemTray.HideOnClose &&
+                e.CloseReason == CloseReason.UserClosing)
             {
                 e.Cancel = true;
                 MinimizeToTray();
@@ -731,6 +755,32 @@ namespace Capturer
             {
                 Application.Exit();
             }
+        }
+
+        /// <summary>
+        /// Updates system tray configuration when settings change
+        /// </summary>
+        public void UpdateSystemTrayConfiguration()
+        {
+            if (_config.Application.SystemTray.EnableCapturerSystemTray)
+            {
+                // Enable system tray
+                notifyIcon.Visible = _config.Application.SystemTray.ShowOnStartup;
+            }
+            else
+            {
+                // Disable system tray
+                notifyIcon.Visible = false;
+            }
+        }
+
+        /// <summary>
+        /// Public method to refresh configuration and update UI
+        /// </summary>
+        public async Task RefreshConfigurationAsync()
+        {
+            _config = await _configManager.LoadConfigurationAsync();
+            UpdateSystemTrayConfiguration();
         }
 
     }

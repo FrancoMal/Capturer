@@ -251,6 +251,45 @@ public class ApplicationSettings
     public bool ShowNotifications { get; set; } = true;
     public string Language { get; set; } = "es-ES";
     public bool AutoCheckUpdates { get; set; } = true;
+    
+    // System Tray Configuration
+    public SystemTraySettings SystemTray { get; set; } = new();
+}
+
+/// <summary>
+/// Configuración avanzada del System Tray para Capturer y ActivityDashboard
+/// </summary>
+public class SystemTraySettings
+{
+    /// <summary>
+    /// Habilita el system tray para la aplicación principal Capturer
+    /// </summary>
+    public bool EnableCapturerSystemTray { get; set; } = true;
+    
+    /// <summary>
+    /// Habilita el system tray para ActivityDashboard
+    /// </summary>
+    public bool EnableActivityDashboardSystemTray { get; set; } = true;
+    
+    /// <summary>
+    /// Mostrar icono del system tray al iniciar la aplicación
+    /// </summary>
+    public bool ShowOnStartup { get; set; } = true;
+    
+    /// <summary>
+    /// Ocultar automáticamente en system tray al cerrar ventana (en lugar de cerrar completamente)
+    /// </summary>
+    public bool HideOnClose { get; set; } = true;
+    
+    /// <summary>
+    /// Mostrar notificaciones del system tray
+    /// </summary>
+    public bool ShowTrayNotifications { get; set; } = true;
+    
+    /// <summary>
+    /// Duración de las notificaciones en milisegundos
+    /// </summary>
+    public int NotificationDurationMs { get; set; } = 3000;
 }
 
 public class SharedQuadrantSettings
