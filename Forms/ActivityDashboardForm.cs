@@ -13,6 +13,8 @@ public partial class ActivityDashboardForm : Form
     private readonly QuadrantActivityService _activityService;
     private readonly QuadrantService _quadrantService;
     private readonly ActivityReportService _reportService;
+    private readonly ActivityDashboardSchedulerService? _schedulerService;
+    private readonly IEmailService? _emailService;
     private System.Windows.Forms.Timer? _refreshTimer;
     private System.Windows.Forms.Timer? _monitoringTimer;
     private DataGridView? _statsGrid;
@@ -38,11 +40,28 @@ public partial class ActivityDashboardForm : Form
     private NotifyIcon? _notifyIcon;
     private ContextMenuStrip? _trayContextMenu;
 
-    public ActivityDashboardForm(QuadrantActivityService activityService, QuadrantService quadrantService)
+    private readonly CapturerConfiguration? _capturerConfig;
+
+    public ActivityDashboardForm(QuadrantActivityService activityService, QuadrantService quadrantService, CapturerConfiguration? config = null, IEmailService? emailService = null)
     {
         _activityService = activityService ?? throw new ArgumentNullException(nameof(activityService));
         _quadrantService = quadrantService ?? throw new ArgumentNullException(nameof(quadrantService));
         _reportService = new ActivityReportService(_activityService);
+        _capturerConfig = config; // Store for later use
+        _emailService = emailService; // Store for later use
+        
+        // Initialize scheduler service if config and email service are provided
+        if (config != null && emailService != null)
+        {
+            _schedulerService = new ActivityDashboardSchedulerService(_reportService, _activityService, config, emailService);
+            _schedulerService.DailyReportGenerated += OnDailyReportGenerated;
+            _schedulerService.DailyReportEmailSent += OnDailyReportEmailSent;
+        }
+        else if (config != null)
+        {
+            Console.WriteLine("[ActivityDashboardForm] EmailService no disponible - funcionalidad de email deshabilitada");
+        }
+        
         InitializeTempFolder();
         InitializeComponent();
         SetupSystemTray();
@@ -152,13 +171,13 @@ public partial class ActivityDashboardForm : Form
         {
             Dock = DockStyle.Fill,
             ColumnCount = 1,
-            RowCount = 13,  // Aumentamos para pause button
+            RowCount = 16,  // Aumentamos para los nuevos botones de configuración y email
             Padding = new Padding(10),
             AutoSize = true
         };
 
         // Configurar filas
-        for (int i = 0; i < 13; i++)  // Más filas para pause functionality
+        for (int i = 0; i < 14; i++)  // Más filas para daily reports functionality
         {
             contentPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         }
@@ -267,6 +286,51 @@ public partial class ActivityDashboardForm : Form
         configButton.FlatAppearance.BorderSize = 0;
         configButton.Click += OnConfigureButtonClick;
 
+        // Botón de configuración de reportes diarios
+        var dailyReportsButton = new Button
+        {
+            Text = _schedulerService != null ? "📅 Reportes Diarios" : "📅 Reportes Diarios (No disponible)",
+            Size = new Size(180, 35),
+            BackColor = _schedulerService != null ? Color.FromArgb(156, 39, 176) : Color.Gray,
+            ForeColor = Color.White,
+            FlatStyle = FlatStyle.Flat,
+            Font = new Font("Segoe UI", _schedulerService != null ? 9F : 8F, FontStyle.Bold),
+            Anchor = AnchorStyles.Left,
+            Enabled = _schedulerService != null
+        };
+        dailyReportsButton.FlatAppearance.BorderSize = 0;
+        dailyReportsButton.Click += OnDailyReportsConfigClick;
+
+        // Botón para guardar configuración del scheduler
+        var saveConfigButton = new Button
+        {
+            Text = _schedulerService != null ? "💾 Guardar Config" : "💾 (No disponible)",
+            Size = new Size(140, 30),
+            BackColor = _schedulerService != null ? Color.FromArgb(46, 125, 50) : Color.Gray,
+            ForeColor = Color.White,
+            FlatStyle = FlatStyle.Flat,
+            Font = new Font("Segoe UI", 8F, FontStyle.Bold),
+            Anchor = AnchorStyles.Left,
+            Enabled = _schedulerService != null
+        };
+        saveConfigButton.FlatAppearance.BorderSize = 0;
+        saveConfigButton.Click += OnSaveSchedulerConfigClick;
+
+        // Botón para enviar email de prueba
+        var testEmailButton = new Button
+        {
+            Text = _schedulerService != null ? "🧪 Prueba Email" : "🧪 (No disponible)",
+            Size = new Size(130, 30),
+            BackColor = _schedulerService != null ? Color.FromArgb(255, 152, 0) : Color.Gray,
+            ForeColor = Color.White,
+            FlatStyle = FlatStyle.Flat,
+            Font = new Font("Segoe UI", 8F, FontStyle.Bold),
+            Anchor = AnchorStyles.Left,
+            Enabled = _schedulerService != null
+        };
+        testEmailButton.FlatAppearance.BorderSize = 0;
+        testEmailButton.Click += OnTestEmailClick;
+
         // Separador
         var separatorLabel = new Label
         {
@@ -329,18 +393,21 @@ public partial class ActivityDashboardForm : Form
 
         // Agregar controles al panel
         contentPanel.Controls.Add(configButton, 0, 0);
-        contentPanel.Controls.Add(separatorLabel, 0, 1);
-        contentPanel.Controls.Add(_pauseResumeButton, 0, 2);
-        contentPanel.Controls.Add(thresholdLabel, 0, 3);
-        contentPanel.Controls.Add(thresholdNumeric, 0, 4);
-        contentPanel.Controls.Add(toleranceLabel, 0, 5);
-        contentPanel.Controls.Add(toleranceNumeric, 0, 6);
-        contentPanel.Controls.Add(resetButton, 0, 7);
-        contentPanel.Controls.Add(infoLabel, 0, 8);
-        contentPanel.Controls.Add(_countdownLabel!, 0, 9);
-        contentPanel.Controls.Add(exportSeparatorLabel, 0, 10);
-        contentPanel.Controls.Add(exportHtmlButton, 0, 11);
-        contentPanel.Controls.Add(exportCsvButton, 0, 12);
+        contentPanel.Controls.Add(dailyReportsButton, 0, 1);
+        contentPanel.Controls.Add(saveConfigButton, 0, 2);
+        contentPanel.Controls.Add(testEmailButton, 0, 3);
+        contentPanel.Controls.Add(separatorLabel, 0, 4);
+        contentPanel.Controls.Add(_pauseResumeButton, 0, 5);
+        contentPanel.Controls.Add(thresholdLabel, 0, 6);
+        contentPanel.Controls.Add(thresholdNumeric, 0, 7);
+        contentPanel.Controls.Add(toleranceLabel, 0, 8);
+        contentPanel.Controls.Add(toleranceNumeric, 0, 9);
+        contentPanel.Controls.Add(resetButton, 0, 10);
+        contentPanel.Controls.Add(infoLabel, 0, 11);
+        contentPanel.Controls.Add(_countdownLabel!, 0, 12);
+        contentPanel.Controls.Add(exportSeparatorLabel, 0, 13);
+        contentPanel.Controls.Add(exportHtmlButton, 0, 14);
+        contentPanel.Controls.Add(exportCsvButton, 0, 15);
 
         panel.Controls.Add(contentPanel);
         panel.Controls.Add(titleLabel);
@@ -983,6 +1050,7 @@ public partial class ActivityDashboardForm : Form
             _notifyIcon?.Dispose();
             _trayContextMenu?.Dispose();
             _reportService?.Dispose();
+            _schedulerService?.Dispose(); // Dispose scheduler service
             _activityService.ActivityChanged -= OnActivityChanged;
             
             // Clean up temporary files when form is disposed
@@ -1200,4 +1268,280 @@ public partial class ActivityDashboardForm : Form
 
         base.OnFormClosing(e);
     }
+
+    /// <summary>
+    /// Maneja el clic en el botón de configuración de reportes diarios
+    /// </summary>
+    private void OnDailyReportsConfigClick(object? sender, EventArgs e)
+    {
+        if (_schedulerService == null)
+        {
+            var errorMessage = "El servicio de reportes programados no está disponible.\n\n" +
+                              "Causas posibles:\n" +
+                              "• El dashboard se inició sin configuración de Capturer\n" +
+                              "• Error en la inicialización del servicio\n" +
+                              "• Dependencias faltantes\n\n" +
+                              "Solución: Reinicie la aplicación principal de Capturer e intente nuevamente.";
+            
+            MessageBox.Show(errorMessage, "Servicio no disponible", 
+                           MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            
+            Console.WriteLine($"[ActivityDashboard] Scheduler service is null - Dashboard was likely initialized without CapturerConfiguration");
+            return;
+        }
+
+        try
+        {
+            Console.WriteLine($"[ActivityDashboard] Abriendo configuración de reportes diarios...");
+            
+            // Obtener configuración actual del scheduler service
+            var currentConfig = _schedulerService.GetCurrentConfiguration();
+            var capturerConfig = GetCapturerConfiguration();
+            
+            using var configForm = new ActivityDashboardReportsConfigForm(capturerConfig, currentConfig);
+            var result = configForm.ShowDialog(this);
+            
+            Console.WriteLine($"[ActivityDashboard] Dialog result: {result}");
+            
+            if (result == DialogResult.OK)
+            {
+                _schedulerService.ConfigureDailyReports(configForm.ScheduleConfig);
+                
+                MessageBox.Show("✅ Configuración de reportes diarios guardada exitosamente.\n\n" +
+                               "Los reportes se generarán automáticamente según la programación establecida.\n" +
+                               "Puede verificar los archivos generados en la carpeta de reportes.",
+                               "Configuración guardada", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                
+                Console.WriteLine($"[ActivityDashboard] Configuración de reportes diarios actualizada exitosamente");
+            }
+            else
+            {
+                Console.WriteLine($"[ActivityDashboard] Configuración cancelada por el usuario");
+            }
+        }
+        catch (Exception ex)
+        {
+            var detailedError = $"Error al configurar reportes diarios:\n\n" +
+                               $"Mensaje: {ex.Message}\n" +
+                               $"Tipo: {ex.GetType().Name}\n\n" +
+                               "Contacte al soporte técnico si el error persiste.";
+            
+            MessageBox.Show(detailedError, "Error de configuración", 
+                           MessageBoxButtons.OK, MessageBoxIcon.Error);
+            
+            Console.WriteLine($"[ActivityDashboard] Error configurando reportes diarios: {ex}");
+        }
+    }
+
+    /// <summary>
+    /// Maneja el evento de reporte diario generado
+    /// </summary>
+    private void OnDailyReportGenerated(object? sender, DailyReportGeneratedEventArgs e)
+    {
+        try
+        {
+            if (InvokeRequired)
+            {
+                Invoke(() => OnDailyReportGenerated(sender, e));
+                return;
+            }
+
+            // Mostrar notificación en system tray si está minimizado
+            if (_notifyIcon != null && _notifyIcon.Visible)
+            {
+                var dayName = System.Globalization.CultureInfo.GetCultureInfo("es-ES")
+                    .DateTimeFormat.GetDayName(e.ReportDate.DayOfWeek);
+                
+                _notifyIcon.ShowBalloonTip(
+                    5000,
+                    "Reporte Diario Generado",
+                    $"✅ {dayName} {e.ReportDate:dd/MM/yyyy}\n" +
+                    $"📊 {e.QuadrantCount} cuadrantes procesados\n" +
+                    $"📁 {e.GeneratedFiles.Count} archivos generados",
+                    ToolTipIcon.Info
+                );
+            }
+
+            Console.WriteLine($"[ActivityDashboard] Notificación de reporte diario: {e.ReportDate:yyyy-MM-dd}, {e.GeneratedFiles.Count} archivos");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ActivityDashboard] Error manejando evento de reporte diario: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Manejador de evento cuando se envía un email de reporte diario
+    /// </summary>
+    private void OnDailyReportEmailSent(object? sender, DailyReportEmailSentEventArgs e)
+    {
+        try
+        {
+            if (InvokeRequired)
+            {
+                Invoke(() => OnDailyReportEmailSent(sender, e));
+                return;
+            }
+
+            // Mostrar notificación de email enviado
+            if (_notifyIcon != null && _notifyIcon.Visible)
+            {
+                var dayName = System.Globalization.CultureInfo.GetCultureInfo("es-ES")
+                    .DateTimeFormat.GetDayName(e.ReportDate.DayOfWeek);
+                
+                var emailIcon = e.IsTest ? "🧪" : "📧";
+                var testPrefix = e.IsTest ? "[PRUEBA] " : "";
+                
+                _notifyIcon.ShowBalloonTip(
+                    5000,
+                    $"{testPrefix}Email Enviado",
+                    $"{emailIcon} {dayName} {e.ReportDate:dd/MM/yyyy}\n" +
+                    $"📁 {e.FilesCount} archivos adjuntos\n" +
+                    $"📧 {e.Recipients.Count} destinatarios",
+                    ToolTipIcon.Info
+                );
+            }
+
+            Console.WriteLine($"[ActivityDashboard] Email enviado: {e.ReportDate:yyyy-MM-dd}, {e.FilesCount} archivos, {e.Recipients.Count} destinatarios{(e.IsTest ? " [TEST]" : "")}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ActivityDashboard] Error manejando evento de email enviado: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Obtiene la configuración de Capturer actual o una configuración por defecto
+    /// </summary>
+    private CapturerConfiguration GetCapturerConfiguration()
+    {
+        // Use the actual configuration if available, otherwise return a default
+        if (_capturerConfig != null)
+        {
+            Console.WriteLine($"[ActivityDashboard] Usando configuración real de Capturer");
+            return _capturerConfig;
+        }
+        
+        Console.WriteLine($"[ActivityDashboard] Usando configuración por defecto - configuración real no disponible");
+        
+        // Fallback to default configuration
+        return new CapturerConfiguration
+        {
+            Schedule = new ScheduleSettings
+            {
+                EnableAutomaticReports = true,
+                ReportTime = TimeSpan.FromHours(9),
+                StartTime = TimeSpan.FromHours(8),
+                EndTime = TimeSpan.FromHours(18),
+                IncludeWeekends = false,
+                ActiveWeekDays = new List<DayOfWeek> 
+                { 
+                    DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, 
+                    DayOfWeek.Thursday, DayOfWeek.Friday 
+                }
+            },
+            QuadrantSystem = new QuadrantSystemSettings
+            {
+                ActiveConfigurationName = "Default",
+                Configurations = new List<QuadrantConfiguration>()
+            }
+        };
+    }
+
+    /// <summary>
+    /// Maneja el clic en el botón de guardar configuración del scheduler
+    /// </summary>
+    private void OnSaveSchedulerConfigClick(object? sender, EventArgs e)
+    {
+        try
+        {
+            if (_schedulerService == null)
+            {
+                MessageBox.Show("El servicio de reportes programados no está disponible.",
+                    "Servicio no disponible", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            // La configuración ya se guarda automáticamente en el ActivityDashboardSchedulerService
+            // Este botón sirve para confirmar que la configuración actual está guardada
+            MessageBox.Show("✅ Configuración del programador de reportes guardada exitosamente.\n\n" +
+                           "Los reportes se generarán automáticamente según la programación establecida.\n" +
+                           "La configuración se mantiene entre reinicios de la aplicación.",
+                           "Configuración guardada", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+            Console.WriteLine("[ActivityDashboard] Configuración del scheduler confirmada como guardada");
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error al guardar la configuración: {ex.Message}",
+                           "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            Console.WriteLine($"[ActivityDashboard] Error guardando configuración: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Maneja el clic en el botón de enviar email de prueba
+    /// </summary>
+    private async void OnTestEmailClick(object? sender, EventArgs e)
+    {
+        if (sender is Button button)
+        {
+            try
+            {
+                if (_schedulerService == null)
+                {
+                    MessageBox.Show("El servicio de reportes programados no está disponible.",
+                        "Servicio no disponible", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                // Deshabilitar botón y mostrar progreso
+                button.Enabled = false;
+                button.Text = "⏳ Enviando...";
+                button.BackColor = Color.Gray;
+
+                Console.WriteLine("[ActivityDashboard] Iniciando envío de email de prueba...");
+
+                // Intentar enviar email de prueba
+                bool success = await _schedulerService.SendTestEmailAsync();
+
+                if (success)
+                {
+                    MessageBox.Show("🎉 ¡Email de prueba enviado exitosamente!\n\n" +
+                                   "Verifique la bandeja de entrada de los destinatarios configurados.\n" +
+                                   "El asunto del email incluirá '[TEST]' para identificarlo como prueba.\n\n" +
+                                   "Si no recibe el email, verifique la configuración SMTP en Configuración > Email.",
+                                   "Email enviado", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                else
+                {
+                    MessageBox.Show("⚠️ No se pudo enviar el email de prueba.\n\n" +
+                                   "Posibles causas:\n" +
+                                   "• Email deshabilitado o sin destinatarios configurados\n" +
+                                   "• No hay reportes generados para enviar\n" +
+                                   "• Error en la configuración SMTP\n" +
+                                   "• Problema de conectividad\n\n" +
+                                   "Configure los reportes diarios y la configuración de email, luego inténtelo nuevamente.",
+                                   "Error en envío", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
+
+                Console.WriteLine($"[ActivityDashboard] Email de prueba - Resultado: {(success ? "Exitoso" : "Fallido")}");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al enviar email de prueba:\n\n{ex.Message}\n\n" +
+                               "Verifique la configuración de email y la conectividad de red.",
+                               "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                Console.WriteLine($"[ActivityDashboard] Error enviando email de prueba: {ex}");
+            }
+            finally
+            {
+                // Restaurar botón
+                button.Enabled = true;
+                button.Text = "🧪 Prueba Email";
+                button.BackColor = Color.FromArgb(255, 152, 0);
+            }
+        }
+    }
+
 }

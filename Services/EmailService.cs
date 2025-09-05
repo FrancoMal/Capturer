@@ -14,6 +14,7 @@ public interface IEmailService
     Task<bool> SendUnifiedReportAsync(List<string> recipients, ReportPeriod period, List<string> baseScreenshots, string reportType, bool useZipFormat = true);
     Task<bool> SendQuadrantReportAsync(List<string> recipients, DateTime startDate, DateTime endDate, List<string> selectedQuadrants, bool useZipFormat = true);
     Task<bool> SendRoutineQuadrantReportsAsync(List<string> recipients, DateTime startDate, DateTime endDate, List<string> selectedQuadrants, bool useZipFormat = true, bool separateEmailPerQuadrant = false);
+    Task<bool> SendActivityDashboardReportAsync(List<string> recipients, string subject, string body, List<string> attachmentFiles, bool useZipFormat = true);
     Task<bool> ValidateEmailConfigAsync();
     Task<bool> TestConnectionAsync();
     List<string> GetAvailableQuadrantFolders();
@@ -1360,5 +1361,187 @@ Este cuadrante ('{quadrantName}') contiene datos procesados específicamente par
 Este reporte fue generado automáticamente por Capturer - Sistema de Cuadrantes Beta.
 Si tienes alguna pregunta, contacta al administrador del sistema.
 ";
+    }
+
+    /// <summary>
+    /// Envía reporte de Activity Dashboard con archivos HTML personalizados
+    /// </summary>
+    public async Task<bool> SendActivityDashboardReportAsync(List<string> recipients, string subject, string body, List<string> attachmentFiles, bool useZipFormat = true)
+    {
+        try
+        {
+            await LoadConfigurationAsync();
+
+            if (!attachmentFiles.Any())
+            {
+                Console.WriteLine("No hay archivos para adjuntar en el reporte de Activity Dashboard");
+                return false;
+            }
+
+            // Crear mensaje de email
+            var message = new MimeMessage();
+            message.From.Add(new MailboxAddress(_config.Email.SenderName, _config.Email.Username));
+            message.Subject = subject;
+
+            // Añadir destinatarios
+            foreach (var recipient in recipients)
+            {
+                message.To.Add(MailboxAddress.Parse(recipient));
+            }
+
+            var bodyBuilder = new BodyBuilder();
+            
+            // Crear contenido HTML y texto
+            bodyBuilder.HtmlBody = CreateActivityDashboardEmailHtml(body, attachmentFiles);
+            bodyBuilder.TextBody = body;
+
+            var tempFiles = new List<string>();
+
+            if (useZipFormat && attachmentFiles.Count > 1)
+            {
+                // Crear ZIP con todos los archivos
+                var zipPath = await CreateActivityDashboardZipAsync(attachmentFiles);
+                if (!string.IsNullOrEmpty(zipPath))
+                {
+                    bodyBuilder.Attachments.Add(zipPath);
+                    tempFiles.Add(zipPath);
+                }
+            }
+            else
+            {
+                // Adjuntar archivos individuales
+                foreach (var file in attachmentFiles)
+                {
+                    if (File.Exists(file))
+                    {
+                        bodyBuilder.Attachments.Add(file);
+                    }
+                }
+            }
+
+            message.Body = bodyBuilder.ToMessageBody();
+
+            // Enviar email
+            var success = await SendEmailAsync(message);
+
+            // Limpiar archivos temporales
+            foreach (var tempFile in tempFiles)
+            {
+                try
+                {
+                    if (File.Exists(tempFile))
+                    {
+                        File.Delete(tempFile);
+                    }
+                }
+                catch { /* Ignore cleanup errors */ }
+            }
+
+            // Disparar evento
+            EmailSent?.Invoke(this, new EmailSentEventArgs
+            {
+                Recipients = recipients,
+                AttachmentCount = attachmentFiles.Count,
+                SentDate = DateTime.Now,
+                Success = success
+            });
+
+            return success;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error enviando reporte de Activity Dashboard: {ex.Message}");
+            
+            EmailSent?.Invoke(this, new EmailSentEventArgs
+            {
+                Recipients = recipients,
+                Success = false,
+                ErrorMessage = ex.Message,
+                SentDate = DateTime.Now
+            });
+            
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Crea contenido HTML para email de Activity Dashboard
+    /// </summary>
+    private string CreateActivityDashboardEmailHtml(string bodyText, List<string> attachmentFiles)
+    {
+        var fileList = attachmentFiles.Select(f => Path.GetFileNameWithoutExtension(f)).ToList();
+        
+        return $@"
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8'>
+    <title>Activity Dashboard Report - Capturer</title>
+    <style>
+        body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; background-color: #f8f9fa; }}
+        .container {{ max-width: 600px; margin: 0 auto; background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }}
+        .header {{ text-align: center; border-bottom: 3px solid #007bff; padding-bottom: 20px; margin-bottom: 30px; }}
+        .title {{ color: #2c3e50; font-size: 24px; margin-bottom: 10px; }}
+        .content {{ line-height: 1.6; white-space: pre-line; }}
+        .files-section {{ background-color: #e7f3ff; padding: 20px; border-radius: 8px; margin: 20px 0; }}
+        .file-item {{ background-color: white; padding: 8px 12px; margin: 5px 0; border-radius: 5px; border-left: 4px solid #28a745; font-family: monospace; }}
+        .footer {{ text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #dee2e6; color: #6c757d; font-size: 12px; }}
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='header'>
+            <div class='title'>📊 Activity Dashboard Report</div>
+            <div style='color: #6c757d;'>Sistema de Monitoreo Avanzado - Capturer</div>
+        </div>
+        
+        <div class='content'>
+            {bodyText.Replace("\n", "<br>")}
+        </div>
+        
+        <div class='files-section'>
+            <h3 style='color: #495057; margin-top: 0;'>📁 Archivos Incluidos ({attachmentFiles.Count})</h3>
+            {string.Join("", fileList.Select(file => $"<div class='file-item'>📄 {file}</div>"))}
+        </div>
+        
+        <div class='footer'>
+            <p>🤖 Generado automáticamente por <strong>Capturer v2.4</strong></p>
+            <p>📧 Activity Dashboard - Reportes Avanzados</p>
+        </div>
+    </div>
+</body>
+</html>";
+    }
+
+    /// <summary>
+    /// Crea ZIP con reportes de Activity Dashboard
+    /// </summary>
+    private async Task<string> CreateActivityDashboardZipAsync(List<string> files)
+    {
+        try
+        {
+            var tempPath = Path.GetTempPath();
+            var zipFileName = $"ActivityDashboard_Report_{DateTime.Now:yyyyMMdd_HHmmss}.zip";
+            var zipPath = Path.Combine(tempPath, zipFileName);
+
+            using (var archive = ZipFile.Open(zipPath, ZipArchiveMode.Create))
+            {
+                foreach (var file in files)
+                {
+                    if (File.Exists(file))
+                    {
+                        var entryName = Path.GetFileName(file);
+                        archive.CreateEntryFromFile(file, entryName);
+                    }
+                }
+            }
+
+            return zipPath;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error creando ZIP de Activity Dashboard: {ex.Message}");
+            return "";
+        }
     }
 }

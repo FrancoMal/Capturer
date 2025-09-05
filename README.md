@@ -1,16 +1,16 @@
-# 📸 Capturer v2.0 - Sistema Avanzado de Captura de Pantallas
+# 📸 Capturer v2.5.0 - Sistema Avanzado de Captura de Pantallas
 
 ![Capturer Logo](Capturer_Logo.png)
 
-**Capturer v2.0** es una aplicación de escritorio profesional que automatiza la captura de pantallas y gestión inteligente de reportes por correo electrónico. Incluye un sistema avanzado de cuadrantes, gestión separada de emails rutinarios/manuales, y ayuda contextual integrada.
+**Capturer v2.5.0** es una aplicación de escritorio profesional que automatiza la captura de pantallas y gestión inteligente de reportes por correo electrónico. Incluye un sistema avanzado de cuadrantes, gestión separada de emails rutinarios/manuales, reportes de Activity Dashboard automatizados, y ayuda contextual integrada.
 
 🎯 **Perfecto para**: Monitoreo corporativo, trabajo remoto, documentación de procesos, cumplimiento regulatorio, análisis de productividad, y gestión de proyectos con reportes automatizados.
 
 ---
 
-## 📋 Índice - Funcionalidades v2.0
+## 📋 Índice - Funcionalidades v2.5.0
 
-1. [¿Qué hay de nuevo en v2.0?](#qué-hay-de-nuevo-en-v20)
+1. [¿Qué hay de nuevo en v2.5.0?](#qué-hay-de-nuevo-en-v250)
 2. [Sistema de Email Avanzado](#sistema-de-email-avanzado)
 3. [Sistema de Cuadrantes Inteligente](#sistema-de-cuadrantes-inteligente)
 4. [Interfaz de Usuario Renovada](#interfaz-de-usuario-renovada)
@@ -21,11 +21,11 @@
 9. [Casos de Uso Avanzados](#casos-de-uso-avanzados)
 10. [Solución de Problemas](#solución-de-problemas)
 11. [Documentación Técnica](#documentación-técnica)
-12. [FAQ v2.0](#preguntas-frecuentes-v20)
+12. [FAQ v2.5.0](#preguntas-frecuentes-v250)
 
 ---
 
-## ¿Qué hay de nuevo en v2.0?
+## ¿Qué hay de nuevo en v2.5.0?
 
 ### 🚀 Funcionalidades Principales Nuevas
 
@@ -156,7 +156,7 @@ De: capturer@empresa.com
 Para: gerencia@empresa.com, rrhh@empresa.com
 Asunto: Reporte Semanal Capturer - 19/08/2024 a 26/08/2024
 
-📸 REPORTE AUTOMÁTICO - CAPTURER v2.0
+📸 REPORTE AUTOMÁTICO - CAPTURER v2.5.0
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Tipo: Reporte Semanal
@@ -175,7 +175,7 @@ Generado: 2024-08-26 09:00:15
 📎 Adjunto: capturas_20240819-20240826.zip (1.2 GB)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Este email fue generado automáticamente por Capturer v2.0
+Este email fue generado automáticamente por Capturer v2.5.0
 ```
 
 #### Email de Cuadrante Individual:
@@ -184,7 +184,7 @@ De: capturer@empresa.com
 Para: supervisor@empresa.com
 Asunto: Reporte Cuadrante "Área de Trabajo" - 26/08/2024
 
-🔲 REPORTE POR CUADRANTE - CAPTURER v2.0
+🔲 REPORTE POR CUADRANTE - CAPTURER v2.5.0
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Cuadrante: "Área de Trabajo"
@@ -209,9 +209,9 @@ Procesado con perfil: Trabajo Diario
 
 ## Sistema de Cuadrantes Inteligente
 
-### 🔲 ¿Qué son los Cuadrantes en v2.0?
+### 🔲 ¿Qué son los Cuadrantes en v2.5.0?
 
-Los cuadrantes son **áreas definidas de la pantalla** que Capturer puede procesar de forma independiente. En v2.0, se integran completamente con el sistema de email para reportes especializados.
+Los cuadrantes son **áreas definidas de la pantalla** que Capturer puede procesar de forma independiente. En v2.5.0, se integran completamente con el sistema de email para reportes especializados y con el nuevo sistema de Activity Dashboard.
 
 #### Ventajas de los Cuadrantes:
 - 🎯 **Enfoque específico**: Solo áreas relevantes para cada destinatario

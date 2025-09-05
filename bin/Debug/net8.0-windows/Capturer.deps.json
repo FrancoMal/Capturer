@@ -6,7 +6,7 @@
   "compilationOptions": {},
   "targets": {
     ".NETCoreApp,Version=v8.0": {
-      "Capturer/2.4.0": {
+      "Capturer/2.5.0": {
         "dependencies": {
           "MailKit": "4.8.0",
           "Microsoft.Extensions.Configuration": "8.0.0",
@@ -223,7 +223,7 @@
     }
   },
   "libraries": {
-    "Capturer/2.4.0": {
+    "Capturer/2.5.0": {
       "type": "project",
       "serviceable": false,
       "sha512": ""
