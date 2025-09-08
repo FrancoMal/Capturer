@@ -2046,7 +2046,7 @@ public class ActivityReportService : IDisposable
         
         // Footer
         html.AppendLine("<div class='footer'>");
-        html.AppendLine($"<p>📅 Generado el {DateTime.Now:dd/MM/yyyy HH:mm:ss} | 🖥️ Capturer Dashboard v2.4 | 📊 {report.Summary.TotalActivities:N0} actividades detectadas</p>");
+        html.AppendLine($"<p>📅 Generado el {DateTime.Now:dd/MM/yyyy HH:mm:ss} | 🖥️ Capturer Dashboard v3.1.2 | 📊 {report.Summary.TotalActivities:N0} actividades detectadas</p>");
         html.AppendLine("</div>");
         
         // JavaScript para las gráficas

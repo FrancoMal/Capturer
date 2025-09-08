@@ -193,14 +193,14 @@ public partial class ActivityDashboardForm : Form
             Location = new Point(0, 0),
             Size = new Size(250, 600), // Fixed size to trigger scrolling when needed
             ColumnCount = 1,
-            RowCount = 16,
+            RowCount = 14, // Reduced from 16 to 14 (removed 2 buttons)
             Padding = new Padding(5),
             AutoSize = false, // Keep fixed to ensure scrolling works
             BackColor = Color.AliceBlue
         };
 
-        // Configurar filas con spacing más compacto
-        for (int i = 0; i < 14; i++)  
+        // Configurar filas con spacing más compacto (reducido por eliminación de botones)
+        for (int i = 0; i < 12; i++)  // Reduced from 14 to 12
         {
             contentPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 32F)); // Fixed compact height
         }
@@ -329,35 +329,7 @@ public partial class ActivityDashboardForm : Form
         dailyReportsButton.FlatAppearance.BorderSize = 0;
         dailyReportsButton.Click += OnDailyReportsConfigClick;
 
-        // Botón para guardar configuración del scheduler
-        var saveConfigButton = new Button
-        {
-            Text = _schedulerService != null ? "💾 Guardar Config" : "💾 (No disponible)",
-            Size = new Size(140, 30),
-            BackColor = _schedulerService != null ? Color.FromArgb(46, 125, 50) : Color.Gray,
-            ForeColor = Color.White,
-            FlatStyle = FlatStyle.Flat,
-            Font = new Font("Segoe UI", 8F, FontStyle.Bold),
-            Anchor = AnchorStyles.Left,
-            Enabled = (_simplifiedScheduler != null || _schedulerService != null)
-        };
-        saveConfigButton.FlatAppearance.BorderSize = 0;
-        saveConfigButton.Click += OnSaveSchedulerConfigClick;
-
-        // Botón para enviar email de prueba
-        var testEmailButton = new Button
-        {
-            Text = _schedulerService != null ? "🧪 Prueba Email" : "🧪 (No disponible)",
-            Size = new Size(130, 30),
-            BackColor = _schedulerService != null ? Color.FromArgb(255, 152, 0) : Color.Gray,
-            ForeColor = Color.White,
-            FlatStyle = FlatStyle.Flat,
-            Font = new Font("Segoe UI", 8F, FontStyle.Bold),
-            Anchor = AnchorStyles.Left,
-            Enabled = (_simplifiedScheduler != null || _schedulerService != null)
-        };
-        testEmailButton.FlatAppearance.BorderSize = 0;
-        testEmailButton.Click += OnTestEmailClick;
+        // Botones "Guardar Config" y "Prueba Email" eliminados - funcionalidad movida al formulario de configuración
 
         // Separador
         var separatorLabel = new Label
@@ -422,20 +394,18 @@ public partial class ActivityDashboardForm : Form
         // Agregar controles al panel con spacing más compacto
         contentPanel.Controls.Add(configButton, 0, 0);
         contentPanel.Controls.Add(dailyReportsButton, 0, 1);
-        contentPanel.Controls.Add(saveConfigButton, 0, 2);
-        contentPanel.Controls.Add(testEmailButton, 0, 3);
-        contentPanel.Controls.Add(separatorLabel, 0, 4);
-        contentPanel.Controls.Add(_pauseResumeButton, 0, 5);
-        contentPanel.Controls.Add(thresholdLabel, 0, 6);
-        contentPanel.Controls.Add(thresholdNumeric, 0, 7);
-        contentPanel.Controls.Add(toleranceLabel, 0, 8);
-        contentPanel.Controls.Add(toleranceNumeric, 0, 9);
-        contentPanel.Controls.Add(resetButton, 0, 10);
-        contentPanel.Controls.Add(infoLabel, 0, 11);
-        contentPanel.Controls.Add(_countdownLabel!, 0, 12);
-        contentPanel.Controls.Add(exportSeparatorLabel, 0, 13);
-        contentPanel.Controls.Add(exportHtmlButton, 0, 14);
-        contentPanel.Controls.Add(exportCsvButton, 0, 15);
+        contentPanel.Controls.Add(separatorLabel, 0, 2); // Moved up to fill gap
+        contentPanel.Controls.Add(_pauseResumeButton, 0, 3);
+        contentPanel.Controls.Add(thresholdLabel, 0, 4);
+        contentPanel.Controls.Add(thresholdNumeric, 0, 5);
+        contentPanel.Controls.Add(toleranceLabel, 0, 6);
+        contentPanel.Controls.Add(toleranceNumeric, 0, 7);
+        contentPanel.Controls.Add(resetButton, 0, 8);
+        contentPanel.Controls.Add(infoLabel, 0, 9);
+        contentPanel.Controls.Add(_countdownLabel!, 0, 10);
+        contentPanel.Controls.Add(exportSeparatorLabel, 0, 11);
+        contentPanel.Controls.Add(exportHtmlButton, 0, 12);
+        contentPanel.Controls.Add(exportCsvButton, 0, 13);
 
         // Add content panel to scroll container, then scroll to main panel
         scrollContainer.Controls.Add(contentPanel);

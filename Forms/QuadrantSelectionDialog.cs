@@ -27,7 +27,7 @@ public partial class QuadrantSelectionDialog : Form
     private void InitializeComponent()
     {
         this.Size = new Size(450, 350);
-        this.Text = "🔲 Selección de Cuadrantes - Capturer v2.4";
+        this.Text = "🔲 Selección de Cuadrantes - Capturer v3.1.2";
         this.StartPosition = FormStartPosition.CenterParent;
         this.FormBorderStyle = FormBorderStyle.FixedDialog;
         this.MaximizeBox = false;

@@ -1057,7 +1057,7 @@ public partial class SimplifiedReportsConfigForm : Form
                     <hr style='margin: 20px 0; border: none; border-top: 1px solid #dee2e6;'>
                     <p style='color: #6c757d; font-size: 12px;'>
                         🧪 Email de prueba generado el {DateTime.Now:dd/MM/yyyy HH:mm:ss}<br>
-                        🖥️ Capturer Dashboard v2.5 - Sistema de Reportes Automáticos
+                        🖥️ Capturer Dashboard v3.1.2 - Sistema de Reportes Automáticos
                     </p>
                 </div>";
 

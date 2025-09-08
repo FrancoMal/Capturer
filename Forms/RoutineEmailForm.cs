@@ -108,7 +108,7 @@ public partial class RoutineEmailForm : Form
     private void InitializeComponent()
     {
         this.Size = new Size(750, 800);
-        this.Text = "📊 Configuración de Reportes Automáticos - Capturer v2.4";
+        this.Text = "📊 Configuración de Reportes Automáticos - Capturer v3.1.2";
         this.StartPosition = FormStartPosition.CenterParent;
         this.FormBorderStyle = FormBorderStyle.Sizable;
         this.MaximizeBox = true;

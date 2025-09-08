@@ -335,7 +335,7 @@ public class SimplifiedReportsSchedulerService : IDisposable
                 <hr style='margin: 20px 0; border: none; border-top: 1px solid #dee2e6;'>
                 <p style='color: #6c757d; font-size: 12px;'>
                     📅 Generado automáticamente el {DateTime.Now:dd/MM/yyyy HH:mm:ss}<br>
-                    🖥️ Capturer Dashboard v2.5 - Sistema de Monitoreo Empresarial
+                    🖥️ Capturer Dashboard v3.1.2 - Sistema de Monitoreo Empresarial
                 </p>
             </div>";
         
@@ -372,7 +372,7 @@ public class SimplifiedReportsSchedulerService : IDisposable
                 <hr style='margin: 20px 0; border: none; border-top: 1px solid #dee2e6;'>
                 <p style='color: #6c757d; font-size: 12px;'>
                     📅 Generado automáticamente el {DateTime.Now:dd/MM/yyyy HH:mm:ss}<br>
-                    🖥️ Capturer Dashboard v2.5 - Sistema de Monitoreo Empresarial
+                    🖥️ Capturer Dashboard v3.1.2 - Sistema de Monitoreo Empresarial
                 </p>
             </div>";
         

@@ -81,7 +81,7 @@ public partial class QuadrantEditorForm : Form
     private void InitializeComponent()
     {
         this.Size = new Size(1200, 800);
-        this.Text = "Editor de Cuadrantes - Capturer v2.4";
+        this.Text = "Editor de Cuadrantes - Capturer v3.1.2";
         this.StartPosition = FormStartPosition.CenterParent;
         this.FormBorderStyle = FormBorderStyle.Sizable;
         this.MinimumSize = new Size(800, 600);
@@ -1144,7 +1144,7 @@ public partial class QuadrantEditorForm : Form
         }
         else
         {
-            this.Text = "Editor de Cuadrantes - Capturer v2.4";
+            this.Text = "Editor de Cuadrantes - Capturer v3.1.2";
         }
     }
     

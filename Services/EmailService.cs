@@ -1514,7 +1514,7 @@ Si tienes alguna pregunta, contacta al administrador del sistema.
         </div>
         
         <div class='footer'>
-            <p>🤖 Generado automáticamente por <strong>Capturer v2.4</strong></p>
+            <p>🤖 Generado automáticamente por <strong>Capturer v3.1.2</strong></p>
             <p>📧 Activity Dashboard - Reportes Avanzados</p>
         </div>
     </div>

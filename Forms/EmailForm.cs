@@ -76,7 +76,7 @@ public partial class EmailForm : Form
     private void InitializeComponent()
     {
         this.Size = new Size(650, 700);
-        this.Text = "📧 Envío Manual de Capturas - Capturer v2.4";
+        this.Text = "📧 Envío Manual de Capturas - Capturer v3.1.2";
         this.StartPosition = FormStartPosition.CenterParent;
         this.FormBorderStyle = FormBorderStyle.Sizable;
         this.MaximizeBox = true;

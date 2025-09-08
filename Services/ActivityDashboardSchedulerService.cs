@@ -769,7 +769,7 @@ Este es un reporte automático generado por el sistema Capturer - Activity Dashb
 Los archivos adjuntos contienen el análisis detallado de actividad por cuadrantes.
 
 ---
-🤖 Generado automáticamente por Capturer v2.4
+🤖 Generado automáticamente por Capturer v3.1.2
 📧 Configurado desde Activity Dashboard - Reportes Diarios";
     }
 
@@ -791,7 +791,7 @@ Archivos adjuntos:
 Estos reportes fueron seleccionados manualmente desde Activity Dashboard.
 
 ---
-🤖 Generado por Capturer v2.4
+🤖 Generado por Capturer v3.1.2
 📧 Enviado desde Activity Dashboard";
     }
 

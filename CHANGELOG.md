@@ -1,8 +1,8 @@
-# 📋 Capturer v2.5.0 - Release Notes
+# 📋 Capturer v3.1.2 - Release Notes
 
 ## 🚀 Release Highlights
 
-**Version 2.5.0** introduces the **Activity Dashboard Daily Reports System**, a comprehensive solution for automated activity tracking and email reporting with advanced scheduling capabilities.
+**Version 3.1.2** introduces the **Activity Dashboard Daily Reports System**, a comprehensive solution for automated activity tracking and email reporting with advanced scheduling capabilities.
 
 ---
 
@@ -128,9 +128,9 @@ public class ActivityDashboardReportsConfig
 
 ## 📋 Upgrade Instructions
 
-### For Existing Users (v2.4.0 → v2.5.0)
+### For Existing Users (v2.4.0 → v3.1.2)
 1. **Backup Configuration**: Export existing settings before upgrade
-2. **Install v2.5.0**: Replace application files with new version
+2. **Install v3.1.2**: Replace application files with new version
 3. **Configure Dashboard Reports**: Access new functionality through Activity Dashboard
 4. **Test Email Settings**: Use test email feature to verify configuration
 5. **Set Schedule**: Configure desired report frequency and timing
@@ -206,6 +206,6 @@ Use Case: Regular compliance checks with documented activity history
 
 ---
 
-**🎉 Thank you for using Capturer v2.5.0!**
+**🎉 Thank you for using Capturer v3.1.2!**
 
 *This release represents a significant enhancement to the Capturer ecosystem, bringing enterprise-grade activity reporting capabilities to desktop screenshot automation.*
