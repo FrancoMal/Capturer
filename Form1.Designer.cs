@@ -57,10 +57,17 @@
             this.groupBoxControls = new System.Windows.Forms.GroupBox();
             this.groupBoxRecent = new System.Windows.Forms.GroupBox();
             this.pictureBoxLogo = new System.Windows.Forms.PictureBox();
+            
+            // ✨ NEW v4.0: Initialize API Status Controls
+            this.panelApiStatus = new System.Windows.Forms.Panel();
+            this.lblApiStatusIcon = new System.Windows.Forms.Label();
+            this.lblApiStatusText = new System.Windows.Forms.Label();
+            
             this.contextMenuStrip.SuspendLayout();
             this.groupBoxStatus.SuspendLayout();
             this.groupBoxControls.SuspendLayout();
             this.groupBoxRecent.SuspendLayout();
+            this.panelApiStatus.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBoxLogo)).BeginInit();
             this.SuspendLayout();
             // 
@@ -405,6 +412,41 @@
             this.pictureBoxLogo.TabIndex = 17;
             this.pictureBoxLogo.TabStop = false;
             // 
+            // panelApiStatus
+            // 
+            this.panelApiStatus.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(240)))), ((int)(((byte)(242)))), ((int)(((byte)(245)))));
+            this.panelApiStatus.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.panelApiStatus.Controls.Add(this.lblApiStatusIcon);
+            this.panelApiStatus.Controls.Add(this.lblApiStatusText);
+            this.panelApiStatus.Location = new System.Drawing.Point(12, 620);
+            this.panelApiStatus.Name = "panelApiStatus";
+            this.panelApiStatus.Size = new System.Drawing.Size(200, 45);
+            this.panelApiStatus.TabIndex = 18;
+            // 
+            // lblApiStatusIcon
+            // 
+            this.lblApiStatusIcon.AutoSize = false;
+            this.lblApiStatusIcon.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(185)))), ((int)(((byte)(28)))), ((int)(((byte)(28)))));
+            this.lblApiStatusIcon.Location = new System.Drawing.Point(8, 15);
+            this.lblApiStatusIcon.Name = "lblApiStatusIcon";
+            this.lblApiStatusIcon.Size = new System.Drawing.Size(16, 16);
+            this.lblApiStatusIcon.TabIndex = 0;
+            this.lblApiStatusIcon.Text = "●";
+            this.lblApiStatusIcon.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.lblApiStatusIcon.ForeColor = System.Drawing.Color.White;
+            this.lblApiStatusIcon.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Bold);
+            // 
+            // lblApiStatusText
+            // 
+            this.lblApiStatusText.AutoSize = true;
+            this.lblApiStatusText.Font = new System.Drawing.Font("Segoe UI", 8F, System.Drawing.FontStyle.Regular);
+            this.lblApiStatusText.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(73)))), ((int)(((byte)(80)))), ((int)(((byte)(87)))));
+            this.lblApiStatusText.Location = new System.Drawing.Point(30, 8);
+            this.lblApiStatusText.Name = "lblApiStatusText";
+            this.lblApiStatusText.Size = new System.Drawing.Size(120, 26);
+            this.lblApiStatusText.TabIndex = 1;
+            this.lblApiStatusText.Text = "API v4.0: Desconectado\r\nDashboard: Sin conexión";
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
@@ -416,6 +458,7 @@
             this.Controls.Add(this.groupBoxControls);
             this.Controls.Add(this.groupBoxStatus);
             this.Controls.Add(this.pictureBoxLogo);
+            this.Controls.Add(this.panelApiStatus);
             this.Controls.Add(this.btnMinimizeToTray);
             this.Controls.Add(this.btnExit);
             this.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
@@ -424,12 +467,14 @@
             this.MaximizeBox = false;
             this.Name = "Form1";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "Capturer v3.1.2 - Sistema de Monitoreo";
+            this.Text = "Capturer v4.0 - Sistema de Monitoreo + API";
             this.contextMenuStrip.ResumeLayout(false);
             this.groupBoxStatus.ResumeLayout(false);
             this.groupBoxStatus.PerformLayout();
             this.groupBoxControls.ResumeLayout(false);
             this.groupBoxRecent.ResumeLayout(false);
+            this.panelApiStatus.ResumeLayout(false);
+            this.panelApiStatus.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBoxLogo)).EndInit();
             this.ResumeLayout(false);
         }
@@ -463,5 +508,10 @@
         private System.Windows.Forms.GroupBox groupBoxControls;
         private System.Windows.Forms.GroupBox groupBoxRecent;
         private System.Windows.Forms.PictureBox pictureBoxLogo;
+        
+        // ✨ NEW v4.0: API Status Indicator
+        private System.Windows.Forms.Panel panelApiStatus;
+        private System.Windows.Forms.Label lblApiStatusIcon;
+        private System.Windows.Forms.Label lblApiStatusText;
     }
 }

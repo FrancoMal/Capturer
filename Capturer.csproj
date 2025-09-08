@@ -10,9 +10,9 @@
     <ApplicationIcon>Capturer_Logo.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <Version>3.1.2</Version>
-    <AssemblyVersion>3.1.2.0</AssemblyVersion>
-    <FileVersion>3.1.2.0</FileVersion>
+    <Version>4.0.0-alpha</Version>
+    <AssemblyVersion>4.0.0.0</AssemblyVersion>
+    <FileVersion>4.0.0.0</FileVersion>
     
     <!-- Deshabilitar telemetrías de .NET y reportes a Microsoft -->
     <EnableNETAnalyzers>false</EnableNETAnalyzers>
@@ -41,15 +41,37 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Existing core dependencies -->
     <PackageReference Include="MailKit" Version="4.8.0" />
     <PackageReference Include="MimeKit" Version="4.8.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-    <PackageReference Include="NLog" Version="5.2.7" />
+    <PackageReference Include="System.Drawing.Common" Version="8.0.0" />
+    <PackageReference Include="SSH.NET" Version="2023.0.1" />
+    
+    <!-- Configuration and DI (existing) -->
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="8.0.0" />
-    <PackageReference Include="System.Drawing.Common" Version="8.0.0" />
-    <PackageReference Include="SSH.NET" Version="2023.0.1" />
+    
+    <!-- NEW: ASP.NET Core API Integration v4.0 -->
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Cors" Version="2.2.0" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="7.1.2" />
+    
+    <!-- NEW: SignalR for real-time communication -->
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Core" Version="1.1.0" />
+    
+    <!-- NEW: Reliability and Observability -->
+    <PackageReference Include="Polly" Version="8.2.0" />
+    <PackageReference Include="Polly.Extensions.Http" Version="3.0.0" />
+    <PackageReference Include="Serilog.AspNetCore" Version="8.0.0" />
+    <PackageReference Include="Serilog.Sinks.Console" Version="5.0.1" />
+    <PackageReference Include="Serilog.Sinks.File" Version="5.0.0" />
+    
+    <!-- Legacy logging (will be migrated) -->
+    <PackageReference Include="NLog" Version="5.2.7" />
   </ItemGroup>
 
   <ItemGroup>

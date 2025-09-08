@@ -10,6 +10,7 @@ public class CapturerConfiguration
     public ScheduleSettings Schedule { get; set; } = new();
     public ApplicationSettings Application { get; set; } = new();
     public QuadrantSystemSettings QuadrantSystem { get; set; } = new();
+    public ApiSettings Api { get; set; } = new();
 }
 
 public class ScreenshotSettings
@@ -386,4 +387,50 @@ public class ReportPeriod
             ActiveWeekDays = settings.ActiveWeekDays
         };
     }
+}
+
+/// <summary>
+/// Configuración para la API REST v4.0 y comunicación con Dashboard Web
+/// </summary>
+public class ApiSettings
+{
+    public bool Enabled { get; set; } = true;
+    public int Port { get; set; } = 8080;
+    public string ApiKey { get; set; } = GenerateDefaultApiKey();
+    public string DashboardUrl { get; set; } = "http://localhost:5000";
+    public bool EnableDashboardSync { get; set; } = true;
+    public int SyncIntervalSeconds { get; set; } = 30;
+    public bool RequireAuthentication { get; set; } = true;
+    public List<string> AllowedOrigins { get; set; } = new() { "http://localhost:5000", "https://localhost:5001" };
+    
+    // Connection monitoring
+    public bool EnableConnectionMonitoring { get; set; } = true;
+    public int ConnectionTimeoutSeconds { get; set; } = 10;
+    public int MaxRetryAttempts { get; set; } = 3;
+    
+    // Status display
+    public bool ShowStatusIndicator { get; set; } = true;
+    public StatusIndicatorPosition StatusIndicatorPosition { get; set; } = StatusIndicatorPosition.BottomLeft;
+    
+    private static string GenerateDefaultApiKey()
+    {
+        var guid = Guid.NewGuid().ToString("N");
+        return $"cap_{guid.Substring(0, 24)}";
+    }
+}
+
+public enum StatusIndicatorPosition
+{
+    BottomLeft = 0,
+    BottomRight = 1,
+    TopLeft = 2,
+    TopRight = 3
+}
+
+public enum ApiConnectionStatus
+{
+    Disconnected = 0,    // Red - API not running or unreachable
+    Connected = 1,       // Green - API running and healthy  
+    Syncing = 2,        // Yellow - API running, syncing with Dashboard
+    Error = 3           // Red - API running but errors occurred
 }

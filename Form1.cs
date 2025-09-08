@@ -20,6 +20,15 @@ namespace Capturer
         
         // Dashboard de actividad
         private ActivityDashboardForm? _activityDashboard;
+        
+        // ✨ NEW v4.0: API Service
+        private readonly ICapturerApiService? _capturerApiService;
+        
+        // API Status monitoring
+        private ApiConnectionStatus _currentApiStatus = ApiConnectionStatus.Disconnected;
+        private DateTime _lastApiCheck = DateTime.MinValue;
+        private readonly HttpClient _dashboardHttpClient = new();
+        private readonly ToolTip _apiStatusToolTip = new();
 
         public Form1(ServiceProvider serviceProvider)
         {
@@ -31,6 +40,17 @@ namespace Capturer
             _configManager = serviceProvider.GetRequiredService<IConfigurationManager>();
             _quadrantService = serviceProvider.GetRequiredService<IQuadrantService>();
             _quadrantSchedulerService = serviceProvider.GetRequiredService<IQuadrantSchedulerService>();
+
+            // ✨ NEW v4.0: Get API Service
+            try
+            {
+                _capturerApiService = serviceProvider.GetService<ICapturerApiService>();
+                Console.WriteLine("[DEBUG] CapturerApiService retrieved from DI container");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Failed to get CapturerApiService: {ex.Message}");
+            }
 
             InitializeComponent();
             InitializeApplication();
@@ -58,6 +78,46 @@ namespace Capturer
 
             // Start scheduler service
             await _schedulerService.StartAsync();
+
+            // ✨ NEW v4.0: Start API service manually
+            if (_capturerApiService != null)
+            {
+                try
+                {
+                    Console.WriteLine("[DEBUG] Starting CapturerApiService manually...");
+                    
+                    // Cast to CapturerApiService to access StartAsync if needed
+                    if (_capturerApiService is CapturerApiService apiService)
+                    {
+                        // Start the hosted service manually using a CancellationTokenSource
+                        var cts = new CancellationTokenSource();
+                        _ = Task.Run(async () =>
+                        {
+                            try
+                            {
+                                await apiService.StartAsync(cts.Token);
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine($"[ERROR] CapturerApiService failed to start: {ex.Message}");
+                            }
+                        });
+                        
+                        // Give it a moment to start
+                        await Task.Delay(1000);
+                        
+                        Console.WriteLine($"[DEBUG] CapturerApiService started. IsRunning: {_capturerApiService.IsRunning}, Port: {_capturerApiService.Port}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[ERROR] Failed to start CapturerApiService: {ex.Message}");
+                }
+            }
+            else
+            {
+                Console.WriteLine("[WARNING] CapturerApiService not available - API endpoints will not work");
+            }
 
             // Update UI
             await UpdateUIAsync();
@@ -448,6 +508,9 @@ namespace Capturer
 
                 // Update email status (simplified)
                 lblLastEmail.Text = "Último Email: Configurar"; // TODO: Track last email date
+                
+                // ✨ NEW v4.0: Update API status
+                await UpdateApiStatusAsync();
             }
             catch (Exception ex)
             {
@@ -513,6 +576,113 @@ namespace Capturer
                 _config.Application.SystemTray.ShowTrayNotifications)
             {
                 notifyIcon.ShowBalloonTip(_config.Application.SystemTray.NotificationDurationMs, title, message, ToolTipIcon.Info);
+            }
+        }
+
+        // ✨ NEW v4.0: API Status monitoring methods
+        private async Task UpdateApiStatusAsync()
+        {
+            try
+            {
+                var newStatus = ApiConnectionStatus.Disconnected;
+                string statusText = "API v4.0: Desconectado\nDashboard: Sin conexión";
+                
+                // Check API service status
+                if (_capturerApiService != null && _capturerApiService.IsRunning)
+                {
+                    newStatus = ApiConnectionStatus.Connected;
+                    statusText = $"API v4.0: Puerto {_capturerApiService.Port}\nDashboard: ";
+                    
+                    // Check Dashboard connectivity
+                    var dashboardStatus = await CheckDashboardConnectionAsync();
+                    statusText += dashboardStatus ? "Conectado" : "Desconectado";
+                    
+                    if (!dashboardStatus)
+                    {
+                        newStatus = ApiConnectionStatus.Error;
+                    }
+                }
+
+                // Update UI if status changed
+                if (newStatus != _currentApiStatus)
+                {
+                    _currentApiStatus = newStatus;
+                    UpdateApiStatusIndicator(newStatus, statusText);
+                }
+                
+                // Update text even if status didn't change (for real-time info)
+                lblApiStatusText.Text = statusText;
+                _lastApiCheck = DateTime.Now;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error updating API status: {ex.Message}");
+                UpdateApiStatusIndicator(ApiConnectionStatus.Error, "API v4.0: Error\nDashboard: Error");
+            }
+        }
+
+        private void UpdateApiStatusIndicator(ApiConnectionStatus status, string statusText)
+        {
+            try
+            {
+                if (InvokeRequired)
+                {
+                    Invoke(new Action(() => UpdateApiStatusIndicator(status, statusText)));
+                    return;
+                }
+
+                Color indicatorColor = status switch
+                {
+                    ApiConnectionStatus.Connected => Color.FromArgb(25, 135, 84),      // Green
+                    ApiConnectionStatus.Syncing => Color.FromArgb(255, 193, 7),       // Yellow  
+                    ApiConnectionStatus.Error => Color.FromArgb(220, 53, 69),         // Red
+                    ApiConnectionStatus.Disconnected => Color.FromArgb(108, 117, 125), // Gray
+                    _ => Color.FromArgb(185, 28, 28)                                   // Default Red
+                };
+
+                lblApiStatusIcon.BackColor = indicatorColor;
+                lblApiStatusText.Text = statusText;
+
+                // Update tooltip
+                var tooltip = status switch
+                {
+                    ApiConnectionStatus.Connected => "API v4.0 funcionando correctamente y Dashboard Web conectado",
+                    ApiConnectionStatus.Syncing => "API v4.0 funcionando, sincronizando con Dashboard Web",
+                    ApiConnectionStatus.Error => "API v4.0 funcionando pero hay errores de conexión",
+                    ApiConnectionStatus.Disconnected => "API v4.0 no está funcionando o Dashboard Web desconectado",
+                    _ => "Estado desconocido"
+                };
+
+                _apiStatusToolTip.SetToolTip(panelApiStatus, tooltip);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error updating API status indicator: {ex.Message}");
+            }
+        }
+
+        private async Task<bool> CheckDashboardConnectionAsync()
+        {
+            try
+            {
+                if (!_config.Api.EnableDashboardSync || string.IsNullOrEmpty(_config.Api.DashboardUrl))
+                    return false;
+
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(_config.Api.ConnectionTimeoutSeconds));
+                
+                _dashboardHttpClient.DefaultRequestHeaders.Clear();
+                _dashboardHttpClient.DefaultRequestHeaders.Add("X-Api-Key", _config.Api.ApiKey);
+                
+                var response = await _dashboardHttpClient.GetAsync(
+                    $"{_config.Api.DashboardUrl}/api/health", 
+                    cts.Token);
+                
+                return response.IsSuccessStatusCode;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Dashboard connection check failed: {ex.Message}");
+                return false;
             }
         }
 

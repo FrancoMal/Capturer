@@ -1,0 +1,72 @@
+2025-09-08 15:28:15.575 -03:00 [INF] User profile is available. Using 'C:\Users\ftmal\AppData\Local\ASP.NET\DataProtection-Keys' as key repository and Windows DPAPI to encrypt keys at rest.
+2025-09-08 15:28:15.612 -03:00 [INF] Creating key {23d63096-3cdb-47ce-9d35-4b2888579c74} with creation date 2025-09-08 18:28:15Z, activation date 2025-09-08 18:28:15Z, and expiration date 2025-12-07 18:28:15Z.
+2025-09-08 15:28:15.647 -03:00 [INF] Writing data to file 'C:\Users\ftmal\AppData\Local\ASP.NET\DataProtection-Keys\key-23d63096-3cdb-47ce-9d35-4b2888579c74.xml'.
+2025-09-08 15:28:15.799 -03:00 [INF] Now listening on: http://localhost:8080
+2025-09-08 15:28:15.800 -03:00 [INF] Application started. Press Ctrl+C to shut down.
+2025-09-08 15:28:15.801 -03:00 [INF] Hosting environment: Production
+2025-09-08 15:28:15.801 -03:00 [INF] Content root path: C:\Users\ftmal\Desktop\Capturer\bin\Debug\net8.0-windows\
+2025-09-08 15:29:00.746 -03:00 [INF] Request starting HTTP/1.1 GET http://localhost:8080/api/v1/health - null null
+2025-09-08 15:29:00.851 -03:00 [INF] ApiKey was not authenticated. Failure message: API Key is missing
+2025-09-08 15:29:00.856 -03:00 [INF] Executing endpoint 'HTTP: GET /api/v1/health => GetHealthStatus'
+2025-09-08 15:29:00.874 -03:00 [INF] Executed endpoint 'HTTP: GET /api/v1/health => GetHealthStatus'
+2025-09-08 15:29:00.877 -03:00 [INF] HTTP GET /api/v1/health responded 200 in 70.5757 ms
+2025-09-08 15:29:00.880 -03:00 [INF] Request finished HTTP/1.1 GET http://localhost:8080/api/v1/health - 200 null application/json; charset=utf-8 137.0339ms
+2025-09-08 15:29:02.501 -03:00 [INF] Request starting HTTP/1.1 GET http://localhost:8080/api/v1/status - null null
+2025-09-08 15:29:02.506 -03:00 [INF] Executing endpoint 'HTTP: GET /api/v1/status => GetSystemStatus'
+2025-09-08 15:29:02.514 -03:00 [INF] Executed endpoint 'HTTP: GET /api/v1/status => GetSystemStatus'
+2025-09-08 15:29:02.514 -03:00 [INF] HTTP GET /api/v1/status responded 200 in 12.5445 ms
+2025-09-08 15:29:02.515 -03:00 [INF] Request finished HTTP/1.1 GET http://localhost:8080/api/v1/status - 200 null application/json; charset=utf-8 14.0663ms
+2025-09-08 15:29:18.948 -03:00 [INF] Request starting HTTP/1.1 POST http://localhost:8080/api/v1/commands/capture - application/json null
+2025-09-08 15:29:18.954 -03:00 [INF] Executing endpoint 'Capturer.Api.Controllers.CommandsController.TriggerCapture (Capturer)'
+2025-09-08 15:29:18.988 -03:00 [INF] Route matched with {action = "TriggerCapture", controller = "Commands"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.ActionResult`1[Capturer.Api.DTOs.ApiResponse`1[Capturer.Api.DTOs.CommandResult]]] TriggerCapture() on controller Capturer.Api.Controllers.CommandsController (Capturer).
+2025-09-08 15:29:18.991 -03:00 [INF] Manual screenshot capture requested via API
+2025-09-08 15:29:20.022 -03:00 [INF] Executing OkObjectResult, writing value of type 'Capturer.Api.DTOs.ApiResponse`1[[Capturer.Api.DTOs.CommandResult, Capturer, Version=4.0.0.0, Culture=neutral, PublicKeyToken=null]]'.
+2025-09-08 15:29:20.057 -03:00 [INF] Executed action Capturer.Api.Controllers.CommandsController.TriggerCapture (Capturer) in 1066.5952ms
+2025-09-08 15:29:20.058 -03:00 [INF] Executed endpoint 'Capturer.Api.Controllers.CommandsController.TriggerCapture (Capturer)'
+2025-09-08 15:29:20.059 -03:00 [INF] HTTP POST /api/v1/commands/capture responded 200 in 1109.7703 ms
+2025-09-08 15:29:20.060 -03:00 [INF] Request finished HTTP/1.1 POST http://localhost:8080/api/v1/commands/capture - 200 251 application/json; charset=utf-8 1111.594ms
+2025-09-08 15:38:39.681 -03:00 [INF] User profile is available. Using 'C:\Users\ftmal\AppData\Local\ASP.NET\DataProtection-Keys' as key repository and Windows DPAPI to encrypt keys at rest.
+2025-09-08 15:38:40.023 -03:00 [INF] Now listening on: http://localhost:8080
+2025-09-08 15:38:40.025 -03:00 [INF] Application started. Press Ctrl+C to shut down.
+2025-09-08 15:38:40.026 -03:00 [INF] Hosting environment: Production
+2025-09-08 15:38:40.026 -03:00 [INF] Content root path: C:\Users\ftmal\Desktop\Capturer\bin\Debug\net8.0-windows\
+2025-09-08 15:39:17.883 -03:00 [INF] Request starting HTTP/1.1 GET http://localhost:8080/api/v1/health - null null
+2025-09-08 15:39:18.014 -03:00 [INF] ApiKey was not authenticated. Failure message: API Key is missing
+2025-09-08 15:39:18.022 -03:00 [INF] Executing endpoint 'HTTP: GET /api/v1/health => GetHealthStatus'
+2025-09-08 15:39:18.070 -03:00 [INF] Executed endpoint 'HTTP: GET /api/v1/health => GetHealthStatus'
+2025-09-08 15:39:18.072 -03:00 [INF] HTTP GET /api/v1/health responded 200 in 89.5780 ms
+2025-09-08 15:39:18.076 -03:00 [INF] Request finished HTTP/1.1 GET http://localhost:8080/api/v1/health - 200 null application/json; charset=utf-8 201.6287ms
+2025-09-08 15:39:20.283 -03:00 [INF] Request starting HTTP/1.1 GET http://localhost:8080/api/v1/status - null null
+2025-09-08 15:39:20.298 -03:00 [INF] Executing endpoint 'HTTP: GET /api/v1/status => GetSystemStatus'
+2025-09-08 15:39:20.351 -03:00 [INF] Executed endpoint 'HTTP: GET /api/v1/status => GetSystemStatus'
+2025-09-08 15:39:20.352 -03:00 [INF] HTTP GET /api/v1/status responded 200 in 65.5823 ms
+2025-09-08 15:39:20.352 -03:00 [INF] Request finished HTTP/1.1 GET http://localhost:8080/api/v1/status - 200 null application/json; charset=utf-8 69.3051ms
+2025-09-08 15:39:29.530 -03:00 [INF] Request starting HTTP/1.1 POST http://localhost:8080/api/v1/commands/capture - null null
+2025-09-08 15:39:29.563 -03:00 [INF] Executing endpoint 'Capturer.Api.Controllers.CommandsController.TriggerCapture (Capturer)'
+2025-09-08 15:39:29.685 -03:00 [INF] Route matched with {action = "TriggerCapture", controller = "Commands"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.ActionResult`1[Capturer.Api.DTOs.ApiResponse`1[Capturer.Api.DTOs.CommandResult]]] TriggerCapture() on controller Capturer.Api.Controllers.CommandsController (Capturer).
+2025-09-08 15:39:29.695 -03:00 [INF] Manual screenshot capture requested via API
+2025-09-08 15:39:31.490 -03:00 [INF] Executing OkObjectResult, writing value of type 'Capturer.Api.DTOs.ApiResponse`1[[Capturer.Api.DTOs.CommandResult, Capturer, Version=4.0.0.0, Culture=neutral, PublicKeyToken=null]]'.
+2025-09-08 15:39:31.595 -03:00 [INF] Executed action Capturer.Api.Controllers.CommandsController.TriggerCapture (Capturer) in 1905.6903ms
+2025-09-08 15:39:31.595 -03:00 [INF] Executed endpoint 'Capturer.Api.Controllers.CommandsController.TriggerCapture (Capturer)'
+2025-09-08 15:39:31.598 -03:00 [INF] HTTP POST /api/v1/commands/capture responded 200 in 2049.9501 ms
+2025-09-08 15:39:31.600 -03:00 [INF] Request finished HTTP/1.1 POST http://localhost:8080/api/v1/commands/capture - 200 251 application/json; charset=utf-8 2071.6162ms
+2025-09-08 15:54:23.797 -03:00 [INF] User profile is available. Using 'C:\Users\ftmal\AppData\Local\ASP.NET\DataProtection-Keys' as key repository and Windows DPAPI to encrypt keys at rest.
+2025-09-08 15:54:23.984 -03:00 [INF] Now listening on: http://localhost:8080
+2025-09-08 15:54:23.985 -03:00 [INF] Application started. Press Ctrl+C to shut down.
+2025-09-08 15:54:23.985 -03:00 [INF] Hosting environment: Production
+2025-09-08 15:54:23.985 -03:00 [INF] Content root path: C:\Users\ftmal\Desktop\Capturer\bin\Debug\net8.0-windows\
+2025-09-08 15:54:55.430 -03:00 [INF] Request starting HTTP/1.1 GET http://localhost:8080/api/v1/activity/current - null null
+2025-09-08 15:54:55.491 -03:00 [INF] Executing endpoint 'Capturer.Api.Controllers.ActivityController.GetCurrentActivity (Capturer)'
+2025-09-08 15:54:55.519 -03:00 [INF] Route matched with {action = "GetCurrentActivity", controller = "Activity"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.ActionResult`1[Capturer.Api.DTOs.ApiResponse`1[Capturer.Api.DTOs.ActivityReportDto]]] GetCurrentActivity() on controller Capturer.Api.Controllers.ActivityController (Capturer).
+2025-09-08 15:54:55.526 -03:00 [INF] Getting current activity
+2025-09-08 15:54:55.540 -03:00 [INF] Executing OkObjectResult, writing value of type 'Capturer.Api.DTOs.ApiResponse`1[[Capturer.Api.DTOs.ActivityReportDto, Capturer, Version=4.0.0.0, Culture=neutral, PublicKeyToken=null]]'.
+2025-09-08 15:54:55.656 -03:00 [INF] Executed action Capturer.Api.Controllers.ActivityController.GetCurrentActivity (Capturer) in 129.9905ms
+2025-09-08 15:54:55.656 -03:00 [INF] Executed endpoint 'Capturer.Api.Controllers.ActivityController.GetCurrentActivity (Capturer)'
+2025-09-08 15:54:55.658 -03:00 [INF] HTTP GET /api/v1/activity/current responded 200 in 184.8444 ms
+2025-09-08 15:54:55.660 -03:00 [INF] Request finished HTTP/1.1 GET http://localhost:8080/api/v1/activity/current - 200 12342 application/json; charset=utf-8 232.9259ms
+2025-09-08 15:54:58.280 -03:00 [INF] Request starting HTTP/1.1 GET http://localhost:8080/api/v1/health - null null
+2025-09-08 15:54:58.285 -03:00 [INF] ApiKey was not authenticated. Failure message: API Key is missing
+2025-09-08 15:54:58.285 -03:00 [INF] Executing endpoint 'HTTP: GET /api/v1/health => GetHealthStatus'
+2025-09-08 15:54:58.315 -03:00 [INF] Executed endpoint 'HTTP: GET /api/v1/health => GetHealthStatus'
+2025-09-08 15:54:58.315 -03:00 [INF] HTTP GET /api/v1/health responded 200 in 33.0756 ms
+2025-09-08 15:54:58.316 -03:00 [INF] Request finished HTTP/1.1 GET http://localhost:8080/api/v1/health - 200 null application/json; charset=utf-8 35.3826ms
