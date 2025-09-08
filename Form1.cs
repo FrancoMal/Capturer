@@ -681,7 +681,11 @@ namespace Capturer
                 var quadrantService = _quadrantService as QuadrantService;
                 if (quadrantService?.ActivityService != null)
                 {
-                    _activityDashboard = new ActivityDashboardForm(quadrantService.ActivityService, quadrantService, _config, _emailService);
+                    // Get required services from DI container
+                    var reportService = _serviceProvider.GetService<ActivityReportService>();
+                    var schedulerService = _serviceProvider.GetService<ActivityDashboardSchedulerService>();
+                    
+                    _activityDashboard = new ActivityDashboardForm(quadrantService.ActivityService, quadrantService, reportService!, schedulerService, _config, _emailService);
                     _activityDashboard.Show();
                     
                     ShowNotification("Dashboard", "Dashboard de actividad abierto");

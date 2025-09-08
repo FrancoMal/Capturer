@@ -2,6 +2,7 @@ using MailKit.Net.Smtp;
 using MailKit.Security;
 using MimeKit;
 using System.IO.Compression;
+using System.Text;
 using Capturer.Models;
 
 namespace Capturer.Services;
@@ -15,6 +16,12 @@ public interface IEmailService
     Task<bool> SendQuadrantReportAsync(List<string> recipients, DateTime startDate, DateTime endDate, List<string> selectedQuadrants, bool useZipFormat = true);
     Task<bool> SendRoutineQuadrantReportsAsync(List<string> recipients, DateTime startDate, DateTime endDate, List<string> selectedQuadrants, bool useZipFormat = true, bool separateEmailPerQuadrant = false);
     Task<bool> SendActivityDashboardReportAsync(List<string> recipients, string subject, string body, List<string> attachmentFiles, bool useZipFormat = true);
+    
+    // Activity report methods (consolidated from EmailActivityReportExtension)
+    Task<bool> SendActivityReportAsync(ActivityReport report, List<string> recipients, ActivityEmailIntegration config);
+    Task<bool> SendManualReportWithActivityAsync(List<string> recipients, DateTime startDate, DateTime endDate, ActivityReport? activityReport = null, bool includeActivityData = false);
+    Task<bool> SendScheduledReportWithActivityAsync(List<string> recipients, DateTime startDate, DateTime endDate, List<string> screenshots, ActivityReport? activityReport = null, ActivityEmailIntegration? config = null);
+    
     Task<bool> ValidateEmailConfigAsync();
     Task<bool> TestConnectionAsync();
     List<string> GetAvailableQuadrantFolders();
@@ -26,16 +33,18 @@ public class EmailService : IEmailService
     private readonly IConfigurationManager _configManager;
     private readonly IFileService _fileService;
     private readonly IQuadrantService? _quadrantService;
+    private readonly ActivityReportService? _activityReportService;
     private CapturerConfiguration _config = new();
     private const long MaxAttachmentSize = 25 * 1024 * 1024; // 25MB
 
     public event EventHandler<EmailSentEventArgs>? EmailSent;
 
-    public EmailService(IConfigurationManager configManager, IFileService fileService, IQuadrantService? quadrantService = null)
+    public EmailService(IConfigurationManager configManager, IFileService fileService, IQuadrantService? quadrantService = null, ActivityReportService? activityReportService = null)
     {
         _configManager = configManager;
         _fileService = fileService;
         _quadrantService = quadrantService;
+        _activityReportService = activityReportService;
         // Initialize with default configuration
         _config = new CapturerConfiguration();
         // Load configuration asynchronously in a fire-and-forget manner
@@ -1544,4 +1553,341 @@ Si tienes alguna pregunta, contacta al administrador del sistema.
             return "";
         }
     }
+
+    #region Activity Report Methods (Consolidated from EmailActivityReportExtension)
+
+    public async Task<bool> SendActivityReportAsync(ActivityReport report, List<string> recipients, ActivityEmailIntegration config)
+    {
+        try
+        {
+            Console.WriteLine($"[EmailService] Enviando reporte de actividad: {report.Id}");
+
+            if (_activityReportService == null)
+            {
+                Console.WriteLine("[EmailService] ActivityReportService no disponible, no se puede enviar reporte de actividad");
+                return false;
+            }
+
+            var attachments = new List<string>();
+
+            // Export reports in preferred formats
+            foreach (var format in config.PreferredFormats)
+            {
+                try
+                {
+                    var exportPath = await _activityReportService.ExportReportAsync(report, format);
+                    attachments.Add(exportPath);
+                    Console.WriteLine($"[EmailService] Reporte exportado en {format}: {exportPath}");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[EmailService] Error exportando {format}: {ex.Message}");
+                }
+            }
+
+            // Create the email
+            var message = new MimeMessage();
+            message.From.Add(new MailboxAddress(_config.Email.SenderName, _config.Email.Username));
+            message.Subject = GenerateActivityReportSubject(report, config);
+
+            // Add recipients to the message
+            foreach (var recipient in recipients)
+            {
+                message.To.Add(MailboxAddress.Parse(recipient));
+            }
+
+            // Create body
+            var bodyBuilder = new BodyBuilder();
+            
+            if (config.EmbedSummaryInEmail)
+            {
+                bodyBuilder.HtmlBody = GenerateActivityReportHtmlBody(report);
+                bodyBuilder.TextBody = GenerateActivityReportTextBody(report);
+            }
+            else
+            {
+                bodyBuilder.TextBody = $"Adjunto encontrará el reporte de actividad para el período " +
+                                     $"{report.ReportStartTime:dd/MM/yyyy} a {report.ReportEndTime:dd/MM/yyyy}.\n\n" +
+                                     $"Generado automáticamente por Capturer Dashboard de Actividad.";
+            }
+
+            // Add attachments if configured
+            if (config.AttachDetailedReport && attachments.Any())
+            {
+                foreach (var attachment in attachments)
+                {
+                    try
+                    {
+                        if (File.Exists(attachment))
+                        {
+                            await bodyBuilder.Attachments.AddAsync(attachment);
+                            Console.WriteLine($"[EmailService] Adjunto agregado: {Path.GetFileName(attachment)}");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[EmailService] Error agregando adjunto {attachment}: {ex.Message}");
+                    }
+                }
+            }
+
+            message.Body = bodyBuilder.ToMessageBody();
+
+            // Send email using existing infrastructure
+            var success = await SendEmailAsync(message);
+
+            // Cleanup temporary files
+            CleanupActivityReportFiles(attachments);
+
+            if (success)
+            {
+                Console.WriteLine($"[EmailService] Reporte de actividad enviado exitosamente a {recipients.Count} destinatarios");
+                EmailSent?.Invoke(this, new EmailSentEventArgs { Recipients = recipients, Success = true, AttachmentCount = attachments.Count });
+            }
+
+            return success;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[EmailService] Error enviando reporte de actividad: {ex.Message}");
+            EmailSent?.Invoke(this, new EmailSentEventArgs { Recipients = recipients, Success = false, ErrorMessage = ex.Message });
+            return false;
+        }
+    }
+
+    public async Task<bool> SendManualReportWithActivityAsync(List<string> recipients, DateTime startDate, DateTime endDate, ActivityReport? activityReport = null, bool includeActivityData = false)
+    {
+        try
+        {
+            if (!includeActivityData || activityReport == null)
+            {
+                // Send regular manual report
+                return await SendManualReportAsync(recipients, startDate, endDate);
+            }
+
+            Console.WriteLine($"[EmailService] Enviando reporte manual con datos de actividad incluidos");
+
+            // Create enhanced email with activity data
+            var config = new ActivityEmailIntegration
+            {
+                AttachDetailedReport = true,
+                EmbedSummaryInEmail = true,
+                PreferredFormats = new List<string> { "HTML", "CSV" }
+            };
+
+            // Send the activity report as part of manual report
+            var activitySuccess = await SendActivityReportAsync(activityReport, recipients, config);
+            
+            // Also send regular screenshots if needed
+            var regularSuccess = await SendManualReportAsync(recipients, startDate, endDate);
+
+            return activitySuccess && regularSuccess;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[EmailService] Error en reporte manual con actividad: {ex.Message}");
+            return false;
+        }
+    }
+
+    public async Task<bool> SendScheduledReportWithActivityAsync(List<string> recipients, DateTime startDate, DateTime endDate, List<string> screenshots, ActivityReport? activityReport = null, ActivityEmailIntegration? config = null)
+    {
+        try
+        {
+            config ??= new ActivityEmailIntegration
+            {
+                IncludeInScheduledReports = true,
+                AttachDetailedReport = true,
+                EmbedSummaryInEmail = false,
+                PreferredFormats = new List<string> { "CSV" }
+            };
+
+            if (!config.IncludeInScheduledReports || activityReport == null)
+            {
+                // Send regular scheduled report
+                return await SendEnhancedReportAsync(recipients, startDate, endDate, screenshots, "Scheduled", true);
+            }
+
+            Console.WriteLine($"[EmailService] Enviando reporte programado con datos de actividad");
+
+            // Send activity report first
+            var activitySuccess = await SendActivityReportAsync(activityReport, recipients, config);
+            
+            // Then send regular screenshots report
+            var regularSuccess = await SendEnhancedReportAsync(recipients, startDate, endDate, screenshots, "Scheduled+Activity", true);
+
+            return activitySuccess && regularSuccess;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[EmailService] Error en reporte programado con actividad: {ex.Message}");
+            return false;
+        }
+    }
+
+    #endregion
+
+    #region Activity Report Helper Methods
+
+    private string GenerateActivityReportSubject(ActivityReport report, ActivityEmailIntegration config)
+    {
+        var fileName = config.ReportFileNamePattern
+            .Replace("{StartDate:yyyyMMdd}", report.ReportStartTime.ToString("yyyyMMdd"))
+            .Replace("{EndDate:yyyyMMdd}", report.ReportEndTime.ToString("yyyyMMdd"));
+
+        // Use session name if available, otherwise fall back to date range
+        if (!string.IsNullOrEmpty(report.SessionName))
+        {
+            return $"Reporte de Actividad - {report.SessionName} ({report.ReportStartTime:dd/MM/yyyy} a {report.ReportEndTime:dd/MM/yyyy})";
+        }
+        
+        return $"Reporte de Actividad - {report.ReportStartTime:dd/MM/yyyy} a {report.ReportEndTime:dd/MM/yyyy}";
+    }
+
+    private string GenerateActivityReportHtmlBody(ActivityReport report)
+    {
+        var html = new StringBuilder();
+        html.AppendLine("<!DOCTYPE html>");
+        html.AppendLine("<html><head><meta charset='utf-8'><title>Reporte de Actividad</title>");
+        html.AppendLine("<style>");
+        html.AppendLine("body { font-family: 'Segoe UI', Arial, sans-serif; margin: 20px; background-color: #f5f5f5; }");
+        html.AppendLine(".container { background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }");
+        html.AppendLine(".header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }");
+        html.AppendLine(".summary { background-color: #e3f2fd; padding: 15px; margin: 20px 0; border-radius: 5px; border-left: 4px solid #2196F3; }");
+        html.AppendLine(".stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 20px 0; }");
+        html.AppendLine(".stat-card { background: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center; border: 1px solid #dee2e6; }");
+        html.AppendLine(".stat-number { font-size: 24px; font-weight: bold; color: #495057; }");
+        html.AppendLine(".stat-label { font-size: 12px; color: #6c757d; text-transform: uppercase; margin-top: 5px; }");
+        html.AppendLine("table { border-collapse: collapse; width: 100%; margin: 20px 0; }");
+        html.AppendLine("th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }");
+        html.AppendLine("th { background-color: #f8f9fa; font-weight: 600; }");
+        html.AppendLine("tr:nth-child(even) { background-color: #f8f9fa; }");
+        html.AppendLine(".footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #dee2e6; font-size: 12px; color: #6c757d; }");
+        html.AppendLine("</style></head><body>");
+
+        html.AppendLine("<div class='container'>");
+        html.AppendLine("<div class='header'>");
+        html.AppendLine("<h1>🎯 Reporte de Actividad - Dashboard</h1>");
+        if (!string.IsNullOrEmpty(report.SessionName))
+        {
+            html.AppendLine($"<p>Sesión: <strong>{report.SessionName}</strong></p>");
+        }
+        html.AppendLine($"<p>Período: <strong>{report.ReportStartTime:dd/MM/yyyy HH:mm} - {report.ReportEndTime:dd/MM/yyyy HH:mm}</strong></p>");
+        html.AppendLine($"<p>Duración: <strong>{report.ReportDuration.TotalHours:F1} horas</strong></p>");
+        if (!string.IsNullOrEmpty(report.QuadrantConfigurationName))
+        {
+            html.AppendLine($"<p>Configuración: <strong>{report.QuadrantConfigurationName}</strong></p>");
+        }
+        html.AppendLine("</div>");
+
+        // Summary cards
+        html.AppendLine("<div class='stats-grid'>");
+        html.AppendLine($"<div class='stat-card'><div class='stat-number'>{report.Summary.TotalQuadrants}</div><div class='stat-label'>Cuadrantes</div></div>");
+        html.AppendLine($"<div class='stat-card'><div class='stat-number'>{report.Summary.TotalComparisons:N0}</div><div class='stat-label'>Comparaciones</div></div>");
+        html.AppendLine($"<div class='stat-card'><div class='stat-number'>{report.Summary.TotalActivities:N0}</div><div class='stat-label'>Actividades</div></div>");
+        html.AppendLine($"<div class='stat-card'><div class='stat-number'>{report.Summary.AverageActivityRate:F1}%</div><div class='stat-label'>Actividad Promedio</div></div>");
+        html.AppendLine("</div>");
+
+        html.AppendLine("<div class='summary'>");
+        html.AppendLine($"<h3>📊 Resumen Ejecutivo</h3>");
+        html.AppendLine($"<p><strong>Nivel de Actividad:</strong> {report.Summary.ActivityLevel}</p>");
+        html.AppendLine($"<p><strong>Cuadrante Más Activo:</strong> {report.Summary.HighestActivityQuadrant}</p>");
+        html.AppendLine($"<p><strong>Eficiencia de Monitoreo:</strong> {report.Summary.MonitoringEfficiency:F1}%</p>");
+        html.AppendLine("</div>");
+
+        // Details table
+        html.AppendLine("<h3>📋 Detalles por Cuadrante</h3>");
+        html.AppendLine("<table>");
+        html.AppendLine("<tr><th>Cuadrante</th><th>Comparaciones</th><th>Actividades</th><th>Tasa (%)</th><th>Cambio Prom. (%)</th><th>Duración</th></tr>");
+
+        foreach (var entry in report.Entries.OrderByDescending(e => e.ActivityRate))
+        {
+            html.AppendLine("<tr>");
+            html.AppendLine($"<td><strong>{entry.QuadrantName}</strong></td>");
+            html.AppendLine($"<td>{entry.TotalComparisons:N0}</td>");
+            html.AppendLine($"<td>{entry.ActivityDetectionCount:N0}</td>");
+            html.AppendLine($"<td>{entry.ActivityRate:F1}%</td>");
+            html.AppendLine($"<td>{entry.AverageChangePercentage:F2}%</td>");
+            html.AppendLine($"<td>{entry.ActiveDuration:hh\\:mm\\:ss}</td>");
+            html.AppendLine("</tr>");
+        }
+
+        html.AppendLine("</table>");
+
+        html.AppendLine("<div class='footer'>");
+        html.AppendLine($"<p>📅 Reporte generado automáticamente el {DateTime.Now:dd/MM/yyyy HH:mm:ss}</p>");
+        html.AppendLine("<p>🖥️ Capturer - Dashboard de Actividad | Sistema de Monitoreo Empresarial</p>");
+        html.AppendLine("</div>");
+
+        html.AppendLine("</div>");
+        html.AppendLine("</body></html>");
+
+        return html.ToString();
+    }
+
+    private string GenerateActivityReportTextBody(ActivityReport report)
+    {
+        var text = new StringBuilder();
+        text.AppendLine("REPORTE DE ACTIVIDAD - CAPTURER DASHBOARD");
+        text.AppendLine(new string('=', 50));
+        if (!string.IsNullOrEmpty(report.SessionName))
+        {
+            text.AppendLine($"Sesión: {report.SessionName}");
+        }
+        text.AppendLine($"Período: {report.ReportStartTime:dd/MM/yyyy HH:mm} - {report.ReportEndTime:dd/MM/yyyy HH:mm}");
+        text.AppendLine($"Duración: {report.ReportDuration.TotalHours:F1} horas");
+        if (!string.IsNullOrEmpty(report.QuadrantConfigurationName))
+        {
+            text.AppendLine($"Configuración: {report.QuadrantConfigurationName}");
+        }
+        text.AppendLine();
+
+        text.AppendLine("RESUMEN:");
+        text.AppendLine(new string('-', 20));
+        text.AppendLine($"Cuadrantes monitoreados: {report.Summary.TotalQuadrants}");
+        text.AppendLine($"Comparaciones realizadas: {report.Summary.TotalComparisons:N0}");
+        text.AppendLine($"Actividades detectadas: {report.Summary.TotalActivities:N0}");
+        text.AppendLine($"Actividad promedio: {report.Summary.AverageActivityRate:F1}% ({report.Summary.ActivityLevel})");
+        text.AppendLine($"Cuadrante más activo: {report.Summary.HighestActivityQuadrant}");
+        text.AppendLine($"Eficiencia de monitoreo: {report.Summary.MonitoringEfficiency:F1}%");
+        text.AppendLine();
+
+        text.AppendLine("DETALLES POR CUADRANTE:");
+        text.AppendLine(new string('-', 25));
+        foreach (var entry in report.Entries.OrderByDescending(e => e.ActivityRate))
+        {
+            text.AppendLine($"\n[{entry.QuadrantName}]");
+            text.AppendLine($"  Comparaciones: {entry.TotalComparisons:N0}");
+            text.AppendLine($"  Actividades: {entry.ActivityDetectionCount:N0}");
+            text.AppendLine($"  Tasa: {entry.ActivityRate:F1}%");
+            text.AppendLine($"  Cambio promedio: {entry.AverageChangePercentage:F2}%");
+            text.AppendLine($"  Duración activa: {entry.ActiveDuration:hh\\:mm\\:ss}");
+        }
+
+        text.AppendLine($"\n\nGenerado automáticamente el {DateTime.Now:dd/MM/yyyy HH:mm:ss}");
+        text.AppendLine("Capturer - Sistema de Monitoreo Empresarial");
+
+        return text.ToString();
+    }
+
+    private void CleanupActivityReportFiles(List<string> files)
+    {
+        foreach (var file in files)
+        {
+            try
+            {
+                if (File.Exists(file))
+                {
+                    File.Delete(file);
+                    Console.WriteLine($"[EmailService] Archivo temporal eliminado: {Path.GetFileName(file)}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[EmailService] Error eliminando archivo temporal {file}: {ex.Message}");
+            }
+        }
+    }
+
+    #endregion
 }

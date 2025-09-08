@@ -57,32 +57,35 @@ public partial class ActivityDashboardReportsConfigForm : Form
     {
         SuspendLayout();
 
-        // Form configuration
+        // Form configuration - INCREASED HEIGHT for better visibility
         Text = "Configuración de Reportes Diarios - ActivityDashboard";
-        Size = new Size(650, 700);
-        FormBorderStyle = FormBorderStyle.FixedDialog;
-        MaximizeBox = false;
+        Size = new Size(680, 800); // Increased both width and height
+        FormBorderStyle = FormBorderStyle.Sizable; // Allow resizing
+        MaximizeBox = true; // Allow maximizing
         MinimizeBox = false;
         StartPosition = FormStartPosition.CenterParent;
         BackColor = Color.White;
+        MinimumSize = new Size(650, 600); // Set minimum size
 
-        // Create main panel with scroll
+        // Create main panel with scroll - FIXED SCROLLING
         var scrollPanel = new Panel
         {
             Dock = DockStyle.Fill,
             AutoScroll = true,
-            Padding = new Padding(10)
+            Padding = new Padding(10),
+            BackColor = Color.White
         };
 
-        // Main layout
+        // Main layout - FIXED SIZE CALCULATION
         var mainPanel = new TableLayoutPanel
         {
             Location = new Point(0, 0),
-            Size = new Size(610, 950), // Increased height for email section
+            Size = new Size(640, 950), // Adjusted width to fit in new form size
             ColumnCount = 1,
-            RowCount = 10, // Increased for email sections
+            RowCount = 10, // Keep all sections
             Padding = new Padding(15),
-            AutoSize = false
+            AutoSize = false,
+            BackColor = Color.White
         };
 
         for (int i = 0; i < 9; i++)
@@ -132,8 +135,70 @@ public partial class ActivityDashboardReportsConfigForm : Form
         var buttonPanel = CreateButtonPanel();
         mainPanel.Controls.Add(buttonPanel, 0, 9);
 
+        // CRITICAL FIX: Ensure the scroll panel knows the main panel size
         scrollPanel.Controls.Add(mainPanel);
-        Controls.Add(scrollPanel);
+        
+        // Add visual separator before buttons for better UX
+        var separatorPanel = new Panel
+        {
+            Height = 2,
+            BackColor = Color.LightGray,
+            Margin = new Padding(20, 10, 20, 10)
+        };
+        
+        // Create a fixed button panel at the bottom of the form
+        var fixedButtonPanel = new Panel
+        {
+            Height = 60,
+            Dock = DockStyle.Bottom,
+            BackColor = Color.FromArgb(248, 249, 250),
+            Padding = new Padding(15, 10, 15, 10)
+        };
+        
+        var fixedBtnOK = new Button
+        {
+            Text = "💾 Guardar Configuración",
+            Size = new Size(160, 35),
+            Anchor = AnchorStyles.Bottom | AnchorStyles.Right,
+            BackColor = Color.FromArgb(0, 120, 215),
+            ForeColor = Color.White,
+            FlatStyle = FlatStyle.Flat,
+            Font = new Font("Segoe UI", 9F, FontStyle.Bold),
+            DialogResult = DialogResult.OK
+        };
+        fixedBtnOK.Location = new Point(fixedButtonPanel.Width - 280, 12);
+        fixedBtnOK.FlatAppearance.BorderSize = 0;
+        fixedBtnOK.Click += OnOKClick;
+        
+        var fixedBtnCancel = new Button
+        {
+            Text = "❌ Cancelar",
+            Size = new Size(100, 35),
+            Anchor = AnchorStyles.Bottom | AnchorStyles.Right,
+            BackColor = Color.Gray,
+            ForeColor = Color.White,
+            FlatStyle = FlatStyle.Flat,
+            Font = new Font("Segoe UI", 9F),
+            DialogResult = DialogResult.Cancel
+        };
+        fixedBtnCancel.Location = new Point(fixedButtonPanel.Width - 115, 12);
+        fixedBtnCancel.FlatAppearance.BorderSize = 0;
+        
+        fixedButtonPanel.Controls.AddRange(new Control[] { fixedBtnOK, fixedBtnCancel });
+        
+        // Adjust scroll panel to leave room for fixed buttons
+        var adjustedScrollPanel = new Panel
+        {
+            Dock = DockStyle.Fill,
+            AutoScroll = true,
+            Padding = new Padding(10, 10, 10, 10),
+            BackColor = Color.White
+        };
+        
+        adjustedScrollPanel.Controls.Add(mainPanel);
+        
+        Controls.Add(adjustedScrollPanel);
+        Controls.Add(fixedButtonPanel);
         ResumeLayout(false);
     }
 

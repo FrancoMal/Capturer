@@ -126,7 +126,7 @@ public class ActivityReportConfiguration
         Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), 
         "Capturer", "ActivityReports");
     public bool IncludeDetectionPoints { get; set; } = true;
-    public int MaxDetectionPointsPerEntry { get; set; } = 1000;
+    public int MaxDetectionPointsPerEntry { get; set; } = 10000; // Increased for longer monitoring
     public List<string> ExportFormats { get; set; } = new() { "JSON", "CSV", "HTML" };
     public bool CompressOldReports { get; set; } = true;
     public int ReportRetentionDays { get; set; } = 90;

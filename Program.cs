@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Capturer.Services;
+using Capturer.Models;
 
 namespace Capturer
 {
@@ -50,15 +51,28 @@ namespace Capturer
             services.AddSingleton<IQuadrantService, QuadrantService>();
             services.AddSingleton<IQuadrantSchedulerService, QuadrantSchedulerService>();
             
+            // Register activity report services
+            services.AddSingleton<ActivityReportService>(provider =>
+                new ActivityReportService(
+                    (provider.GetRequiredService<IQuadrantService>() as QuadrantService)?.ActivityService!));
+            
+            services.AddSingleton<ActivityDashboardSchedulerService>(provider =>
+                new ActivityDashboardSchedulerService(
+                    provider.GetRequiredService<ActivityReportService>(),
+                    (provider.GetRequiredService<IQuadrantService>() as QuadrantService)?.ActivityService!,
+                    new CapturerConfiguration(), // Will be loaded by service
+                    provider.GetRequiredService<IEmailService>()));
+            
             // Register FTP service
             services.AddSingleton<IFtpService, FtpService>();
             
-            // Register email service with quadrant service dependency
+            // Register email service with dependencies
             services.AddSingleton<IEmailService>(provider => 
                 new EmailService(
                     provider.GetRequiredService<IConfigurationManager>(),
                     provider.GetRequiredService<IFileService>(),
-                    provider.GetService<IQuadrantService>()));
+                    provider.GetService<IQuadrantService>(),
+                    provider.GetService<ActivityReportService>()));
 
             return services.BuildServiceProvider();
         }

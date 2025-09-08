@@ -42,24 +42,24 @@ public partial class ActivityDashboardForm : Form
 
     private CapturerConfiguration? _capturerConfig;
 
-    public ActivityDashboardForm(QuadrantActivityService activityService, QuadrantService quadrantService, CapturerConfiguration? config = null, IEmailService? emailService = null)
+    public ActivityDashboardForm(QuadrantActivityService activityService, QuadrantService quadrantService, ActivityReportService reportService, ActivityDashboardSchedulerService? schedulerService = null, CapturerConfiguration? config = null, IEmailService? emailService = null)
     {
         _activityService = activityService ?? throw new ArgumentNullException(nameof(activityService));
         _quadrantService = quadrantService ?? throw new ArgumentNullException(nameof(quadrantService));
-        _reportService = new ActivityReportService(_activityService);
+        _reportService = reportService ?? throw new ArgumentNullException(nameof(reportService));
+        _schedulerService = schedulerService; // Already constructed by DI
         _capturerConfig = config; // Store for later use
         _emailService = emailService; // Store for later use
         
-        // Initialize scheduler service if config and email service are provided
-        if (config != null && emailService != null)
+        // Subscribe to scheduler events if available
+        if (_schedulerService != null)
         {
-            _schedulerService = new ActivityDashboardSchedulerService(_reportService, _activityService, config, emailService);
             _schedulerService.DailyReportGenerated += OnDailyReportGenerated;
             _schedulerService.DailyReportEmailSent += OnDailyReportEmailSent;
         }
-        else if (config != null)
+        else
         {
-            Console.WriteLine("[ActivityDashboardForm] EmailService no disponible - funcionalidad de email deshabilitada");
+            Console.WriteLine("[ActivityDashboardForm] Scheduler service no disponible - funcionalidad programada deshabilitada");
         }
         
         InitializeTempFolder();
@@ -80,35 +80,37 @@ public partial class ActivityDashboardForm : Form
         StartPosition = FormStartPosition.CenterScreen;
         MinimumSize = new Size(800, 600);
 
-        // Panel principal
+        // Panel principal con distribución optimizada: Activity arriba, Table abajo, Config derecha
         var mainPanel = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
-            ColumnCount = 2,
-            RowCount = 2,
-            Padding = new Padding(10)
+            ColumnCount = 2, // 2 columns: Main content | Configuration
+            RowCount = 2,    // 2 rows: Activity bars | Table
+            Padding = new Padding(8)
         };
 
-        // Configurar columnas y filas
-        mainPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 70F));
-        mainPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 30F));
-        mainPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 60F));
-        mainPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 40F));
+        // Configurar columnas: Main content (left) | Configuration (right)
+        mainPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 75F)); // Main content area
+        mainPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25F)); // Configuration panel
+        
+        // Configurar filas: Activity bars (top) | Table (bottom)
+        mainPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 40F)); // Activity visualization
+        mainPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 60F)); // Table area
 
-        // Panel de visualización de cuadrantes (arriba izquierda)
+        // Panel de visualización de cuadrantes (arriba, toda la fila)
         _quadrantVisualPanel = CreateQuadrantVisualPanel();
         mainPanel.Controls.Add(_quadrantVisualPanel, 0, 0);
 
-        // Panel de configuración (arriba derecha)
-        _configPanel = CreateConfigurationPanel();
-        mainPanel.Controls.Add(_configPanel, 1, 0);
-
-        // Grid de estadísticas (abajo, span 2 columnas)
+        // Grid de estadísticas (abajo izquierda - área principal)
         _statsGrid = CreateStatsGrid();
-        var statsContainer = new Panel { Dock = DockStyle.Fill };
+        var statsContainer = new Panel { Dock = DockStyle.Fill, BackColor = Color.White };
         statsContainer.Controls.Add(_statsGrid);
         mainPanel.Controls.Add(statsContainer, 0, 1);
-        mainPanel.SetColumnSpan(statsContainer, 2);
+
+        // Panel de configuración (derecha, span 2 filas)
+        _configPanel = CreateConfigurationPanel();
+        mainPanel.Controls.Add(_configPanel, 1, 0);
+        mainPanel.SetRowSpan(_configPanel, 2); // Span both rows
 
         Controls.Add(mainPanel);
         ResumeLayout(false);
@@ -167,20 +169,33 @@ public partial class ActivityDashboardForm : Form
             ForeColor = Color.White
         };
 
-        var contentPanel = new TableLayoutPanel
+        // Create scroll container for configuration content
+        var scrollContainer = new Panel
         {
             Dock = DockStyle.Fill,
-            ColumnCount = 1,
-            RowCount = 16,  // Aumentamos para los nuevos botones de configuración y email
-            Padding = new Padding(10),
-            AutoSize = true
+            AutoScroll = true,
+            BackColor = Color.AliceBlue,
+            Padding = new Padding(5)
         };
 
-        // Configurar filas
-        for (int i = 0; i < 14; i++)  // Más filas para daily reports functionality
+        var contentPanel = new TableLayoutPanel
         {
-            contentPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            Location = new Point(0, 0),
+            Size = new Size(250, 600), // Fixed size to trigger scrolling when needed
+            ColumnCount = 1,
+            RowCount = 16,
+            Padding = new Padding(5),
+            AutoSize = false, // Keep fixed to ensure scrolling works
+            BackColor = Color.AliceBlue
+        };
+
+        // Configurar filas con spacing más compacto
+        for (int i = 0; i < 14; i++)  
+        {
+            contentPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 32F)); // Fixed compact height
         }
+        contentPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 28F)); // Export buttons compact
+        contentPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 28F)); 
         contentPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
 
         // Threshold de actividad
@@ -231,12 +246,14 @@ public partial class ActivityDashboardForm : Form
         // Botones de control
         var resetButton = new Button
         {
-            Text = "Resetear Estadísticas",
-            Size = new Size(150, 30),
+            Text = "🔄 Reset",
+            Size = new Size(140, 26), // Compact size
             BackColor = Color.Orange,
             ForeColor = Color.White,
             FlatStyle = FlatStyle.Flat,
-            Anchor = AnchorStyles.Left
+            Font = new Font("Segoe UI", 8F, FontStyle.Bold),
+            Anchor = AnchorStyles.Left,
+            Margin = new Padding(1)
         };
         resetButton.Click += (s, e) =>
         {
@@ -275,13 +292,14 @@ public partial class ActivityDashboardForm : Form
         // Botón de configuración principal
         var configButton = new Button
         {
-            Text = "⚙️ Configurar Dashboard",
-            Size = new Size(180, 35),
+            Text = "⚙️ Configurar",
+            Size = new Size(140, 26), // Compact size
             BackColor = Color.FromArgb(0, 120, 215),
             ForeColor = Color.White,
             FlatStyle = FlatStyle.Flat,
-            Font = new Font("Segoe UI", 9F, FontStyle.Bold),
-            Anchor = AnchorStyles.Left
+            Font = new Font("Segoe UI", 8F, FontStyle.Bold), // Smaller font
+            Anchor = AnchorStyles.Left,
+            Margin = new Padding(1)
         };
         configButton.FlatAppearance.BorderSize = 0;
         configButton.Click += OnConfigureButtonClick;
@@ -289,12 +307,12 @@ public partial class ActivityDashboardForm : Form
         // Botón de configuración de reportes diarios
         var dailyReportsButton = new Button
         {
-            Text = _schedulerService != null ? "📅 Reportes Diarios" : "📅 Reportes Diarios (No disponible)",
-            Size = new Size(180, 35),
+            Text = _schedulerService != null ? "📅 Reportes" : "📅 No disponible",
+            Size = new Size(140, 26), // Compact size
             BackColor = _schedulerService != null ? Color.FromArgb(156, 39, 176) : Color.Gray,
             ForeColor = Color.White,
             FlatStyle = FlatStyle.Flat,
-            Font = new Font("Segoe UI", _schedulerService != null ? 9F : 8F, FontStyle.Bold),
+            Font = new Font("Segoe UI", 8F, FontStyle.Bold), // Consistent smaller font
             Anchor = AnchorStyles.Left,
             Enabled = _schedulerService != null
         };
@@ -391,7 +409,7 @@ public partial class ActivityDashboardForm : Form
         _pauseResumeButton.FlatAppearance.BorderSize = 0;
         _pauseResumeButton.Click += OnPauseResumeClick;
 
-        // Agregar controles al panel
+        // Agregar controles al panel con spacing más compacto
         contentPanel.Controls.Add(configButton, 0, 0);
         contentPanel.Controls.Add(dailyReportsButton, 0, 1);
         contentPanel.Controls.Add(saveConfigButton, 0, 2);
@@ -409,7 +427,9 @@ public partial class ActivityDashboardForm : Form
         contentPanel.Controls.Add(exportHtmlButton, 0, 14);
         contentPanel.Controls.Add(exportCsvButton, 0, 15);
 
-        panel.Controls.Add(contentPanel);
+        // Add content panel to scroll container, then scroll to main panel
+        scrollContainer.Controls.Add(contentPanel);
+        panel.Controls.Add(scrollContainer);
         panel.Controls.Add(titleLabel);
 
         return panel;
@@ -545,7 +565,7 @@ public partial class ActivityDashboardForm : Form
 
     private void CreateQuadrantVisualControls(Panel parent, string quadrantName)
     {
-        var y = parent.Controls.Count * 60 + 10;
+        var y = parent.Controls.Count * 40 + 10; // Reduced spacing from 60 to 40
 
         var statusLabel = new Label
         {
@@ -558,13 +578,18 @@ public partial class ActivityDashboardForm : Form
 
         var progressBar = new ProgressBar
         {
-            Location = new Point(10, y + 25),
-            Size = new Size(300, 20),
+            Location = new Point(10, y + 22),
+            Size = new Size(300, 15), // Reduced height from 20 to 15
             Minimum = 0,
             Maximum = 100,
             Value = 0,
-            Style = ProgressBarStyle.Continuous
+            Style = ProgressBarStyle.Continuous,
+            Margin = new Padding(2, 1, 2, 1) // Reduced margins
         };
+
+        // Adjust label size and spacing
+        statusLabel.Size = new Size(300, 18); // Reduced from 20 to 18
+        statusLabel.Location = new Point(10, y);
 
         _statusLabels[quadrantName] = statusLabel;
         _activityBars[quadrantName] = progressBar;
