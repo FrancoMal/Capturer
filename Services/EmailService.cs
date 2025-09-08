@@ -1383,8 +1383,8 @@ Si tienes alguna pregunta, contacta al administrador del sistema.
 
             if (!attachmentFiles.Any())
             {
-                Console.WriteLine("No hay archivos para adjuntar en el reporte de Activity Dashboard");
-                return false;
+                Console.WriteLine("Email de Activity Dashboard sin archivos adjuntos (email de prueba)");
+                // Continue without attachments for test emails
             }
 
             // Crear mensaje de email

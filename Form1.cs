@@ -684,8 +684,9 @@ namespace Capturer
                     // Get required services from DI container
                     var reportService = _serviceProvider.GetService<ActivityReportService>();
                     var schedulerService = _serviceProvider.GetService<ActivityDashboardSchedulerService>();
+                    var simplifiedScheduler = _serviceProvider.GetService<SimplifiedReportsSchedulerService>();
                     
-                    _activityDashboard = new ActivityDashboardForm(quadrantService.ActivityService, quadrantService, reportService!, schedulerService, _config, _emailService);
+                    _activityDashboard = new ActivityDashboardForm(quadrantService.ActivityService, quadrantService, reportService!, schedulerService, simplifiedScheduler, _config, _emailService);
                     _activityDashboard.Show();
                     
                     ShowNotification("Dashboard", "Dashboard de actividad abierto");

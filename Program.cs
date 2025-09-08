@@ -63,6 +63,12 @@ namespace Capturer
                     new CapturerConfiguration(), // Will be loaded by service
                     provider.GetRequiredService<IEmailService>()));
             
+            // Register NEW simplified reports scheduler
+            services.AddSingleton<SimplifiedReportsSchedulerService>(provider =>
+                new SimplifiedReportsSchedulerService(
+                    provider.GetRequiredService<ActivityReportService>(),
+                    provider.GetRequiredService<IEmailService>()));
+            
             // Register FTP service
             services.AddSingleton<IFtpService, FtpService>();
             

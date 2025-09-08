@@ -2,6 +2,7 @@ using System.Drawing;
 using System.Windows.Forms;
 using Capturer.Services;
 using Capturer.Models;
+using Capturer.Forms;
 
 namespace Capturer.Forms;
 
@@ -14,6 +15,7 @@ public partial class ActivityDashboardForm : Form
     private readonly QuadrantService _quadrantService;
     private readonly ActivityReportService _reportService;
     private readonly ActivityDashboardSchedulerService? _schedulerService;
+    private readonly SimplifiedReportsSchedulerService? _simplifiedScheduler;
     private readonly IEmailService? _emailService;
     private System.Windows.Forms.Timer? _refreshTimer;
     private System.Windows.Forms.Timer? _monitoringTimer;
@@ -42,24 +44,32 @@ public partial class ActivityDashboardForm : Form
 
     private CapturerConfiguration? _capturerConfig;
 
-    public ActivityDashboardForm(QuadrantActivityService activityService, QuadrantService quadrantService, ActivityReportService reportService, ActivityDashboardSchedulerService? schedulerService = null, CapturerConfiguration? config = null, IEmailService? emailService = null)
+    public ActivityDashboardForm(QuadrantActivityService activityService, QuadrantService quadrantService, ActivityReportService reportService, ActivityDashboardSchedulerService? schedulerService = null, SimplifiedReportsSchedulerService? simplifiedScheduler = null, CapturerConfiguration? config = null, IEmailService? emailService = null)
     {
         _activityService = activityService ?? throw new ArgumentNullException(nameof(activityService));
         _quadrantService = quadrantService ?? throw new ArgumentNullException(nameof(quadrantService));
         _reportService = reportService ?? throw new ArgumentNullException(nameof(reportService));
-        _schedulerService = schedulerService; // Already constructed by DI
+        _schedulerService = schedulerService; // Legacy scheduler (optional)
+        _simplifiedScheduler = simplifiedScheduler; // New simplified scheduler  
         _capturerConfig = config; // Store for later use
         _emailService = emailService; // Store for later use
         
-        // Subscribe to scheduler events if available
-        if (_schedulerService != null)
+        // Subscribe to simplified scheduler events if available (preferred)
+        if (_simplifiedScheduler != null)
+        {
+            _simplifiedScheduler.EmailSent += OnSimplifiedEmailSent;
+            Console.WriteLine("[ActivityDashboardForm] Usando SimplifiedReportsScheduler");
+        }
+        // Fallback to legacy scheduler
+        else if (_schedulerService != null)
         {
             _schedulerService.DailyReportGenerated += OnDailyReportGenerated;
             _schedulerService.DailyReportEmailSent += OnDailyReportEmailSent;
+            Console.WriteLine("[ActivityDashboardForm] Usando ActivityDashboardScheduler (legacy)");
         }
         else
         {
-            Console.WriteLine("[ActivityDashboardForm] Scheduler service no disponible - funcionalidad programada deshabilitada");
+            Console.WriteLine("[ActivityDashboardForm] Sin scheduler service - funcionalidad de reportes deshabilitada");
         }
         
         InitializeTempFolder();
@@ -307,14 +317,14 @@ public partial class ActivityDashboardForm : Form
         // Botón de configuración de reportes diarios
         var dailyReportsButton = new Button
         {
-            Text = _schedulerService != null ? "📅 Reportes" : "📅 No disponible",
+            Text = (_simplifiedScheduler != null || _schedulerService != null) ? "📅 Reportes" : "📅 No disponible",
             Size = new Size(140, 26), // Compact size
-            BackColor = _schedulerService != null ? Color.FromArgb(156, 39, 176) : Color.Gray,
+            BackColor = (_simplifiedScheduler != null || _schedulerService != null) ? Color.FromArgb(156, 39, 176) : Color.Gray,
             ForeColor = Color.White,
             FlatStyle = FlatStyle.Flat,
             Font = new Font("Segoe UI", 8F, FontStyle.Bold), // Consistent smaller font
             Anchor = AnchorStyles.Left,
-            Enabled = _schedulerService != null
+            Enabled = (_simplifiedScheduler != null || _schedulerService != null)
         };
         dailyReportsButton.FlatAppearance.BorderSize = 0;
         dailyReportsButton.Click += OnDailyReportsConfigClick;
@@ -329,7 +339,7 @@ public partial class ActivityDashboardForm : Form
             FlatStyle = FlatStyle.Flat,
             Font = new Font("Segoe UI", 8F, FontStyle.Bold),
             Anchor = AnchorStyles.Left,
-            Enabled = _schedulerService != null
+            Enabled = (_simplifiedScheduler != null || _schedulerService != null)
         };
         saveConfigButton.FlatAppearance.BorderSize = 0;
         saveConfigButton.Click += OnSaveSchedulerConfigClick;
@@ -344,7 +354,7 @@ public partial class ActivityDashboardForm : Form
             FlatStyle = FlatStyle.Flat,
             Font = new Font("Segoe UI", 8F, FontStyle.Bold),
             Anchor = AnchorStyles.Left,
-            Enabled = _schedulerService != null
+            Enabled = (_simplifiedScheduler != null || _schedulerService != null)
         };
         testEmailButton.FlatAppearance.BorderSize = 0;
         testEmailButton.Click += OnTestEmailClick;
@@ -1375,9 +1385,9 @@ public partial class ActivityDashboardForm : Form
     /// <summary>
     /// Maneja el clic en el botón de configuración de reportes diarios
     /// </summary>
-    private void OnDailyReportsConfigClick(object? sender, EventArgs e)
+    private async void OnDailyReportsConfigClick(object? sender, EventArgs e)
     {
-        if (_schedulerService == null)
+        if (_simplifiedScheduler == null && _schedulerService == null)
         {
             var errorMessage = "El servicio de reportes programados no está disponible.\n\n" +
                               "Causas posibles:\n" +
@@ -1397,29 +1407,41 @@ public partial class ActivityDashboardForm : Form
         {
             Console.WriteLine($"[ActivityDashboard] Abriendo configuración de reportes diarios...");
             
-            // Obtener configuración actual del scheduler service
-            var currentConfig = _schedulerService.GetCurrentConfiguration();
-            var capturerConfig = GetCapturerConfiguration();
-            
-            using var configForm = new ActivityDashboardReportsConfigForm(capturerConfig, currentConfig);
-            var result = configForm.ShowDialog(this);
-            
-            Console.WriteLine($"[ActivityDashboard] Dialog result: {result}");
-            
-            if (result == DialogResult.OK)
+            // Use new SIMPLIFIED configuration form (preferred)
+            if (_simplifiedScheduler != null)
             {
-                _schedulerService.ConfigureDailyReports(configForm.ScheduleConfig);
+                var capturerConfig = GetCapturerConfiguration();
+                var newConfig = await _simplifiedScheduler.ShowConfigurationDialogAsync(capturerConfig);
                 
-                MessageBox.Show("✅ Configuración de reportes diarios guardada exitosamente.\n\n" +
-                               "Los reportes se generarán automáticamente según la programación establecida.\n" +
-                               "Puede verificar los archivos generados en la carpeta de reportes.",
+                MessageBox.Show("✅ Configuración de reportes guardada exitosamente.\n\n" +
+                               $"Modo: {(newConfig.IsDaily ? "Diario (HTML)" : "Semanal (ZIP)")}\n" +
+                               $"Hora: {newConfig.EmailTime:hh\\:mm}\n" +
+                               $"Destinatarios: {newConfig.SelectedRecipients.Count}\n\n" +
+                               "Los reportes se enviarán automáticamente según la configuración.",
                                "Configuración guardada", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 
-                Console.WriteLine($"[ActivityDashboard] Configuración de reportes diarios actualizada exitosamente");
+                Console.WriteLine($"[ActivityDashboard] Nueva configuración simplificada guardada");
+            }
+            else if (_schedulerService != null)
+            {
+                // Legacy fallback - get required configuration
+                var currentConfig = _schedulerService.GetCurrentConfiguration();
+                var capturerConfig = GetCapturerConfiguration();
+                
+                using var configForm = new ActivityDashboardReportsConfigForm(capturerConfig, currentConfig);
+                var result = configForm.ShowDialog(this);
+                
+                if (result == DialogResult.OK)
+                {
+                    _schedulerService.ConfigureDailyReports(configForm.ScheduleConfig);
+                    MessageBox.Show("✅ Configuración guardada (modo legacy).", "Configuración guardada", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    Console.WriteLine($"[ActivityDashboard] Configuración legacy actualizada");
+                }
             }
             else
             {
-                Console.WriteLine($"[ActivityDashboard] Configuración cancelada por el usuario");
+                MessageBox.Show("❌ No hay servicio de reportes disponible.\nReinicie la aplicación para habilitar reportes.",
+                               "Servicio no disponible", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
         }
         catch (Exception ex)
@@ -1510,6 +1532,48 @@ public partial class ActivityDashboardForm : Form
         catch (Exception ex)
         {
             Console.WriteLine($"[ActivityDashboard] Error manejando evento de email enviado: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Maneja eventos de email del SimplifiedReportsSchedulerService
+    /// </summary>
+    private void OnSimplifiedEmailSent(object? sender, ReportEmailSentEventArgs e)
+    {
+        try
+        {
+            if (InvokeRequired)
+            {
+                Invoke(() => OnSimplifiedEmailSent(sender, e));
+                return;
+            }
+
+            // Mostrar notificación simplificada
+            if (_notifyIcon != null && _notifyIcon.Visible)
+            {
+                var statusIcon = e.Success ? "✅" : "❌";
+                var reportTypeText = e.ReportType == "Daily" ? "Reporte Diario" : "Reporte Semanal";
+                
+                _notifyIcon.ShowBalloonTip(
+                    4000,
+                    $"{statusIcon} {reportTypeText}",
+                    e.Success 
+                        ? $"📧 Enviado a {e.Recipients} destinatarios\n📎 {e.AttachmentCount} archivos adjuntos"
+                        : $"❌ Error: {e.ErrorMessage}",
+                    e.Success ? ToolTipIcon.Info : ToolTipIcon.Error
+                );
+            }
+
+            Console.WriteLine($"[ActivityDashboard] Email {e.ReportType}: {(e.Success ? "exitoso" : "falló")} - {e.Recipients} destinatarios, {e.AttachmentCount} archivos");
+            
+            if (!e.Success && !string.IsNullOrEmpty(e.ErrorMessage))
+            {
+                Console.WriteLine($"[ActivityDashboard] Error details: {e.ErrorMessage}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ActivityDashboard] Error manejando evento simplificado: {ex.Message}");
         }
     }
 
