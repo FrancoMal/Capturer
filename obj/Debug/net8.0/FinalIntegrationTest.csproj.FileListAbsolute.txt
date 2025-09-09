@@ -1,0 +1,8 @@
+C:\Users\Usuario\Desktop\Capturer\obj\Debug\net8.0\FinalIntegrationTest.csproj.AssemblyReference.cache
+C:\Users\Usuario\Desktop\Capturer\obj\Debug\net8.0\Capturer.Form1.resources
+C:\Users\Usuario\Desktop\Capturer\obj\Debug\net8.0\FinalIntegrationTest.csproj.GenerateResource.cache
+C:\Users\Usuario\Desktop\Capturer\obj\Debug\net8.0\FinalIntegrationTest.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Usuario\Desktop\Capturer\obj\Debug\net8.0\FinalIntegrationTest.AssemblyInfoInputs.cache
+C:\Users\Usuario\Desktop\Capturer\obj\Debug\net8.0\FinalIntegrationTest.AssemblyInfo.cs
+C:\Users\Usuario\Desktop\Capturer\obj\Debug\net8.0\FinalIntegrationTest.csproj.CoreCompileInputs.cache
+C:\Users\Usuario\Desktop\Capturer\obj\Debug\net8.0\FinalIntegrationTest.sourcelink.json

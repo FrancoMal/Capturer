@@ -1,0 +1,42 @@
+<Project>
+  <!-- Configuración global para deshabilitar telemetrías de .NET -->
+  <PropertyGroup>
+    <!-- Variables de entorno para deshabilitar telemetrías -->
+    <DOTNET_CLI_TELEMETRY_OPTOUT>1</DOTNET_CLI_TELEMETRY_OPTOUT>
+    <DOTNET_SKIP_FIRST_TIME_EXPERIENCE>1</DOTNET_SKIP_FIRST_TIME_EXPERIENCE>
+    <DOTNET_NOLOGO>1</DOTNET_NOLOGO>
+    <DOTNET_GENERATE_ASPNET_CERTIFICATE>false</DOTNET_GENERATE_ASPNET_CERTIFICATE>
+    <DOTNET_ADD_GLOBAL_TOOLS_TO_PATH>false</DOTNET_ADD_GLOBAL_TOOLS_TO_PATH>
+    <DOTNET_MULTILEVEL_LOOKUP>0</DOTNET_MULTILEVEL_LOOKUP>
+    
+    <!-- Deshabilitar análisis y reportes -->
+    <EnableNETAnalyzers>false</EnableNETAnalyzers>
+    <AnalysisLevel>none</AnalysisLevel>
+    <RunAnalyzersDuringLiveAnalysis>false</RunAnalyzersDuringLiveAnalysis>
+    <RunCodeAnalysis>false</RunCodeAnalysis>
+    <SuppressNETCoreSdkPreviewMessage>true</SuppressNETCoreSdkPreviewMessage>
+    
+    <!-- Deshabilitar características de telemetría en runtime -->
+    <EventSourceSupport>false</EventSourceSupport>
+    <UseSharedCompilation>false</UseSharedCompilation>
+    <EnableDefaultNoneCompileItems>true</EnableDefaultNoneCompileItems>
+    
+    <!-- Configuración de privacidad adicional -->
+    <MSBuildEnableWorkloadResolver>false</MSBuildEnableWorkloadResolver>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
+    
+    <!-- Deshabilitar reportes de crash y mejora de experiencia -->
+    <VSDesignerExperience>false</VSDesignerExperience>
+    <DisableFastUpToDateCheck>false</DisableFastUpToDateCheck>
+  </PropertyGroup>
+  
+  <!-- Configuración específica para distribución sin telemetrías -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <PublishTrimmed>false</PublishTrimmed>
+    <PublishReadyToRun>false</PublishReadyToRun>
+    <PublishSingleFile>false</PublishSingleFile>
+    <EnableCompressionInSingleFile>false</EnableCompressionInSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>false</IncludeNativeLibrariesForSelfExtract>
+  </PropertyGroup>
+</Project>

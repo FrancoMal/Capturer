@@ -12,11 +12,11 @@ using System.Reflection;
 
 [assembly: System.Reflection.AssemblyCompanyAttribute("Capturer")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
-[assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9d90739a2f7659d088cf8afefed3f9c900c5c796")]
+[assembly: System.Reflection.AssemblyFileVersionAttribute("4.0.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("4.0.0-alpha+41e2ce1f16a741d2471c1ef32ca7d9910762d368")]
 [assembly: System.Reflection.AssemblyProductAttribute("Capturer")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Capturer")]
-[assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
+[assembly: System.Reflection.AssemblyVersionAttribute("4.0.0.0")]
 [assembly: System.Runtime.Versioning.TargetPlatformAttribute("Windows7.0")]
 [assembly: System.Runtime.Versioning.SupportedOSPlatformAttribute("Windows7.0")]
 

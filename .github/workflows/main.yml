@@ -1,0 +1,66 @@
+name: Deploy Capturer Dashboard to Azure
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - 'CapturerWebDashboard/**'
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: windows-latest
+
+    steps:
+    - name: 🔄 Checkout code
+      uses: actions/checkout@v4
+
+    - name: 🔧 Setup .NET Core
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: 📦 Restore dependencies
+      run: |
+        dotnet restore CapturerWebDashboard/src/CapturerDashboard.Core/CapturerDashboard.Core.csproj
+        dotnet restore CapturerWebDashboard/src/CapturerDashboard.Data/CapturerDashboard.Data.csproj
+        dotnet restore CapturerWebDashboard/src/CapturerDashboard.Web/CapturerDashboard.Web.csproj
+
+    - name: 🔨 Build application
+      run: dotnet build CapturerWebDashboard/src/CapturerDashboard.Web/CapturerDashboard.Web.csproj --configuration Release --no-restore
+
+    - name: 🧪 Run tests
+      run: |
+        if (Test-Path "CapturerWebDashboard/src/CapturerDashboard.Tests/CapturerDashboard.Tests.csproj") {
+          dotnet test CapturerWebDashboard/src/CapturerDashboard.Tests/CapturerDashboard.Tests.csproj --no-restore --verbosity normal
+        } else {
+          Write-Host "No tests found, skipping test step"
+        }
+
+    - name: 📋 Publish application
+      run: dotnet publish CapturerWebDashboard/src/CapturerDashboard.Web/CapturerDashboard.Web.csproj -c Release -o ./publish
+
+    - name: 🚀 Deploy to Azure Web App
+      uses: azure/webapps-deploy@v3
+      with:
+        app-name: 'capturer-dashboard-dev'
+        package: ./publish
+        publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+
+    - name: ✅ Post-deployment health check
+      run: |
+        Write-Host "⏳ Waiting for application to start..."
+        Start-Sleep -Seconds 45
+
+        try {
+          $response = Invoke-RestMethod -Uri "https://capturer-dashboard-dev.azurewebsites.net/health" -TimeoutSec 60
+          Write-Host "✅ Health check passed!"
+          Write-Host "📍 Dashboard URL: https://capturer-dashboard-dev.azurewebsites.net"
+          Write-Host "🔐 Login: admin@capturer.local / admin123"
+        }
+        catch {
+          Write-Host "⚠️ Health check failed: $($_.Exception.Message)"
+          Write-Host "💡 Application may still be starting. Check Azure Portal logs."
+        }

@@ -10,6 +10,23 @@ public partial class SettingsForm : Form
     private CapturerConfiguration _config;
     private ToolTip _helpTooltip;
     
+    private Button CreateModernButton(string text, Point location, Size size, Color backgroundColor)
+    {
+        return new Button
+        {
+            Text = text,
+            Location = location,
+            Size = size,
+            BackColor = backgroundColor,
+            ForeColor = Color.White,
+            FlatStyle = FlatStyle.Flat,
+            Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point),
+            FlatAppearance = { BorderSize = 0, MouseOverBackColor = Color.FromArgb(Math.Max(0, backgroundColor.R - 20), Math.Max(0, backgroundColor.G - 20), Math.Max(0, backgroundColor.B - 20)) },
+            Cursor = Cursors.Hand,
+            UseVisualStyleBackColor = false
+        };
+    }
+    
     // Controls
     private NumericUpDown numCaptureInterval;
     private TextBox txtScreenshotFolder;
@@ -24,21 +41,38 @@ public partial class SettingsForm : Form
     private NumericUpDown numImageQuality;
     private Label lblQuality;
     
+    // Privacy blur controls
+    private CheckBox chkEnableBlur;
+    private NumericUpDown numBlurIntensity;
+    private ComboBox cmbBlurMode;
+    private Label lblBlurIntensity;
+    private Label lblBlurMode;
+    
     private TextBox txtSmtpServer;
     private NumericUpDown numSmtpPort;
+    private ComboBox cmbSecurityMode;
+    private Label lblSecurityMode;
     private TextBox txtUsername;
     private TextBox txtPassword;
     private Button btnTogglePassword;
     private TextBox txtRecipients;
-    private ComboBox cmbReportFrequency;
-    private NumericUpDown numCustomDays;
-    private Label lblCustomDays;
-    private ComboBox cmbReportTime;
-    private CheckBox chkEnableReports;
+    private Button btnTestConnection;
+    private TextBox txtSenderName;
+    // Routine email configuration moved to RoutineEmailForm
     
     private NumericUpDown numRetentionDays;
     private NumericUpDown numMaxSizeGB;
     private CheckBox chkAutoCleanup;
+    
+    // Application controls
+    private CheckBox chkMinimizeToTray;
+    private CheckBox chkShowNotifications;
+    private CheckBox chkEnableCapturerSystemTray;
+    private CheckBox chkEnableActivityDashboardSystemTray;
+    private CheckBox chkShowOnStartup;
+    private CheckBox chkHideOnClose;
+    private CheckBox chkShowTrayNotifications;
+    private NumericUpDown numNotificationDuration;
     
     private Button btnSave;
     private Button btnCancel;
@@ -56,31 +90,86 @@ public partial class SettingsForm : Form
 
     private void InitializeComponent()
     {
-        this.Size = new Size(650, 600);
-        this.Text = "Configuración - Capturer";
+        this.Size = new Size(720, 700);
+        this.Text = "⚙️ Configuración del Sistema - Capturer v3.1.2";
         this.StartPosition = FormStartPosition.CenterParent;
-        this.FormBorderStyle = FormBorderStyle.FixedDialog;
-        this.MaximizeBox = false;
-        this.MinimizeBox = false;
-
-        var tabControl = new TabControl();
-        tabControl.Dock = DockStyle.Fill;
+        this.FormBorderStyle = FormBorderStyle.Sizable; // Allow resizing
+        this.MaximizeBox = true;
+        this.MinimizeBox = true;
+        this.MinimumSize = new Size(650, 500); // Set minimum size
+        this.BackColor = Color.FromArgb(248, 249, 250);
+        this.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point);
         
-        // Screenshot tab
-        var screenshotTab = new TabPage("Screenshots");
+        // Set form icon
+        try
+        {
+            if (File.Exists("Capturer_Logo.ico"))
+            {
+                this.Icon = new Icon("Capturer_Logo.ico");
+            }
+            else
+            {
+                var stream = GetType().Assembly.GetManifestResourceStream("Capturer.Capturer_Logo.ico");
+                if (stream != null)
+                {
+                    this.Icon = new Icon(stream);
+                }
+            }
+        }
+        catch
+        {
+            // Keep default icon if loading fails
+        }
+
+        var tabControl = new TabControl
+        {
+            Dock = DockStyle.Fill,
+            Font = new Font("Segoe UI", 9.75F, FontStyle.Regular, GraphicsUnit.Point),
+            Padding = new Point(15, 8),
+            Appearance = TabAppearance.FlatButtons
+        };
+        
+        // Screenshot tab with scrollable content
+        var screenshotTab = new TabPage("📷 Capturas")
+        {
+            BackColor = Color.White,
+            AutoScroll = true,
+            Padding = new Padding(15)
+        };
         CreateScreenshotControls(screenshotTab);
         tabControl.TabPages.Add(screenshotTab);
         
-        // Email tab
-        var emailTab = new TabPage("Email");
+        // Email tab with scrollable content
+        var emailTab = new TabPage("📧 Email")
+        {
+            BackColor = Color.White,
+            AutoScroll = true,
+            Padding = new Padding(15)
+        };
         CreateEmailControls(emailTab);
         tabControl.TabPages.Add(emailTab);
         
-        // Storage tab
-        var storageTab = new TabPage("Almacenamiento");
+        // Storage tab with scrollable content
+        var storageTab = new TabPage("💾 Almacenamiento")
+        {
+            BackColor = Color.White,
+            AutoScroll = true,
+            Padding = new Padding(15)
+        };
         CreateStorageControls(storageTab);
         tabControl.TabPages.Add(storageTab);
         
+        // Application tab with scrollable content
+        var applicationTab = new TabPage("⚙️ Aplicación")
+        {
+            BackColor = Color.White,
+            AutoScroll = true,
+            Padding = new Padding(15)
+        };
+        CreateApplicationControls(applicationTab);
+        tabControl.TabPages.Add(applicationTab);
+        
+        // Add the TabControl to the form
         this.Controls.Add(tabControl);
         
         // Bottom buttons
@@ -183,6 +272,56 @@ public partial class SettingsForm : Form
         tab.Controls.Add(chkIncludeCursor);
         tab.Controls.Add(CreateHelpButton(new Point(200, y + 2), "Si está habilitado, el cursor del mouse aparecerá en las capturas de pantalla."));
         
+        // Privacy blur section
+        y += 35;
+        var lblPrivacySection = new Label { Text = "Configuración de Privacidad:", Location = new Point(20, y), AutoSize = true, Font = new Font("Segoe UI", 9F, FontStyle.Bold) };
+        tab.Controls.Add(lblPrivacySection);
+        
+        y += 25;
+        chkEnableBlur = new CheckBox { Text = "Activar desenfoque de privacidad", Location = new Point(20, y), AutoSize = true };
+        tab.Controls.Add(chkEnableBlur);
+        tab.Controls.Add(CreateHelpButton(new Point(240, y + 2), "Aplica un efecto de desenfoque a las capturas para proteger información sensible y mantener privacidad."));
+        
+        y += 25;
+        lblBlurIntensity = new Label { Text = "Intensidad de desenfoque (1-10):", Location = new Point(40, y), Size = new Size(180, 23) };
+        numBlurIntensity = new NumericUpDown 
+        { 
+            Location = new Point(220, y), 
+            Size = new Size(80, 23),
+            Minimum = 1,
+            Maximum = 10,
+            Value = 3,
+            Enabled = false
+        };
+        tab.Controls.Add(lblBlurIntensity);
+        tab.Controls.Add(numBlurIntensity);
+        tab.Controls.Add(CreateHelpButton(new Point(310, y), "Intensidad del desenfoque: 1-3 (ligero), 4-6 (medio), 7-10 (fuerte). Mayor intensidad impacta el rendimiento."));
+        
+        y += 25;
+        lblBlurMode = new Label { Text = "Tipo de desenfoque:", Location = new Point(40, y), Size = new Size(180, 23) };
+        cmbBlurMode = new ComboBox 
+        { 
+            Location = new Point(220, y), 
+            Size = new Size(120, 23),
+            DropDownStyle = ComboBoxStyle.DropDownList,
+            Enabled = false
+        };
+        cmbBlurMode.Items.AddRange(new object[] { "Gaussiano", "Cuadrado", "Movimiento" });
+        cmbBlurMode.SelectedIndex = 0;
+        tab.Controls.Add(lblBlurMode);
+        tab.Controls.Add(cmbBlurMode);
+        tab.Controls.Add(CreateHelpButton(new Point(350, y), "Gaussiano: mejor calidad pero más lento. Cuadrado: más rápido. Movimiento: simula movimiento de cámara."));
+        
+        // Wire up blur checkbox event
+        chkEnableBlur.CheckedChanged += (s, e) =>
+        {
+            var enabled = chkEnableBlur.Checked;
+            lblBlurIntensity.Enabled = enabled;
+            numBlurIntensity.Enabled = enabled;
+            lblBlurMode.Enabled = enabled;
+            cmbBlurMode.Enabled = enabled;
+        };
+        
         // Initialize screen selection
         RefreshScreenList();
     }
@@ -201,6 +340,27 @@ public partial class SettingsForm : Form
         numSmtpPort = new NumericUpDown { Location = new Point(150, y - 3), Width = 120, Minimum = 1, Maximum = 65535, Value = 587 };
         tab.Controls.Add(numSmtpPort);
         tab.Controls.Add(CreateHelpButton(new Point(280, y), "Puerto del servidor SMTP. Común: 587 (TLS), 465 (SSL), 25 (sin cifrado)."));
+        
+        y += 35;
+        lblSecurityMode = new Label { Text = "Seguridad:", Location = new Point(20, y), Size = new Size(120, 23) };
+        tab.Controls.Add(lblSecurityMode);
+        cmbSecurityMode = new ComboBox 
+        {
+            Location = new Point(150, y - 3), 
+            Width = 150, 
+            DropDownStyle = ComboBoxStyle.DropDownList
+        };
+        cmbSecurityMode.Items.AddRange(new[] { "Sin seguridad", "STARTTLS", "SSL/TLS", "Automático" });
+        cmbSecurityMode.SelectedIndex = 1; // Default to STARTTLS
+        cmbSecurityMode.SelectedIndexChanged += CmbSecurityMode_SelectedIndexChanged;
+        tab.Controls.Add(cmbSecurityMode);
+        tab.Controls.Add(CreateHelpButton(new Point(310, y), "Modo de seguridad SMTP. STARTTLS (587), SSL/TLS (465), Sin seguridad (25), Automático detecta el mejor."));
+        
+        y += 35;
+        tab.Controls.Add(new Label { Text = "Nombre del remitente:", Location = new Point(20, y), Size = new Size(120, 23) });
+        txtSenderName = new TextBox { Location = new Point(150, y - 3), Width = 280 };
+        tab.Controls.Add(txtSenderName);
+        tab.Controls.Add(CreateHelpButton(new Point(440, y), "Nombre que aparecerá como remitente en los emails enviados."));
         
         y += 35;
         tab.Controls.Add(new Label { Text = "Usuario:", Location = new Point(20, y), Size = new Size(120, 23) });
@@ -224,58 +384,20 @@ public partial class SettingsForm : Form
         tab.Controls.Add(CreateHelpButton(new Point(440, y), "Contraseña de la cuenta de email. Se almacena de forma segura y encriptada. Use el botón del ojo para mostrar/ocultar."));
         
         y += 35;
+        btnTestConnection = CreateModernButton("🔧 Probar Conexión", new Point(150, y), new Size(140, 30), Color.FromArgb(40, 167, 69));
+        btnTestConnection.Click += BtnTestConnection_Click;
+        tab.Controls.Add(btnTestConnection);
+        tab.Controls.Add(CreateHelpButton(new Point(300, y + 5), "Prueba la conectividad con el servidor SMTP usando la configuración actual."));
+        
+        y += 45;
         tab.Controls.Add(new Label { Text = "Destinatarios (separados por ;):", Location = new Point(20, y), AutoSize = true });
         tab.Controls.Add(CreateHelpButton(new Point(250, y), "Lista de emails que recibirán los reportes. Separar múltiples direcciones con punto y coma (;)."));
         y += 25;
         txtRecipients = new TextBox { Location = new Point(20, y), Width = 570, Height = 60, Multiline = true };
         tab.Controls.Add(txtRecipients);
         
-        y += 75;
-        chkEnableReports = new CheckBox { Text = "Habilitar reportes automáticos", Location = new Point(20, y), AutoSize = true };
-        tab.Controls.Add(chkEnableReports);
-        tab.Controls.Add(CreateHelpButton(new Point(220, y + 2), "Envía automáticamente reportes de screenshots según la programación configurada."));
-        
-        y += 35;
-        tab.Controls.Add(new Label { Text = "Frecuencia:", Location = new Point(20, y), Size = new Size(80, 23) });
-        cmbReportFrequency = new ComboBox 
-        {
-            Location = new Point(110, y - 3), 
-            Width = 120, 
-            DropDownStyle = ComboBoxStyle.DropDownList
-        };
-        cmbReportFrequency.Items.AddRange(new[] { "Diario", "Semanal", "Mensual", "Personalizado" });
-        cmbReportFrequency.SelectedIndexChanged += CmbReportFrequency_SelectedIndexChanged;
-        tab.Controls.Add(cmbReportFrequency);
-        
-        lblCustomDays = new Label { Text = "Días:", Location = new Point(250, y), Size = new Size(40, 23), Visible = false };
-        numCustomDays = new NumericUpDown 
-        {
-            Location = new Point(290, y - 3), 
-            Width = 60, 
-            Minimum = 1, 
-            Maximum = 365, 
-            Value = 7,
-            Visible = false
-        };
-        tab.Controls.AddRange(new Control[] { lblCustomDays, numCustomDays });
-        tab.Controls.Add(CreateHelpButton(new Point(360, y), "Frecuencia con la que se enviarán los reportes automáticos."));
-        
-        y += 35;
-        tab.Controls.Add(new Label { Text = "Hora de envío:", Location = new Point(20, y), Size = new Size(100, 23) });
-        cmbReportTime = new ComboBox 
-        {
-            Location = new Point(130, y - 3), 
-            Width = 100, 
-            DropDownStyle = ComboBoxStyle.DropDownList
-        };
-        // Populate time options (every hour)
-        for (int hour = 0; hour < 24; hour++)
-        {
-            cmbReportTime.Items.Add($"{hour:D2}:00");
-        }
-        cmbReportTime.SelectedIndex = 9; // Default to 9:00 AM
-        tab.Controls.Add(cmbReportTime);
-        tab.Controls.Add(CreateHelpButton(new Point(240, y), "Hora del día a la que se enviarán los reportes automáticos (formato 24 horas)."));
+        // Note: Routine email configuration moved to dedicated RoutineEmailForm
+        // Access via "Reportes Automáticos" button on main form
     }
 
     private void CreateStorageControls(TabPage tab)
@@ -297,6 +419,109 @@ public partial class SettingsForm : Form
         chkAutoCleanup = new CheckBox { Text = "Limpieza automática", Location = new Point(20, y), AutoSize = true };
         tab.Controls.Add(chkAutoCleanup);
         tab.Controls.Add(CreateHelpButton(new Point(200, y + 2), "Habilita la eliminación automática de archivos antiguos basado en los criterios de retención y tamaño máximo."));
+    }
+
+    private void CreateApplicationControls(TabPage tab)
+    {
+        var y = 20;
+
+        // System Tray Section
+        var groupSystemTray = new GroupBox
+        {
+            Text = "🖥️ Configuración del System Tray",
+            Location = new Point(20, y),
+            Size = new Size(650, 180),
+            Font = new Font("Segoe UI", 9F, FontStyle.Bold)
+        };
+
+        y = 25;
+        chkEnableCapturerSystemTray = new CheckBox 
+        { 
+            Text = "Habilitar system tray para Capturer", 
+            Location = new Point(15, y), 
+            AutoSize = true 
+        };
+        groupSystemTray.Controls.Add(chkEnableCapturerSystemTray);
+
+        y += 25;
+        chkEnableActivityDashboardSystemTray = new CheckBox 
+        { 
+            Text = "Habilitar system tray para Dashboard de Actividad", 
+            Location = new Point(15, y), 
+            AutoSize = true 
+        };
+        groupSystemTray.Controls.Add(chkEnableActivityDashboardSystemTray);
+
+        y += 30;
+        chkShowOnStartup = new CheckBox 
+        { 
+            Text = "Mostrar icono al iniciar", 
+            Location = new Point(15, y), 
+            AutoSize = true 
+        };
+        groupSystemTray.Controls.Add(chkShowOnStartup);
+
+        chkHideOnClose = new CheckBox 
+        { 
+            Text = "Ocultar al cerrar ventana", 
+            Location = new Point(250, y), 
+            AutoSize = true 
+        };
+        groupSystemTray.Controls.Add(chkHideOnClose);
+
+        y += 25;
+        chkShowTrayNotifications = new CheckBox 
+        { 
+            Text = "Mostrar notificaciones", 
+            Location = new Point(15, y), 
+            AutoSize = true 
+        };
+        groupSystemTray.Controls.Add(chkShowTrayNotifications);
+
+        y += 30;
+        groupSystemTray.Controls.Add(new Label { Text = "Duración notificaciones (ms):", Location = new Point(15, y), Size = new Size(200, 23) });
+        numNotificationDuration = new NumericUpDown 
+        { 
+            Location = new Point(220, y - 3), 
+            Width = 100, 
+            Minimum = 1000, 
+            Maximum = 10000, 
+            Value = 3000,
+            Increment = 500
+        };
+        groupSystemTray.Controls.Add(numNotificationDuration);
+
+        tab.Controls.Add(groupSystemTray);
+        y += 200;
+
+        // Legacy Application Settings Section
+        var groupLegacy = new GroupBox
+        {
+            Text = "⚙️ Configuración General",
+            Location = new Point(20, y),
+            Size = new Size(650, 100),
+            Font = new Font("Segoe UI", 9F, FontStyle.Bold)
+        };
+
+        var yLegacy = 25;
+        chkMinimizeToTray = new CheckBox 
+        { 
+            Text = "Minimizar a system tray (legacy)", 
+            Location = new Point(15, yLegacy), 
+            AutoSize = true 
+        };
+        groupLegacy.Controls.Add(chkMinimizeToTray);
+
+        yLegacy += 25;
+        chkShowNotifications = new CheckBox 
+        { 
+            Text = "Mostrar notificaciones (legacy)", 
+            Location = new Point(15, yLegacy), 
+            AutoSize = true 
+        };
+        groupLegacy.Controls.Add(chkShowNotifications);
+
+        tab.Controls.Add(groupLegacy);
     }
 
     private async void LoadConfigurationAsync()
@@ -325,6 +550,11 @@ public partial class SettingsForm : Form
             
             numImageQuality.Value = _config.Screenshot.Quality;
             
+            // Privacy blur settings
+            chkEnableBlur.Checked = _config.Screenshot.EnablePrivacyBlur;
+            numBlurIntensity.Value = _config.Screenshot.BlurIntensity;
+            cmbBlurMode.SelectedIndex = (int)_config.Screenshot.BlurMode;
+            
             // Update UI visibility based on format and mode
             CmbImageFormat_SelectedIndexChanged(null, EventArgs.Empty);
             CmbCaptureMode_SelectedIndexChanged(null, EventArgs.Empty);
@@ -338,36 +568,27 @@ public partial class SettingsForm : Form
             // Email settings
             txtSmtpServer.Text = _config.Email.SmtpServer;
             numSmtpPort.Value = _config.Email.SmtpPort;
+            cmbSecurityMode.SelectedIndex = (int)_config.Email.SecurityMode;
+            txtSenderName.Text = _config.Email.SenderName;
             txtUsername.Text = _config.Email.Username;
             txtPassword.Text = _config.Email.Password;
             txtRecipients.Text = string.Join(";", _config.Email.Recipients);
-            chkEnableReports.Checked = _config.Schedule.EnableAutomaticReports;
-            
-            // Set frequency
-            switch (_config.Schedule.Frequency)
-            {
-                case ReportFrequency.Daily:
-                    cmbReportFrequency.SelectedIndex = 0;
-                    break;
-                case ReportFrequency.Weekly:
-                    cmbReportFrequency.SelectedIndex = 1;
-                    break;
-                case ReportFrequency.Monthly:
-                    cmbReportFrequency.SelectedIndex = 2;
-                    break;
-                case ReportFrequency.Custom:
-                    cmbReportFrequency.SelectedIndex = 3;
-                    numCustomDays.Value = _config.Schedule.CustomDays;
-                    break;
-            }
-            
-            // Set report time
-            cmbReportTime.SelectedIndex = _config.Schedule.ReportTime.Hours;
+            // Routine email configuration now handled by RoutineEmailForm
             
             // Storage settings
             numRetentionDays.Value = (decimal)_config.Storage.RetentionPeriod.TotalDays;
             numMaxSizeGB.Value = (decimal)(_config.Storage.MaxFolderSizeBytes / 1024 / 1024 / 1024);
             chkAutoCleanup.Checked = _config.Storage.AutoCleanup;
+            
+            // Application settings
+            chkMinimizeToTray.Checked = _config.Application.MinimizeToTray;
+            chkShowNotifications.Checked = _config.Application.ShowNotifications;
+            chkEnableCapturerSystemTray.Checked = _config.Application.SystemTray.EnableCapturerSystemTray;
+            chkEnableActivityDashboardSystemTray.Checked = _config.Application.SystemTray.EnableActivityDashboardSystemTray;
+            chkShowOnStartup.Checked = _config.Application.SystemTray.ShowOnStartup;
+            chkHideOnClose.Checked = _config.Application.SystemTray.HideOnClose;
+            chkShowTrayNotifications.Checked = _config.Application.SystemTray.ShowTrayNotifications;
+            numNotificationDuration.Value = _config.Application.SystemTray.NotificationDurationMs;
         }
         catch (Exception ex)
         {
@@ -407,37 +628,34 @@ public partial class SettingsForm : Form
             };
             _config.Screenshot.Quality = (int)numImageQuality.Value;
             
+            // Privacy blur settings
+            _config.Screenshot.EnablePrivacyBlur = chkEnableBlur.Checked;
+            _config.Screenshot.BlurIntensity = (int)numBlurIntensity.Value;
+            _config.Screenshot.BlurMode = (BlurMode)cmbBlurMode.SelectedIndex;
+            
             _config.Email.SmtpServer = txtSmtpServer.Text;
             _config.Email.SmtpPort = (int)numSmtpPort.Value;
+            _config.Email.SecurityMode = (SmtpSecurityMode)cmbSecurityMode.SelectedIndex;
+            _config.Email.SenderName = txtSenderName.Text;
             _config.Email.Username = txtUsername.Text;
             _config.Email.Password = txtPassword.Text;
             _config.Email.Recipients = txtRecipients.Text.Split(';', StringSplitOptions.RemoveEmptyEntries)
                 .Select(r => r.Trim()).ToList();
-            _config.Schedule.EnableAutomaticReports = chkEnableReports.Checked;
-            
-            // Save frequency settings
-            switch (cmbReportFrequency.SelectedIndex)
-            {
-                case 0: // Daily
-                    _config.Schedule.Frequency = ReportFrequency.Daily;
-                    break;
-                case 1: // Weekly
-                    _config.Schedule.Frequency = ReportFrequency.Weekly;
-                    break;
-                case 2: // Monthly
-                    _config.Schedule.Frequency = ReportFrequency.Monthly;
-                    break;
-                case 3: // Custom
-                    _config.Schedule.Frequency = ReportFrequency.Custom;
-                    _config.Schedule.CustomDays = (int)numCustomDays.Value;
-                    break;
-            }
-            
-            _config.Schedule.ReportTime = TimeSpan.FromHours(cmbReportTime.SelectedIndex);
+            // Routine email configuration now handled by RoutineEmailForm
             
             _config.Storage.RetentionPeriod = TimeSpan.FromDays((double)numRetentionDays.Value);
             _config.Storage.MaxFolderSizeBytes = (long)(numMaxSizeGB.Value * 1024 * 1024 * 1024);
             _config.Storage.AutoCleanup = chkAutoCleanup.Checked;
+            
+            // Application settings
+            _config.Application.MinimizeToTray = chkMinimizeToTray.Checked;
+            _config.Application.ShowNotifications = chkShowNotifications.Checked;
+            _config.Application.SystemTray.EnableCapturerSystemTray = chkEnableCapturerSystemTray.Checked;
+            _config.Application.SystemTray.EnableActivityDashboardSystemTray = chkEnableActivityDashboardSystemTray.Checked;
+            _config.Application.SystemTray.ShowOnStartup = chkShowOnStartup.Checked;
+            _config.Application.SystemTray.HideOnClose = chkHideOnClose.Checked;
+            _config.Application.SystemTray.ShowTrayNotifications = chkShowTrayNotifications.Checked;
+            _config.Application.SystemTray.NotificationDurationMs = (int)numNotificationDuration.Value;
             
             // Save configuration
             await _configManager.SaveConfigurationAsync(_config);
@@ -484,12 +702,7 @@ public partial class SettingsForm : Form
         btnTogglePassword.Text = txtPassword.UseSystemPasswordChar ? "👁" : "👈";
     }
     
-    private void CmbReportFrequency_SelectedIndexChanged(object? sender, EventArgs e)
-    {
-        bool showCustomDays = cmbReportFrequency.SelectedIndex == 3; // Custom
-        lblCustomDays.Visible = showCustomDays;
-        numCustomDays.Visible = showCustomDays;
-    }
+    // CmbReportFrequency_SelectedIndexChanged removed - configuration moved to RoutineEmailForm
     
     private void CmbCaptureMode_SelectedIndexChanged(object? sender, EventArgs e)
     {
@@ -561,6 +774,89 @@ public partial class SettingsForm : Form
         {
             MessageBox.Show($"Error refrescando lista de pantallas: {ex.Message}", "Error", 
                 MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
+    }
+    
+    private void CmbSecurityMode_SelectedIndexChanged(object? sender, EventArgs e)
+    {
+        // Auto-adjust port based on security mode
+        if (cmbSecurityMode.SelectedIndex == 0) // None
+        {
+            numSmtpPort.Value = 25;
+        }
+        else if (cmbSecurityMode.SelectedIndex == 1) // STARTTLS
+        {
+            numSmtpPort.Value = 587;
+        }
+        else if (cmbSecurityMode.SelectedIndex == 2) // SSL
+        {
+            numSmtpPort.Value = 465;
+        }
+        // Auto mode keeps current port
+    }
+    
+    private async void BtnTestConnection_Click(object? sender, EventArgs e)
+    {
+        btnTestConnection.Enabled = false;
+        btnTestConnection.Text = "🔄 Probando...";
+        
+        try
+        {
+            // Update config with current form values
+            _config.Email.SmtpServer = txtSmtpServer.Text.Trim();
+            _config.Email.SmtpPort = (int)numSmtpPort.Value;
+            _config.Email.SecurityMode = (SmtpSecurityMode)cmbSecurityMode.SelectedIndex;
+            _config.Email.Username = txtUsername.Text.Trim();
+            _config.Email.Password = txtPassword.Text;
+            _config.Email.SenderName = txtSenderName.Text.Trim();
+            
+            // Validate required fields
+            if (string.IsNullOrWhiteSpace(_config.Email.SmtpServer))
+            {
+                MessageBox.Show("⚠️ El servidor SMTP es requerido.", "Configuración incompleta", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                txtSmtpServer.Focus();
+                return;
+            }
+            
+            if (string.IsNullOrWhiteSpace(_config.Email.Username))
+            {
+                MessageBox.Show("⚠️ El usuario es requerido.", "Configuración incompleta", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                txtUsername.Focus();
+                return;
+            }
+            
+            if (string.IsNullOrWhiteSpace(_config.Email.Password))
+            {
+                MessageBox.Show("⚠️ La contraseña es requerida.", "Configuración incompleta", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                txtPassword.Focus();
+                return;
+            }
+            
+            // Create temporary EmailService for testing
+            var emailService = new EmailService(_configManager, new FileService(_configManager), null);
+            
+            // Force reload configuration with current values
+            await _configManager.SaveConfigurationAsync(_config);
+            
+            var success = await emailService.TestConnectionAsync();
+            
+            if (success)
+            {
+                MessageBox.Show("✅ ¡Conexión exitosa!\n\nLa configuración SMTP está funcionando correctamente.", "Test de Conexión", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            else
+            {
+                MessageBox.Show("❌ Error de conexión\n\nNo se pudo conectar al servidor SMTP.\n\nVerifique:\n• Servidor y puerto correctos\n• Credenciales válidas\n• Configuración de seguridad\n• Conexión a internet", "Test de Conexión", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"❌ Error durante el test:\n\n{ex.Message}", "Error de Test", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+        finally
+        {
+            btnTestConnection.Enabled = true;
+            btnTestConnection.Text = "🔧 Probar Conexión";
         }
     }
     

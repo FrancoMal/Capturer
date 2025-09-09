@@ -1,0 +1,12 @@
+C:\Users\ftmal\Desktop\CapturerWebDashboard\CapturerWebDashboard\src\CapturerDashboard.Core\bin\Release\net8.0\CapturerDashboard.Core.deps.json
+C:\Users\ftmal\Desktop\CapturerWebDashboard\CapturerWebDashboard\src\CapturerDashboard.Core\bin\Release\net8.0\CapturerDashboard.Core.dll
+C:\Users\ftmal\Desktop\CapturerWebDashboard\CapturerWebDashboard\src\CapturerDashboard.Core\bin\Release\net8.0\CapturerDashboard.Core.pdb
+C:\Users\ftmal\Desktop\CapturerWebDashboard\CapturerWebDashboard\src\CapturerDashboard.Core\obj\Release\net8.0\CapturerDashboard.Core.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\ftmal\Desktop\CapturerWebDashboard\CapturerWebDashboard\src\CapturerDashboard.Core\obj\Release\net8.0\CapturerDashboard.Core.AssemblyInfoInputs.cache
+C:\Users\ftmal\Desktop\CapturerWebDashboard\CapturerWebDashboard\src\CapturerDashboard.Core\obj\Release\net8.0\CapturerDashboard.Core.AssemblyInfo.cs
+C:\Users\ftmal\Desktop\CapturerWebDashboard\CapturerWebDashboard\src\CapturerDashboard.Core\obj\Release\net8.0\CapturerDashboard.Core.csproj.CoreCompileInputs.cache
+C:\Users\ftmal\Desktop\CapturerWebDashboard\CapturerWebDashboard\src\CapturerDashboard.Core\obj\Release\net8.0\CapturerDashboard.Core.sourcelink.json
+C:\Users\ftmal\Desktop\CapturerWebDashboard\CapturerWebDashboard\src\CapturerDashboard.Core\obj\Release\net8.0\CapturerDashboard.Core.dll
+C:\Users\ftmal\Desktop\CapturerWebDashboard\CapturerWebDashboard\src\CapturerDashboard.Core\obj\Release\net8.0\refint\CapturerDashboard.Core.dll
+C:\Users\ftmal\Desktop\CapturerWebDashboard\CapturerWebDashboard\src\CapturerDashboard.Core\obj\Release\net8.0\CapturerDashboard.Core.pdb
+C:\Users\ftmal\Desktop\CapturerWebDashboard\CapturerWebDashboard\src\CapturerDashboard.Core\obj\Release\net8.0\ref\CapturerDashboard.Core.dll

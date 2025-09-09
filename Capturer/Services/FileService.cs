@@ -6,6 +6,7 @@ public interface IFileService
 {
     Task<List<string>> GetScreenshotsByDateRangeAsync(DateTime startDate, DateTime endDate);
     Task<List<ScreenshotInfo>> GetScreenshotInfosByDateRangeAsync(DateTime startDate, DateTime endDate);
+    Task<List<string>> GetScreenshotsByReportPeriodAsync(ReportPeriod period);
     Task<long> GetFolderSizeAsync();
     Task<int> GetScreenshotCountAsync();
     Task CleanupOldFilesAsync(TimeSpan? retentionPeriod = null);
@@ -92,6 +93,77 @@ public class FileService : IFileService
         }
 
         return screenshots.OrderByDescending(s => s.CaptureTime).ToList();
+    }
+
+    public async Task<List<string>> GetScreenshotsByReportPeriodAsync(ReportPeriod period)
+    {
+        await LoadConfigurationAsync();
+        await EnsureDirectoryExistsAsync();
+
+        try
+        {
+            var screenshotDir = new DirectoryInfo(_config.Storage.ScreenshotFolder);
+            if (!screenshotDir.Exists)
+                return new List<string>();
+
+            var supportedExtensions = new[] { ".png", ".jpg", ".jpeg", ".bmp", ".gif", ".tiff" };
+            var allFiles = screenshotDir
+                .GetFiles("*.*", SearchOption.AllDirectories)
+                .Where(f => supportedExtensions.Contains(f.Extension.ToLower()))
+                .ToList();
+
+            var filteredFiles = new List<string>();
+
+            foreach (var file in allFiles)
+            {
+                try
+                {
+                    // Usar la fecha del nombre del archivo si es posible, sino usar CreationTime
+                    var fileDate = TryParseFilenameDate(file.Name, out var parsedDate) ? parsedDate : file.CreationTime;
+
+                    // Verificar que esté en el rango de fechas
+                    if (fileDate < period.StartDate || fileDate > period.EndDate)
+                        continue;
+
+                    // Verificar día de la semana si está configurado
+                    if (period.ActiveWeekDays.Any() && !period.ActiveWeekDays.Contains(fileDate.DayOfWeek))
+                        continue;
+
+                    // Verificar filtros de horario si están configurados
+                    if (period.StartTime.HasValue && period.EndTime.HasValue)
+                    {
+                        var fileTime = fileDate.TimeOfDay;
+                        
+                        // Manejar casos donde EndTime < StartTime (ej: 23:00 - 08:00)
+                        if (period.EndTime.Value < period.StartTime.Value)
+                        {
+                            // Horario nocturno que cruza medianoche
+                            if (!(fileTime >= period.StartTime.Value || fileTime <= period.EndTime.Value))
+                                continue;
+                        }
+                        else
+                        {
+                            // Horario normal dentro del mismo día
+                            if (fileTime < period.StartTime.Value || fileTime > period.EndTime.Value)
+                                continue;
+                        }
+                    }
+
+                    filteredFiles.Add(file.FullName);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error processing file {file.Name}: {ex.Message}");
+                }
+            }
+
+            return filteredFiles.OrderBy(f => TryParseFilenameDate(Path.GetFileName(f), out var date) ? date : new FileInfo(f).CreationTime).ToList();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error getting screenshots by report period: {ex.Message}");
+            return new List<string>();
+        }
     }
 
     public async Task<long> GetFolderSizeAsync()

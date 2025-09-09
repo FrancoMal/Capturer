@@ -7,7 +7,7 @@ public interface ISchedulerService : IDisposable
     Task StartAsync();
     Task StopAsync();
     Task ScheduleScreenshotsAsync(TimeSpan interval);
-    Task ScheduleWeeklyEmailsAsync(DayOfWeek day, TimeSpan time);
+    Task ScheduleAutomaticReportsAsync(ScheduleSettings scheduleSettings);
     Task ScheduleCleanupAsync(TimeSpan interval);
     Task CancelAllSchedulesAsync();
     List<ScheduledTask> GetActiveSchedules();
@@ -20,8 +20,9 @@ public class SchedulerService : ISchedulerService
     private readonly IEmailService _emailService;
     private readonly IFileService _fileService;
     private readonly IConfigurationManager _configManager;
+    private readonly IReportPeriodService _reportPeriodService;
     
-    private System.Threading.Timer? _weeklyEmailTimer;
+    private System.Threading.Timer? _automaticReportTimer;
     private System.Threading.Timer? _cleanupTimer;
     private readonly List<ScheduledTask> _scheduledTasks = new();
     private bool _isRunning = false;
@@ -33,12 +34,14 @@ public class SchedulerService : ISchedulerService
         IScreenshotService screenshotService, 
         IEmailService emailService,
         IFileService fileService,
-        IConfigurationManager configManager)
+        IConfigurationManager configManager,
+        IReportPeriodService reportPeriodService)
     {
         _screenshotService = screenshotService;
         _emailService = emailService;
         _fileService = fileService;
         _configManager = configManager;
+        _reportPeriodService = reportPeriodService;
     }
 
     public async Task StartAsync()
@@ -57,7 +60,7 @@ public class SchedulerService : ISchedulerService
         // Schedule automatic reports if enabled
         if (_config.Schedule.EnableAutomaticReports)
         {
-            await ScheduleWeeklyEmailsAsync(_config.Schedule.WeeklyReportDay, _config.Schedule.ReportTime);
+            await ScheduleAutomaticReportsAsync(_config.Schedule);
         }
 
         // Schedule cleanup if auto cleanup is enabled
@@ -102,22 +105,22 @@ public class SchedulerService : ISchedulerService
         Console.WriteLine($"Screenshot capture scheduled every {interval.TotalMinutes} minutes");
     }
 
-    public async Task ScheduleWeeklyEmailsAsync(DayOfWeek day, TimeSpan time)
+    public async Task ScheduleAutomaticReportsAsync(ScheduleSettings scheduleSettings)
     {
-        // Remove existing weekly email schedule
-        RemoveTaskByType("WeeklyEmail");
+        // Remove existing automatic report schedule
+        RemoveTaskByType("AutomaticReport");
 
-        var nextExecution = GetNextWeeklyExecution(day, time);
-        var interval = TimeSpan.FromDays(7);
+        var nextExecution = _reportPeriodService.GetNextReportTime(scheduleSettings);
+        var interval = GetReportInterval(scheduleSettings.Frequency, scheduleSettings.CustomDays);
 
-        _weeklyEmailTimer = new System.Threading.Timer(async _ =>
+        _automaticReportTimer = new System.Threading.Timer(async _ =>
         {
             if (_isRunning)
             {
-                await SendWeeklyReportAsync();
+                await SendAutomaticReportAsync();
                 
                 // Update next execution time
-                var task = _scheduledTasks.FirstOrDefault(t => t.Type == "WeeklyEmail");
+                var task = _scheduledTasks.FirstOrDefault(t => t.Type == "AutomaticReport");
                 if (task != null)
                 {
                     task.NextExecution = DateTime.Now.Add(interval);
@@ -128,19 +131,20 @@ public class SchedulerService : ISchedulerService
         // Add to scheduled tasks for tracking
         var scheduledTask = new ScheduledTask
         {
-            Name = $"Weekly Email Report - {day} {time:hh\\:mm}",
-            Type = "WeeklyEmail",
+            Name = $"Automatic Report - {scheduleSettings.Frequency} at {scheduleSettings.ReportTime:hh\\:mm}",
+            Type = "AutomaticReport",
             NextExecution = nextExecution,
             Interval = interval,
             Parameters = 
             { 
-                ["day"] = day.ToString(), 
-                ["time"] = time.ToString() 
+                ["frequency"] = scheduleSettings.Frequency.ToString(), 
+                ["time"] = scheduleSettings.ReportTime.ToString(),
+                ["customDays"] = scheduleSettings.CustomDays.ToString()
             }
         };
 
         _scheduledTasks.Add(scheduledTask);
-        Console.WriteLine($"Weekly email reports scheduled for {day} at {time:hh\\:mm}");
+        Console.WriteLine($"Automatic reports scheduled for {scheduleSettings.Frequency} at {scheduleSettings.ReportTime:hh\\:mm}");
     }
 
     public async Task ScheduleCleanupAsync(TimeSpan interval)
@@ -185,10 +189,10 @@ public class SchedulerService : ISchedulerService
         await _screenshotService.StopAutomaticCaptureAsync();
 
         // Cancel timers
-        if (_weeklyEmailTimer != null)
+        if (_automaticReportTimer != null)
         {
-            await _weeklyEmailTimer.DisposeAsync();
-            _weeklyEmailTimer = null;
+            await _automaticReportTimer.DisposeAsync();
+            _automaticReportTimer = null;
         }
 
         if (_cleanupTimer != null)
@@ -231,38 +235,93 @@ public class SchedulerService : ISchedulerService
         return targetDate;
     }
 
-    private async Task SendWeeklyReportAsync()
+    private async Task SendAutomaticReportAsync()
     {
+        const int MaxRetries = 3;
+        const int RetryDelayMs = 5000;
+        
         try
         {
+            Console.WriteLine("[SCHEDULER] Starting automatic report generation...");
             var config = await _configManager.LoadConfigurationAsync();
             
             if (!config.Email.Recipients.Any())
             {
-                Console.WriteLine("No recipients configured for weekly email");
+                Console.WriteLine("[SCHEDULER] ERROR: No recipients configured for automatic report");
                 return;
             }
 
-            // Calculate date range for the past week
-            var endDate = DateTime.Now.Date;
-            var startDate = endDate.AddDays(-7);
-
-            Console.WriteLine($"Sending weekly report for {startDate:yyyy-MM-dd} to {endDate:yyyy-MM-dd}");
+            // Calculate the appropriate period based on configuration
+            var period = _reportPeriodService.GetCurrentReportPeriod(config.Schedule);
             
-            var success = await _emailService.SendWeeklyReportAsync(config.Email.Recipients, startDate, endDate);
-            
-            if (success)
+            Console.WriteLine($"[SCHEDULER] Generating {config.Schedule.Frequency} report for {period.StartDate:yyyy-MM-dd} to {period.EndDate:yyyy-MM-dd}");
+            if (period.StartTime.HasValue && period.EndTime.HasValue)
             {
-                Console.WriteLine("Weekly report sent successfully");
+                Console.WriteLine($"[SCHEDULER] Time filter: {period.StartTime:hh\\:mm} to {period.EndTime:hh\\:mm}");
             }
-            else
+            
+            // Get filtered screenshots based on the period
+            var screenshots = await _fileService.GetScreenshotsByReportPeriodAsync(period);
+            Console.WriteLine($"[SCHEDULER] Found {screenshots.Count} screenshots matching the period criteria");
+            
+            if (!screenshots.Any())
             {
-                Console.WriteLine("Failed to send weekly report");
+                Console.WriteLine($"[SCHEDULER] WARNING: No screenshots found for period, sending empty report");
+            }
+            
+            bool success = false;
+            Exception? lastException = null;
+            
+            // Retry mechanism for email sending
+            for (int attempt = 1; attempt <= MaxRetries; attempt++)
+            {
+                try
+                {
+                    Console.WriteLine($"[SCHEDULER] Attempt {attempt}/{MaxRetries} - Sending unified report...");
+                    
+                    var reportType = GetReportTypeString(config.Schedule.Frequency);
+                    success = await _emailService.SendUnifiedReportAsync(
+                        config.Email.Recipients,
+                        period,
+                        screenshots,
+                        reportType,
+                        config.Email.UseZipFormat);
+                        
+                    if (success)
+                    {
+                        Console.WriteLine($"[SCHEDULER] SUCCESS: {config.Schedule.Frequency} report sent successfully on attempt {attempt}");
+                        Console.WriteLine($"[SCHEDULER] Report details: {screenshots.Count} files, {config.Email.Recipients.Count} recipients, quadrants: {config.Email.QuadrantSettings.UseQuadrantsInRoutineEmails}");
+                        break;
+                    }
+                    else
+                    {
+                        Console.WriteLine($"[SCHEDULER] FAILED: Attempt {attempt} failed - no exception thrown but result was false");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    lastException = ex;
+                    Console.WriteLine($"[SCHEDULER] ERROR: Attempt {attempt} failed with exception: {ex.Message}");
+                    
+                    if (attempt < MaxRetries)
+                    {
+                        Console.WriteLine($"[SCHEDULER] Waiting {RetryDelayMs}ms before retry...");
+                        await Task.Delay(RetryDelayMs);
+                    }
+                }
+            }
+            
+            if (!success)
+            {
+                var errorMsg = lastException?.Message ?? "Unknown error - no exception details";
+                Console.WriteLine($"[SCHEDULER] CRITICAL: All {MaxRetries} attempts failed. Last error: {errorMsg}");
+                Console.WriteLine($"[SCHEDULER] Report details for debugging: Recipients={config.Email.Recipients.Count}, Screenshots={screenshots.Count}, SMTP={config.Email.SmtpServer}:{config.Email.SmtpPort}");
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error sending weekly report: {ex.Message}");
+            Console.WriteLine($"[SCHEDULER] FATAL ERROR in automatic report generation: {ex.Message}");
+            Console.WriteLine($"[SCHEDULER] Stack trace: {ex.StackTrace}");
         }
     }
 
@@ -280,10 +339,34 @@ public class SchedulerService : ISchedulerService
         }
     }
 
+    private TimeSpan GetReportInterval(ReportFrequency frequency, int customDays)
+    {
+        return frequency switch
+        {
+            ReportFrequency.Daily => TimeSpan.FromDays(1),
+            ReportFrequency.Weekly => TimeSpan.FromDays(7),
+            ReportFrequency.Monthly => TimeSpan.FromDays(30),
+            ReportFrequency.Custom => TimeSpan.FromDays(customDays),
+            _ => TimeSpan.FromDays(7)
+        };
+    }
+
+    private string GetReportTypeString(ReportFrequency frequency)
+    {
+        return frequency switch
+        {
+            ReportFrequency.Daily => "Reporte Diario Capturer",
+            ReportFrequency.Weekly => "Reporte Semanal Capturer",
+            ReportFrequency.Monthly => "Reporte Mensual Capturer",
+            ReportFrequency.Custom => "Reporte Personalizado Capturer",
+            _ => "Reporte Automático Capturer"
+        };
+    }
+
     public void Dispose()
     {
         StopAsync().Wait();
-        _weeklyEmailTimer?.Dispose();
+        _automaticReportTimer?.Dispose();
         _cleanupTimer?.Dispose();
     }
 }

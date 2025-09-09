@@ -1,0 +1,14 @@
+2025-09-09 00:26:54.245 -03:00 [INF] User profile is available. Using 'C:\Users\Usuario\AppData\Local\ASP.NET\DataProtection-Keys' as key repository and Windows DPAPI to encrypt keys at rest.
+2025-09-09 00:26:54.328 -03:00 [INF] Unable to bind to http://localhost:8080 on the IPv4 loopback interface: 'Intento de acceso a un socket no permitido por sus permisos de acceso.'.
+2025-09-09 00:26:54.329 -03:00 [INF] Now listening on: http://localhost:8080
+2025-09-09 00:26:54.330 -03:00 [INF] Application started. Press Ctrl+C to shut down.
+2025-09-09 00:26:54.330 -03:00 [INF] Hosting environment: Production
+2025-09-09 00:26:54.330 -03:00 [INF] Content root path: C:\Users\Usuario\Desktop\Capturer\Capturer\bin\Debug\net8.0-windows\
+2025-09-09 00:27:00.355 -03:00 [INF] Application is shutting down...
+2025-09-09 01:16:08.157 -03:00 [INF] User profile is available. Using 'C:\Users\Usuario\AppData\Local\ASP.NET\DataProtection-Keys' as key repository and Windows DPAPI to encrypt keys at rest.
+2025-09-09 01:16:08.228 -03:00 [INF] Unable to bind to http://localhost:8080 on the IPv4 loopback interface: 'Intento de acceso a un socket no permitido por sus permisos de acceso.'.
+2025-09-09 01:16:08.229 -03:00 [INF] Now listening on: http://localhost:8080
+2025-09-09 01:16:08.229 -03:00 [INF] Application started. Press Ctrl+C to shut down.
+2025-09-09 01:16:08.229 -03:00 [INF] Hosting environment: Production
+2025-09-09 01:16:08.229 -03:00 [INF] Content root path: C:\Users\Usuario\Desktop\Capturer\Capturer\bin\Debug\net8.0-windows\
+2025-09-09 01:16:28.210 -03:00 [INF] Application is shutting down...

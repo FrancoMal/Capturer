@@ -1,0 +1,8 @@
+C:\Users\Usuario\Desktop\Capturer\obj\Debug\net8.0\TestImageGenerator.csproj.AssemblyReference.cache
+C:\Users\Usuario\Desktop\Capturer\obj\Debug\net8.0\Capturer.Form1.resources
+C:\Users\Usuario\Desktop\Capturer\obj\Debug\net8.0\TestImageGenerator.csproj.GenerateResource.cache
+C:\Users\Usuario\Desktop\Capturer\obj\Debug\net8.0\TestImageGenerator.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Usuario\Desktop\Capturer\obj\Debug\net8.0\TestImageGenerator.AssemblyInfoInputs.cache
+C:\Users\Usuario\Desktop\Capturer\obj\Debug\net8.0\TestImageGenerator.AssemblyInfo.cs
+C:\Users\Usuario\Desktop\Capturer\obj\Debug\net8.0\TestImageGenerator.csproj.CoreCompileInputs.cache
+C:\Users\Usuario\Desktop\Capturer\obj\Debug\net8.0\TestImageGenerator.sourcelink.json

@@ -3,9 +3,34 @@
     "allow": [
       "Bash(dotnet build)",
       "Bash(dotnet run:*)",
-      "Bash(dotnet build:*)"
+      "Bash(dotnet build:*)",
+      "Bash(Start-Process -FilePath \"C:\\Users\\Usuario\\Desktop\\Capturer\\Capturer\\bin\\Debug\\net8.0-windows\\Capturer.exe\")",
+      "Bash(start Capturer.exe)",
+      "Read(/C:\\Users\\Usuario\\Documents/**)",
+      "Read(/C:\\Users\\Usuario\\Documents/**)",
+      "Bash(copy:*)",
+      "Bash(./TestImageGenerator.exe)",
+      "Bash(./ResolutionTest.exe)",
+      "Bash(./QuadrantProcessingTest.exe)",
+      "Read(/G:\\OneDriveNew\\OneDrive\\Documentos\\Capturer\\Quadrants\\Q1-TopLeft/**)",
+      "Read(/G:\\OneDriveNew\\OneDrive\\Documentos\\Capturer\\Quadrants/**)",
+      "Bash(cp:*)",
+      "Bash(Start-Process -FilePath \"Capturer.exe\" -WindowStyle Hidden)",
+      "Bash(./Capturer.exe)",
+      "Bash(taskkill:*)",
+      "Bash(grep:*)",
+      "Bash(Start-Process -FilePath \"Capturer.exe\" -WorkingDirectory \"C:\\Users\\Usuario\\Desktop\\Capturer\\Capturer\\bin\\Debug\\net8.0-windows\")",
+      "Bash(tasklist:*)",
+      "Bash(find:*)",
+      "Bash(sed:*)",
+      "Bash(dotnet restore:*)"
     ],
     "deny": [],
-    "ask": []
+    "ask": [],
+    "additionalDirectories": [
+      "C:\\Users\\Usuario\\Desktop",
+      "C:\\Users\\Usuario\\Documents\\Capturer",
+      "C:\\g\\OneDriveNew\\OneDrive\\Documentos\\Capturer"
+    ]
   }
 }

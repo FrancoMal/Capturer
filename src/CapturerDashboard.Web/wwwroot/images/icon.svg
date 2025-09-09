@@ -1,0 +1,27 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="512" height="512" rx="80" fill="#0066CC"/>
+  
+  <!-- Computer Monitor -->
+  <rect x="96" y="128" width="320" height="200" rx="12" fill="white" stroke="#333" stroke-width="4"/>
+  <rect x="110" y="142" width="292" height="164" fill="#333"/>
+  
+  <!-- Screen Content -->
+  <rect x="130" y="162" width="80" height="8" fill="#0066CC"/>
+  <rect x="130" y="182" width="120" height="8" fill="#28A745"/>
+  <rect x="130" y="202" width="100" height="8" fill="#FFC107"/>
+  <rect x="130" y="222" width="140" height="8" fill="#17A2B8"/>
+  
+  <!-- Charts -->
+  <rect x="280" y="162" width="100" height="60" fill="#0066CC" opacity="0.3"/>
+  <polygon points="280,222 320,182 360,202 380,172" stroke="#0066CC" stroke-width="3" fill="none"/>
+  
+  <!-- Monitor Stand -->
+  <rect x="220" y="328" width="72" height="24" rx="12" fill="white"/>
+  <rect x="180" y="352" width="152" height="16" rx="8" fill="white"/>
+  
+  <!-- Activity Indicator -->
+  <circle cx="420" cy="100" r="24" fill="#28A745"/>
+  <circle cx="420" cy="100" r="16" fill="white"/>
+  <circle cx="420" cy="100" r="8" fill="#28A745"/>
+</svg>

@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='UTF-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <title>📊 5 Enfoques de Visualización Temporal - Capturer Dashboard</title>
+    <script src='https://cdn.jsdelivr.net/npm/chart.js'></script>
+    <link href='https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap' rel='stylesheet'>
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --secondary-color: #3b82f6;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-800: #1f2937;
+            --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--gray-50) 0%, #ffffff 100%);
+            color: var(--gray-800);
+            line-height: 1.6;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            padding: 2rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        
+        .chart-section {
+            background: var(--gray-50);
+            padding: 2rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            border-left: 4px solid var(--primary-color);
+        }
+        
+        .section-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+            color: var(--gray-800);
+        }
+        
+        .section-description {
+            font-size: 1rem;
+            color: var(--gray-600);
+            line-height: 1.5;
+        }
+        
+        .chart-container {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            margin-bottom: 2rem;
+        }
+        
+        .chart-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--gray-800);
+        }
+        
+        .chart-description {
+            font-size: 0.875rem;
+            color: var(--gray-500);
+            margin-bottom: 1rem;
+            font-style: italic;
+        }
+        
+        .chart-wrapper {
+            position: relative;
+            height: 400px;
+            margin-bottom: 1rem;
+        }
+        
+        .pros-cons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-top: 1rem;
+            padding: 1rem;
+            background: var(--gray-50);
+            border-radius: 8px;
+        }
+        
+        .pros, .cons {
+            padding: 0.5rem;
+        }
+        
+        .pros h4 {
+            color: var(--success-color);
+            margin-bottom: 0.5rem;
+        }
+        
+        .cons h4 {
+            color: var(--danger-color);
+            margin-bottom: 0.5rem;
+        }
+        
+        .pros ul, .cons ul {
+            padding-left: 1.5rem;
+            font-size: 0.875rem;
+        }
+        
+        .recommendation {
+            background: var(--warning-color);
+            color: white;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+
+<div class='container'>
+    <div class='header'>
+        <h1>📊 5 Enfoques de Visualización Temporal</h1>
+        <p>Comparación de diferentes métodos para mostrar la evolución de actividad durante el día</p>
+        <p><strong>Período de muestra:</strong> Hoy 09:00 - 18:00 | <strong>Cuadrantes:</strong> Trabajo, Dashboard, Comunicación</p>
+    </div>
+
+    <div class='chart-section'>
+        <h2 class='section-title'>📈 Análisis Comparativo de Visualizaciones</h2>
+        <p class='section-description'>
+            Cada enfoque tiene ventajas según el tipo de datos disponibles y el objetivo de análisis. 
+            Los datos de muestra simulan un día típico de trabajo con actividad variable.
+        </p>
+    </div>
+
+    <!-- VISUALIZATION 1: Heatmap Timeline -->
+    <div class='chart-container'>
+        <h3 class='chart-title'>🌡️ Enfoque 1: Mapa de Calor por Hora</h3>
+        <p class='chart-description'>
+            Matriz que muestra la intensidad de actividad por cuadrante a lo largo del tiempo. 
+            Los colores más intensos indican mayor actividad.
+        </p>
+        <div class='chart-wrapper'>
+            <canvas id='heatmapChart'></canvas>
+        </div>
+        <div class='pros-cons'>
+            <div class='pros'>
+                <h4>✅ Ventajas:</h4>
+                <ul>
+                    <li>Visualización clara de patrones temporales</li>
+                    <li>Fácil identificación de períodos de alta/baja actividad</li>
+                    <li>Comparación visual directa entre cuadrantes</li>
+                    <li>Funciona bien con datos dispersos</li>
+                </ul>
+            </div>
+            <div class='cons'>
+                <h4>❌ Desventajas:</h4>
+                <ul>
+                    <li>Requiere muchos puntos de datos para ser efectivo</li>
+                    <li>Puede ser confuso con muchos cuadrantes</li>
+                    <li>No muestra tendencias graduales</li>
+                </ul>
+            </div>
+        </div>
+        <div class='recommendation'>
+            💡 <strong>Recomendación:</strong> Ideal para reportes de día completo con actividad constante
+        </div>
+    </div>
+
+    <!-- VISUALIZATION 2: Aggregated Line Chart -->
+    <div class='chart-container'>
+        <h3 class='chart-title'>📈 Enfoque 2: Evolución Agregada (30min)</h3>
+        <p class='chart-description'>
+            Líneas temporales suavizadas con intervalos fijos de 30 minutos. 
+            Cada línea representa un cuadrante diferente.
+        </p>
+        <div class='chart-wrapper'>
+            <canvas id='aggregatedChart'></canvas>
+        </div>
+        <div class='pros-cons'>
+            <div class='pros'>
+                <h4>✅ Ventajas:</h4>
+                <ul>
+                    <li>Tendencias claras y fáciles de seguir</li>
+                    <li>Comparación directa entre cuadrantes</li>
+                    <li>Suavizado reduce el ruido de datos</li>
+                    <li>Funciona con pocos datos</li>
+                </ul>
+            </div>
+            <div class='cons'>
+                <h4>❌ Desventajas:</h4>
+                <ul>
+                    <li>Puede ocultar picos de actividad breves</li>
+                    <li>El suavizado puede ser artificial</li>
+                    <li>Requiere interpolación de datos faltantes</li>
+                </ul>
+            </div>
+        </div>
+        <div class='recommendation'>
+            💡 <strong>Recomendación:</strong> Excelente para análisis de tendencias generales y reportes ejecutivos
+        </div>
+    </div>
+
+    <!-- VISUALIZATION 3: Activity Pulse Chart -->
+    <div class='chart-container'>
+        <h3 class='chart-title'>⚡ Enfoque 3: Pulsos de Actividad</h3>
+        <p class='chart-description'>
+            Barras que muestran la intensidad combinada de todos los cuadrantes por período. 
+            Los colores cambian según el nivel de actividad.
+        </p>
+        <div class='chart-wrapper'>
+            <canvas id='pulseChart'></canvas>
+        </div>
+        <div class='pros-cons'>
+            <div class='pros'>
+                <h4>✅ Ventajas:</h4>
+                <ul>
+                    <li>Vista consolidada de toda la actividad</li>
+                    <li>Identificación rápida de períodos intensos</li>
+                    <li>Colores intuitivos para diferentes niveles</li>
+                    <li>Funciona bien para monitoreo general</li>
+                </ul>
+            </div>
+            <div class='cons'>
+                <h4>❌ Desventajas:</h4>
+                <ul>
+                    <li>Pierde detalle por cuadrante individual</li>
+                    <li>No muestra correlaciones entre cuadrantes</li>
+                    <li>Puede ser demasiado simplificado</li>
+                </ul>
+            </div>
+        </div>
+        <div class='recommendation'>
+            💡 <strong>Recomendación:</strong> Perfecto para dashboards en tiempo real y alertas
+        </div>
+    </div>
+
+    <!-- VISUALIZATION 4: Scatter Timeline -->
+    <div class='chart-container'>
+        <h3 class='chart-title'>🎯 Enfoque 4: Timeline de Puntos</h3>
+        <p class='chart-description'>
+            Puntos dispersos que muestran momentos específicos de actividad significativa. 
+            El tamaño del punto indica la intensidad.
+        </p>
+        <div class='chart-wrapper'>
+            <canvas id='scatterChart'></canvas>
+        </div>
+        <div class='pros-cons'>
+            <div class='pros'>
+                <h4>✅ Ventajas:</h4>
+                <ul>
+                    <li>Muestra eventos específicos de actividad</li>
+                    <li>Tamaño del punto indica intensidad</li>
+                    <li>Útil para detectar patrones irregulares</li>
+                    <li>Bueno para análisis forense</li>
+                </ul>
+            </div>
+            <div class='cons'>
+                <h4>❌ Desventajas:</h4>
+                <ul>
+                    <li>Puede ser difícil de interpretar</li>
+                    <li>No muestra continuidad temporal</li>
+                    <li>Requiere muchos puntos para ser útil</li>
+                </ul>
+            </div>
+        </div>
+        <div class='recommendation'>
+            💡 <strong>Recomendación:</strong> Ideal para análisis detallado de eventos específicos
+        </div>
+    </div>
+
+    <!-- VISUALIZATION 5: Hybrid Chart -->
+    <div class='chart-container'>
+        <h3 class='chart-title'>🔥 Enfoque 5: Chart Híbrido</h3>
+        <p class='chart-description'>
+            Combinación de líneas, áreas y barras para mostrar múltiples métricas: 
+            tendencia general + picos de actividad.
+        </p>
+        <div class='chart-wrapper'>
+            <canvas id='hybridChart'></canvas>
+        </div>
+        <div class='pros-cons'>
+            <div class='pros'>
+                <h4>✅ Ventajas:</h4>
+                <ul>
+                    <li>Información más completa en un solo gráfico</li>
+                    <li>Combina tendencia y eventos específicos</li>
+                    <li>Rica información visual</li>
+                    <li>Profesional y detallado</li>
+                </ul>
+            </div>
+            <div class='cons'>
+                <h4>❌ Desventajas:</h4>
+                <ul>
+                    <li>Puede ser complejo de interpretar</li>
+                    <li>Requiere más recursos de rendering</li>
+                    <li>Sobrecarga visual en pantallas pequeñas</li>
+                </ul>
+            </div>
+        </div>
+        <div class='recommendation'>
+            💡 <strong>Recomendación:</strong> Excelente para reportes ejecutivos y análisis profesional
+        </div>
+    </div>
+
+</div>
+
+<script>
+// Datos de muestra para demostración
+const sampleData = {
+    timeLabels: ['09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30', '13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00'],
+    quadrants: ['Trabajo', 'Dashboard', 'Comunicación'],
+    colors: ['#ef4444', '#10b981', '#3b82f6'],
+    
+    // Datos simulados realistas para demostración
+    trabajoData: [45, 62, 78, 85, 92, 88, 45, 35, 67, 82, 89, 95, 87, 79, 72, 68, 58, 42, 28],
+    dashboardData: [25, 38, 52, 48, 56, 62, 25, 15, 45, 58, 67, 72, 65, 58, 49, 44, 35, 28, 18],
+    comunicacionData: [15, 22, 28, 32, 38, 42, 65, 55, 48, 38, 42, 48, 52, 45, 38, 32, 25, 20, 12]
+};
+
+document.addEventListener('DOMContentLoaded', function() {
+    
+    // VISUALIZATION 1: Heatmap Timeline
+    const heatmapCtx = document.getElementById('heatmapChart').getContext('2d');
+    new Chart(heatmapCtx, {
+        type: 'scatter',
+        data: {
+            datasets: [
+                {
+                    label: 'Trabajo',
+                    data: sampleData.trabajoData.map((value, index) => ({
+                        x: sampleData.timeLabels[index],
+                        y: 0,
+                        v: value
+                    })),
+                    backgroundColor: function(context) {
+                        const value = context.raw.v;
+                        if (value > 70) return '#ef444480';
+                        if (value > 40) return '#ef444860';
+                        if (value > 20) return '#ef444840';
+                        return '#ef444420';
+                    },
+                    borderColor: '#ef4444',
+                    pointRadius: 12
+                },
+                {
+                    label: 'Dashboard', 
+                    data: sampleData.dashboardData.map((value, index) => ({
+                        x: sampleData.timeLabels[index],
+                        y: 1,
+                        v: value
+                    })),
+                    backgroundColor: function(context) {
+                        const value = context.raw.v;
+                        if (value > 70) return '#10b98180';
+                        if (value > 40) return '#10b98160';
+                        if (value > 20) return '#10b98140';
+                        return '#10b98120';
+                    },
+                    borderColor: '#10b981',
+                    pointRadius: 12
+                },
+                {
+                    label: 'Comunicación',
+                    data: sampleData.comunicacionData.map((value, index) => ({
+                        x: sampleData.timeLabels[index],
+                        y: 2,
+                        v: value
+                    })),
+                    backgroundColor: function(context) {
+                        const value = context.raw.v;
+                        if (value > 70) return '#3b82f680';
+                        if (value > 40) return '#3b82f660';
+                        if (value > 20) return '#3b82f640';
+                        return '#3b82f620';
+                    },
+                    borderColor: '#3b82f6',
+                    pointRadius: 12
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: { display: true, text: '🌡️ Mapa de Calor - Actividad por Hora' },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.dataset.label + ' a las ' + context.raw.x + ': ' + context.raw.v.toFixed(1) + '% actividad';
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: { 
+                    title: { display: true, text: 'Hora del Día' },
+                    type: 'category'
+                },
+                y: { 
+                    type: 'category',
+                    labels: ['Trabajo', 'Dashboard', 'Comunicación'],
+                    title: { display: true, text: 'Cuadrantes' }
+                }
+            }
+        }
+    });
+
+    // VISUALIZATION 2: Aggregated Line Chart
+    const aggregatedCtx = document.getElementById('aggregatedChart').getContext('2d');
+    new Chart(aggregatedCtx, {
+        type: 'line',
+        data: {
+            labels: sampleData.timeLabels,
+            datasets: [
+                {
+                    label: 'Trabajo',
+                    data: sampleData.trabajoData,
+                    borderColor: '#ef4444',
+                    backgroundColor: '#ef444420',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4
+                },
+                {
+                    label: 'Dashboard',
+                    data: sampleData.dashboardData,
+                    borderColor: '#10b981',
+                    backgroundColor: '#10b98120',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4
+                },
+                {
+                    label: 'Comunicación',
+                    data: sampleData.comunicacionData,
+                    borderColor: '#3b82f6',
+                    backgroundColor: '#3b82f620',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: { display: true, text: '📈 Evolución Agregada (Intervalos 30min)' }
+            },
+            scales: {
+                x: { title: { display: true, text: 'Tiempo' } },
+                y: { title: { display: true, text: 'Actividad Promedio (%)' }, min: 0, max: 100 }
+            }
+        }
+    });
+
+    // VISUALIZATION 3: Activity Pulse Chart
+    const pulseCtx = document.getElementById('pulseChart').getContext('2d');
+    const pulseData = sampleData.timeLabels.map((_, index) => {
+        return (sampleData.trabajoData[index] + sampleData.dashboardData[index] + sampleData.comunicacionData[index]) / 3;
+    });
+    
+    new Chart(pulseCtx, {
+        type: 'bar',
+        data: {
+            labels: sampleData.timeLabels,
+            datasets: [{
+                label: 'Intensidad Combinada',
+                data: pulseData,
+                backgroundColor: function(context) {
+                    const value = context.parsed.y;
+                    if (value > 70) return '#ef4444';
+                    if (value > 40) return '#f59e0b';
+                    if (value > 20) return '#10b981';
+                    return '#6b7280';
+                },
+                borderColor: '#374151',
+                borderWidth: 1,
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: { display: true, text: '⚡ Pulsos de Actividad (Intensidad Combinada)' },
+                legend: { display: false }
+            },
+            scales: {
+                x: { title: { display: true, text: 'Tiempo' } },
+                y: { title: { display: true, text: 'Intensidad (%)' }, min: 0, max: 100 }
+            }
+        }
+    });
+
+    // VISUALIZATION 4: Scatter Timeline
+    const scatterCtx = document.getElementById('scatterChart').getContext('2d');
+    new Chart(scatterCtx, {
+        type: 'scatter',
+        data: {
+            datasets: [
+                {
+                    label: 'Trabajo',
+                    data: sampleData.trabajoData.map((value, index) => ({
+                        x: 9 + (index * 0.5), // Convert to decimal hours
+                        y: value,
+                        r: Math.max(5, value / 8) // Point size based on activity
+                    })).filter(point => point.y > 30), // Only significant activity
+                    backgroundColor: '#ef444480',
+                    borderColor: '#ef4444',
+                    borderWidth: 2
+                },
+                {
+                    label: 'Dashboard',
+                    data: sampleData.dashboardData.map((value, index) => ({
+                        x: 9 + (index * 0.5),
+                        y: value,
+                        r: Math.max(5, value / 8)
+                    })).filter(point => point.y > 30),
+                    backgroundColor: '#10b98180',
+                    borderColor: '#10b981',
+                    borderWidth: 2
+                },
+                {
+                    label: 'Comunicación',
+                    data: sampleData.comunicacionData.map((value, index) => ({
+                        x: 9 + (index * 0.5),
+                        y: value,
+                        r: Math.max(5, value / 8)
+                    })).filter(point => point.y > 30),
+                    backgroundColor: '#3b82f680',
+                    borderColor: '#3b82f6',
+                    borderWidth: 2
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: { display: true, text: '🎯 Timeline de Actividad (Puntos Dispersos)' },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const point = context.raw;
+                            const hour = Math.floor(point.x);
+                            const minute = Math.round((point.x % 1) * 60);
+                            return context.dataset.label + ': ' + point.y.toFixed(1) + '% a las ' + hour + ':' + String(minute).padStart(2, '0');
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: { 
+                    title: { display: true, text: 'Hora del Día' },
+                    min: 9,
+                    max: 18,
+                    ticks: {
+                        callback: function(value) { return Math.floor(value) + ':00'; }
+                    }
+                },
+                y: { title: { display: true, text: 'Actividad (%)' }, min: 0, max: 100 }
+            }
+        }
+    });
+
+    // VISUALIZATION 5: Hybrid Chart
+    const hybridCtx = document.getElementById('hybridChart').getContext('2d');
+    const overallTrend = sampleData.timeLabels.map((_, index) => {
+        return (sampleData.trabajoData[index] + sampleData.dashboardData[index] + sampleData.comunicacionData[index]) / 3;
+    });
+    const peakActivity = sampleData.timeLabels.map((_, index) => {
+        return Math.max(sampleData.trabajoData[index], sampleData.dashboardData[index], sampleData.comunicacionData[index]);
+    });
+    
+    new Chart(hybridCtx, {
+        type: 'line',
+        data: {
+            labels: sampleData.timeLabels,
+            datasets: [
+                {
+                    type: 'line',
+                    label: 'Tendencia General',
+                    data: overallTrend,
+                    borderColor: '#1f2937',
+                    backgroundColor: 'rgba(31, 41, 55, 0.1)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4
+                },
+                {
+                    type: 'bar',
+                    label: 'Picos de Actividad',
+                    data: peakActivity,
+                    backgroundColor: 'rgba(239, 68, 68, 0.6)',
+                    borderColor: '#ef4444',
+                    borderWidth: 1
+                },
+                {
+                    type: 'line',
+                    label: 'Cuadrante Principal',
+                    data: sampleData.trabajoData,
+                    borderColor: '#059669',
+                    backgroundColor: 'transparent',
+                    borderWidth: 2,
+                    borderDash: [5, 5],
+                    fill: false,
+                    tension: 0.2
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: { display: true, text: '🔥 Chart Híbrido - Múltiples Métricas' }
+            },
+            scales: {
+                x: { title: { display: true, text: 'Evolución Temporal' } },
+                y: { title: { display: true, text: 'Actividad (%)' }, min: 0, max: 100 }
+            },
+            interaction: { intersect: false, mode: 'index' }
+        }
+    });
+
+});
+</script>
+
+</body>
+</html>

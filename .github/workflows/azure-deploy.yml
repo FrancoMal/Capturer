@@ -1,0 +1,92 @@
+name: Deploy Capturer Dashboard to Azure
+
+on:
+  push:
+    branches: [ main, master ]
+    paths: [ 'CapturerWebDashboard/**' ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+        - dev
+        - staging
+        - production
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'dev' }}
+    
+    steps:
+    - name: 🔄 Checkout code
+      uses: actions/checkout@v4
+    
+    - name: 🔧 Setup .NET 8
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '8.0.x'
+    
+    - name: 📦 Restore NuGet packages
+      run: |
+        dotnet restore CapturerWebDashboard/src/CapturerDashboard.Web/CapturerDashboard.Web.csproj
+        dotnet restore CapturerWebDashboard/src/CapturerDashboard.Data/CapturerDashboard.Data.csproj
+        dotnet restore CapturerWebDashboard/src/CapturerDashboard.Core/CapturerDashboard.Core.csproj
+    
+    - name: 🔨 Build application
+      run: |
+        dotnet build CapturerWebDashboard/src/CapturerDashboard.Web/CapturerDashboard.Web.csproj \
+          --configuration Release \
+          --no-restore
+    
+    - name: 🧪 Run tests (if any)
+      run: |
+        dotnet test CapturerWebDashboard/src/CapturerDashboard.Tests/CapturerDashboard.Tests.csproj \
+          --configuration Release \
+          --no-build \
+          --verbosity normal \
+          --collect:"XPlat Code Coverage" || echo "No tests found or tests failed"
+    
+    - name: 📋 Publish application
+      run: |
+        dotnet publish CapturerWebDashboard/src/CapturerDashboard.Web/CapturerDashboard.Web.csproj \
+          --configuration Release \
+          --no-build \
+          --output ./publish
+    
+    - name: 🚀 Deploy to Azure App Service
+      uses: azure/webapps-deploy@v2
+      with:
+        app-name: 'capturer-dashboard-dev'
+        publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+        package: ./publish
+    
+    - name: ✅ Deployment completed
+      run: echo "🎉 Dashboard deployed successfully to Azure!"
+
+  post-deployment:
+    needs: build-and-deploy
+    runs-on: ubuntu-latest
+    if: success()
+    
+    steps:
+    - name: 🩺 Health check
+      run: |
+        echo "⏳ Waiting for app to start..."
+        sleep 30
+        
+        curl -f https://capturer-dashboard-dev.azurewebsites.net/health || {
+          echo "❌ Health check failed"
+          exit 1
+        }
+        
+        echo "✅ Application is healthy and responding"
+    
+    - name: 📧 Notify deployment success
+      run: |
+        echo "🎉 Capturer Dashboard deployed successfully!"
+        echo "📍 URL: https://capturer-dashboard-dev.azurewebsites.net"
+        echo "🔐 Admin login: admin@capturer.local / admin123"

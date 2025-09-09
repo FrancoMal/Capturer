@@ -13,8 +13,22 @@ namespace Capturer
         private readonly IEmailService _emailService;
         private readonly IFileService _fileService;
         private readonly IConfigurationManager _configManager;
+        private readonly IQuadrantService _quadrantService;
+        private readonly IQuadrantSchedulerService _quadrantSchedulerService;
         private readonly ServiceProvider _serviceProvider;
         private CapturerConfiguration _config = new();
+        
+        // Dashboard de actividad
+        private ActivityDashboardForm? _activityDashboard;
+        
+        // ✨ NEW v4.0: API Service
+        private readonly ICapturerApiService? _capturerApiService;
+        
+        // API Status monitoring
+        private ApiConnectionStatus _currentApiStatus = ApiConnectionStatus.Disconnected;
+        private DateTime _lastApiCheck = DateTime.MinValue;
+        private readonly HttpClient _dashboardHttpClient = new();
+        private readonly ToolTip _apiStatusToolTip = new();
 
         public Form1(ServiceProvider serviceProvider)
         {
@@ -24,6 +38,19 @@ namespace Capturer
             _emailService = serviceProvider.GetRequiredService<IEmailService>();
             _fileService = serviceProvider.GetRequiredService<IFileService>();
             _configManager = serviceProvider.GetRequiredService<IConfigurationManager>();
+            _quadrantService = serviceProvider.GetRequiredService<IQuadrantService>();
+            _quadrantSchedulerService = serviceProvider.GetRequiredService<IQuadrantSchedulerService>();
+
+            // ✨ NEW v4.0: Get API Service
+            try
+            {
+                _capturerApiService = serviceProvider.GetService<ICapturerApiService>();
+                Console.WriteLine("[DEBUG] CapturerApiService retrieved from DI container");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Failed to get CapturerApiService: {ex.Message}");
+            }
 
             InitializeComponent();
             InitializeApplication();
@@ -34,11 +61,17 @@ namespace Capturer
             // Load configuration
             _config = await _configManager.LoadConfigurationAsync();
 
+            // Setup form icon
+            SetupFormIcon();
+
             // Setup ListView columns
             SetupListView();
 
             // Wire up event handlers
             WireUpEvents();
+            
+            // Configurar integración de monitoreo de actividad
+            SetupActivityMonitoring();
 
             // Setup system tray
             SetupSystemTray();
@@ -46,11 +79,107 @@ namespace Capturer
             // Start scheduler service
             await _schedulerService.StartAsync();
 
+            // ✨ NEW v4.0: Start API service manually
+            if (_capturerApiService != null)
+            {
+                try
+                {
+                    Console.WriteLine("[DEBUG] Starting CapturerApiService manually...");
+                    
+                    // Cast to CapturerApiService to access StartAsync if needed
+                    if (_capturerApiService is CapturerApiService apiService)
+                    {
+                        // Start the hosted service manually using a CancellationTokenSource
+                        var cts = new CancellationTokenSource();
+                        _ = Task.Run(async () =>
+                        {
+                            try
+                            {
+                                await apiService.StartAsync(cts.Token);
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine($"[ERROR] CapturerApiService failed to start: {ex.Message}");
+                            }
+                        });
+                        
+                        // Give it a moment to start
+                        await Task.Delay(1000);
+                        
+                        Console.WriteLine($"[DEBUG] CapturerApiService started. IsRunning: {_capturerApiService.IsRunning}, Port: {_capturerApiService.Port}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[ERROR] Failed to start CapturerApiService: {ex.Message}");
+                }
+            }
+            else
+            {
+                Console.WriteLine("[WARNING] CapturerApiService not available - API endpoints will not work");
+            }
+
             // Update UI
             await UpdateUIAsync();
 
             // Start update timer
             updateTimer.Start();
+        }
+
+        private void SetupFormIcon()
+        {
+            try
+            {
+                if (File.Exists("Capturer_Logo.ico"))
+                {
+                    this.Icon = new Icon("Capturer_Logo.ico");
+                }
+                else
+                {
+                    // Fallback to embedded resource
+                    var stream = GetType().Assembly.GetManifestResourceStream("Capturer.Capturer_Logo.ico");
+                    if (stream != null)
+                    {
+                        this.Icon = new Icon(stream);
+                    }
+                }
+            }
+            catch
+            {
+                // Keep default icon if loading fails
+            }
+            
+            // Setup logo image in PictureBox
+            SetupLogoPictureBox();
+        }
+
+        private void SetupLogoPictureBox()
+        {
+            try
+            {
+                if (File.Exists("Capturer_Logo.png"))
+                {
+                    pictureBoxLogo.Image = Image.FromFile("Capturer_Logo.png");
+                }
+                else
+                {
+                    // Fallback to embedded resource
+                    var stream = GetType().Assembly.GetManifestResourceStream("Capturer.Capturer_Logo.png");
+                    if (stream != null)
+                    {
+                        pictureBoxLogo.Image = Image.FromStream(stream);
+                    }
+                }
+                
+                // Add a subtle border around the logo
+                pictureBoxLogo.BorderStyle = BorderStyle.None;
+                pictureBoxLogo.BackColor = this.BackColor;
+            }
+            catch
+            {
+                // If loading fails, hide the PictureBox
+                pictureBoxLogo.Visible = false;
+            }
         }
 
         private void SetupListView()
@@ -72,8 +201,12 @@ namespace Capturer
             btnStopCapture.Click += BtnStopCapture_Click;
             btnSettings.Click += BtnSettings_Click;
             btnSendEmail.Click += BtnSendEmail_Click;
+            btnRoutineEmail.Click += BtnRoutineEmail_Click;
             btnCaptureNow.Click += BtnCaptureNow_Click;
             btnOpenFolder.Click += BtnOpenFolder_Click;
+            btnQuadrants.Click += BtnQuadrants_Click;
+            btnActivityDashboard.Click += BtnActivityDashboard_Click;
+            btnConnectDashboard.Click += BtnConnectDashboard_Click;
             btnMinimizeToTray.Click += BtnMinimizeToTray_Click;
             btnExit.Click += BtnExit_Click;
 
@@ -100,10 +233,41 @@ namespace Capturer
 
         private void SetupSystemTray()
         {
-            // Set icon for system tray (you'll need to add an icon resource)
-            notifyIcon.Icon = SystemIcons.Application;
+            // Only setup system tray if enabled in configuration
+            if (!_config.Application.SystemTray.EnableCapturerSystemTray)
+            {
+                notifyIcon.Visible = false;
+                return;
+            }
+
+            // Set icon for system tray using our custom logo
+            try
+            {
+                if (File.Exists("Capturer_Logo.ico"))
+                {
+                    notifyIcon.Icon = new Icon("Capturer_Logo.ico");
+                }
+                else
+                {
+                    // Fallback to embedded resource
+                    var stream = GetType().Assembly.GetManifestResourceStream("Capturer.Capturer_Logo.ico");
+                    if (stream != null)
+                    {
+                        notifyIcon.Icon = new Icon(stream);
+                    }
+                    else
+                    {
+                        notifyIcon.Icon = SystemIcons.Application;
+                    }
+                }
+            }
+            catch
+            {
+                notifyIcon.Icon = SystemIcons.Application;
+            }
+            
             notifyIcon.Text = "Capturer - Screenshot Manager";
-            notifyIcon.Visible = true;
+            notifyIcon.Visible = _config.Application.SystemTray.ShowOnStartup;
         }
 
         private async void BtnStartCapture_Click(object? sender, EventArgs e)
@@ -156,6 +320,15 @@ namespace Capturer
         {
             _config = await _configManager.LoadConfigurationAsync();
             
+            // Update system tray configuration
+            UpdateSystemTrayConfiguration();
+            
+            // Update ActivityDashboard system tray configuration if it exists
+            if (_activityDashboard != null && !_activityDashboard.IsDisposed)
+            {
+                _activityDashboard.UpdateSystemTrayConfiguration(_config);
+            }
+            
             // Restart scheduler service with new configuration if it's running
             if (_schedulerService.IsRunning)
             {
@@ -168,7 +341,7 @@ namespace Capturer
         {
             try
             {
-                var emailForm = new EmailForm(_emailService, _fileService, _configManager);
+                var emailForm = new EmailForm(_emailService, _fileService, _configManager, _quadrantService);
                 if (emailForm.ShowDialog(this) == DialogResult.OK)
                 {
                     ShowNotification("Email", "Email enviado exitosamente");
@@ -180,6 +353,65 @@ namespace Capturer
             }
         }
 
+        private void BtnRoutineEmail_Click(object? sender, EventArgs e)
+        {
+            try
+            {
+                var routineEmailForm = new RoutineEmailForm(_emailService, _fileService, _configManager, _quadrantService);
+                if (routineEmailForm.ShowDialog(this) == DialogResult.OK)
+                {
+                    ShowNotification("Configuración", "Configuración de reportes automáticos guardada exitosamente");
+                    
+                    // Restart scheduler service to apply new configuration
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            if (_schedulerService.IsRunning)
+                            {
+                                await _schedulerService.StopAsync();
+                                await _schedulerService.StartAsync();
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"Error restarting scheduler: {ex.Message}");
+                        }
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error abriendo configuración de reportes automáticos: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+
+        private async void BtnConnectDashboard_Click(object? sender, EventArgs e)
+        {
+            try
+            {
+                // Show the Dashboard Connection form
+                var result = DashboardConnectionForm.ShowConnectionDialog(_serviceProvider);
+                
+                if (result == DialogResult.OK)
+                {
+                    // Connection successful, refresh UI to show dashboard status
+                    ShowNotification("Dashboard Connected", "Successfully connected to Dashboard Web! Data will now sync automatically.");
+                    
+                    // Refresh configuration to reflect new dashboard settings
+                    _config = await _configManager.LoadConfigurationAsync();
+                    await UpdateUIAsync();
+                    
+                    // TODO: Start dashboard sync if not already running
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Error opening Dashboard Connection: {ex.Message}");
+                MessageBox.Show($"Error connecting to dashboard: {ex.Message}", "Connection Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
 
         private void BtnMinimizeToTray_Click(object? sender, EventArgs e)
         {
@@ -303,6 +535,9 @@ namespace Capturer
 
                 // Update email status (simplified)
                 lblLastEmail.Text = "Último Email: Configurar"; // TODO: Track last email date
+                
+                // ✨ NEW v4.0: Update API status
+                await UpdateApiStatusAsync();
             }
             catch (Exception ex)
             {
@@ -341,7 +576,8 @@ namespace Capturer
 
         private void MinimizeToTray()
         {
-            if (_config.Application.MinimizeToTray)
+            // Check if system tray is enabled and MinimizeToTray is enabled
+            if (_config.Application.MinimizeToTray && _config.Application.SystemTray.EnableCapturerSystemTray)
             {
                 Hide();
                 ShowNotification("Capturer", "Aplicación minimizada al área de notificación");
@@ -361,15 +597,129 @@ namespace Capturer
 
         private void ShowNotification(string title, string message)
         {
-            if (_config.Application.ShowNotifications)
+            // Show notification only if system tray is enabled and notifications are enabled
+            if (_config.Application.ShowNotifications && 
+                _config.Application.SystemTray.EnableCapturerSystemTray && 
+                _config.Application.SystemTray.ShowTrayNotifications)
             {
-                notifyIcon.ShowBalloonTip(3000, title, message, ToolTipIcon.Info);
+                notifyIcon.ShowBalloonTip(_config.Application.SystemTray.NotificationDurationMs, title, message, ToolTipIcon.Info);
+            }
+        }
+
+        // ✨ NEW v4.0: API Status monitoring methods
+        private async Task UpdateApiStatusAsync()
+        {
+            try
+            {
+                var newStatus = ApiConnectionStatus.Disconnected;
+                string statusText = "API v4.0: Desconectado\nDashboard: Sin conexión";
+                
+                // Check API service status
+                if (_capturerApiService != null && _capturerApiService.IsRunning)
+                {
+                    newStatus = ApiConnectionStatus.Connected;
+                    statusText = $"API v4.0: Puerto {_capturerApiService.Port}\nDashboard: ";
+                    
+                    // Check Dashboard connectivity
+                    var dashboardStatus = await CheckDashboardConnectionAsync();
+                    statusText += dashboardStatus ? "Conectado" : "Desconectado";
+                    
+                    if (!dashboardStatus)
+                    {
+                        newStatus = ApiConnectionStatus.Error;
+                    }
+                }
+
+                // Update UI if status changed
+                if (newStatus != _currentApiStatus)
+                {
+                    _currentApiStatus = newStatus;
+                    UpdateApiStatusIndicator(newStatus, statusText);
+                }
+                
+                // Update text even if status didn't change (for real-time info)
+                lblApiStatusText.Text = statusText;
+                _lastApiCheck = DateTime.Now;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error updating API status: {ex.Message}");
+                UpdateApiStatusIndicator(ApiConnectionStatus.Error, "API v4.0: Error\nDashboard: Error");
+            }
+        }
+
+        private void UpdateApiStatusIndicator(ApiConnectionStatus status, string statusText)
+        {
+            try
+            {
+                if (InvokeRequired)
+                {
+                    Invoke(new Action(() => UpdateApiStatusIndicator(status, statusText)));
+                    return;
+                }
+
+                Color indicatorColor = status switch
+                {
+                    ApiConnectionStatus.Connected => Color.FromArgb(25, 135, 84),      // Green
+                    ApiConnectionStatus.Syncing => Color.FromArgb(255, 193, 7),       // Yellow  
+                    ApiConnectionStatus.Error => Color.FromArgb(220, 53, 69),         // Red
+                    ApiConnectionStatus.Disconnected => Color.FromArgb(108, 117, 125), // Gray
+                    _ => Color.FromArgb(185, 28, 28)                                   // Default Red
+                };
+
+                lblApiStatusIcon.BackColor = indicatorColor;
+                lblApiStatusText.Text = statusText;
+
+                // Update tooltip
+                var tooltip = status switch
+                {
+                    ApiConnectionStatus.Connected => "API v4.0 funcionando correctamente y Dashboard Web conectado",
+                    ApiConnectionStatus.Syncing => "API v4.0 funcionando, sincronizando con Dashboard Web",
+                    ApiConnectionStatus.Error => "API v4.0 funcionando pero hay errores de conexión",
+                    ApiConnectionStatus.Disconnected => "API v4.0 no está funcionando o Dashboard Web desconectado",
+                    _ => "Estado desconocido"
+                };
+
+                _apiStatusToolTip.SetToolTip(panelApiStatus, tooltip);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error updating API status indicator: {ex.Message}");
+            }
+        }
+
+        private async Task<bool> CheckDashboardConnectionAsync()
+        {
+            try
+            {
+                if (!_config.Api.EnableDashboardSync || string.IsNullOrEmpty(_config.Api.DashboardUrl))
+                    return false;
+
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(_config.Api.ConnectionTimeoutSeconds));
+                
+                _dashboardHttpClient.DefaultRequestHeaders.Clear();
+                _dashboardHttpClient.DefaultRequestHeaders.Add("X-Api-Key", _config.Api.ApiKey);
+                
+                var response = await _dashboardHttpClient.GetAsync(
+                    $"{_config.Api.DashboardUrl}/api/health", 
+                    cts.Token);
+                
+                return response.IsSuccessStatusCode;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Dashboard connection check failed: {ex.Message}");
+                return false;
             }
         }
 
         private async void Form1_FormClosing(object? sender, FormClosingEventArgs e)
         {
-            if (_config.Application.MinimizeToTray && e.CloseReason == CloseReason.UserClosing)
+            // Check if should minimize to tray instead of closing
+            if (_config.Application.MinimizeToTray && 
+                _config.Application.SystemTray.EnableCapturerSystemTray &&
+                _config.Application.SystemTray.HideOnClose &&
+                e.CloseReason == CloseReason.UserClosing)
             {
                 e.Cancel = true;
                 MinimizeToTray();
@@ -423,15 +773,174 @@ namespace Capturer
             }
         }
 
+        private void BtnQuadrants_Click(object? sender, EventArgs e)
+        {
+            try
+            {
+                // Check if quadrant system is enabled
+                if (!_config.QuadrantSystem.IsEnabled)
+                {
+                    var result = MessageBox.Show(
+                        "El sistema de cuadrantes está deshabilitado.\n\n¿Desea habilitarlo ahora?",
+                        "Sistema de Cuadrantes - Beta",
+                        MessageBoxButtons.YesNo,
+                        MessageBoxIcon.Question);
+
+                    if (result == DialogResult.Yes)
+                    {
+                        _config.QuadrantSystem.IsEnabled = true;
+                        _configManager.SaveConfigurationAsync(_config);
+                        ShowNotification("Cuadrantes", "Sistema de cuadrantes habilitado");
+                    }
+                    else
+                    {
+                        return;
+                    }
+                }
+
+                // Open quadrant editor form
+                var quadrantEditorForm = new QuadrantEditorForm(
+                    _quadrantService, 
+                    _configManager, 
+                    _screenshotService);
+
+                quadrantEditorForm.ShowDialog(this);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error abriendo editor de cuadrantes: {ex.Message}", 
+                    "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void BtnActivityDashboard_Click(object? sender, EventArgs e)
+        {
+            try
+            {
+                // Verificar que el sistema de cuadrantes esté habilitado
+                if (!_config.QuadrantSystem.IsEnabled)
+                {
+                    var result = MessageBox.Show(
+                        "El dashboard de actividad requiere que el sistema de cuadrantes esté habilitado.\n\n¿Desea habilitar los cuadrantes ahora?",
+                        "Dashboard de Actividad",
+                        MessageBoxButtons.YesNo,
+                        MessageBoxIcon.Question);
+
+                    if (result == DialogResult.Yes)
+                    {
+                        _config.QuadrantSystem.IsEnabled = true;
+                        _configManager.SaveConfigurationAsync(_config);
+                        ShowNotification("Sistema habilitado", "Cuadrantes y monitoreo de actividad habilitados");
+                    }
+                    else
+                    {
+                        return;
+                    }
+                }
+
+                // Verificar que haya al menos una configuración de cuadrantes
+                var activeConfig = _quadrantService.GetActiveConfiguration();
+                if (activeConfig == null)
+                {
+                    MessageBox.Show(
+                        "Error: No se pudo obtener una configuración de cuadrantes válida.\n\nIntente reiniciar la aplicación o contacte soporte técnico.",
+                        "Dashboard de Actividad - Error",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Error);
+                    return;
+                }
+                
+                // Si no hay cuadrantes habilitados, ofrecer configurar
+                if (!activeConfig.GetEnabledQuadrants().Any())
+                {
+                    var result = MessageBox.Show(
+                        $"La configuración '{activeConfig.Name}' no tiene cuadrantes habilitados.\n\n¿Desea configurar los cuadrantes ahora?",
+                        "Dashboard de Actividad",
+                        MessageBoxButtons.YesNo,
+                        MessageBoxIcon.Information);
+
+                    if (result == DialogResult.Yes)
+                    {
+                        BtnQuadrants_Click(sender, e);
+                    }
+                    return;
+                }
+
+                // Si el dashboard ya está abierto, traerlo al frente
+                if (_activityDashboard != null && !_activityDashboard.IsDisposed)
+                {
+                    _activityDashboard.BringToFront();
+                    _activityDashboard.WindowState = FormWindowState.Normal;
+                    return;
+                }
+
+                // Crear y mostrar el dashboard
+                var quadrantService = _quadrantService as QuadrantService;
+                if (quadrantService?.ActivityService != null)
+                {
+                    // Get required services from DI container
+                    var reportService = _serviceProvider.GetService<ActivityReportService>();
+                    var schedulerService = _serviceProvider.GetService<ActivityDashboardSchedulerService>();
+                    var simplifiedScheduler = _serviceProvider.GetService<SimplifiedReportsSchedulerService>();
+                    
+                    _activityDashboard = new ActivityDashboardForm(quadrantService.ActivityService, quadrantService, reportService!, schedulerService, simplifiedScheduler, _config, _emailService);
+                    _activityDashboard.Show();
+                    
+                    ShowNotification("Dashboard", "Dashboard de actividad abierto");
+                }
+                else
+                {
+                    MessageBox.Show("Error: No se pudo acceder al servicio de actividad", 
+                        "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error abriendo dashboard de actividad: {ex.Message}", 
+                    "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void SetupActivityMonitoring()
+        {
+            try
+            {
+                // Conectar el servicio de screenshots con el servicio de cuadrantes para monitoreo
+                if (_screenshotService is ScreenshotService screenshotService && 
+                    _quadrantService is QuadrantService quadrantService)
+                {
+                    screenshotService.SetQuadrantService(quadrantService);
+                    Console.WriteLine("[Form1] Monitoreo de actividad configurado correctamente");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Form1] Error configurando monitoreo de actividad: {ex.Message}");
+            }
+        }
+
         private async Task CleanupAndExit()
         {
             try
             {
-                // Stop scheduler service
+                // Stop scheduler services
                 if (_schedulerService != null)
                 {
                     await _schedulerService.StopAsync();
                     _schedulerService.Dispose();
+                }
+
+                if (_quadrantSchedulerService != null)
+                {
+                    await _quadrantSchedulerService.StopAsync();
+                    _quadrantSchedulerService.Dispose();
+                }
+
+                // Close activity dashboard if open
+                if (_activityDashboard != null && !_activityDashboard.IsDisposed)
+                {
+                    _activityDashboard.Close();
+                    _activityDashboard = null;
                 }
 
                 // Dispose services
@@ -448,6 +957,32 @@ namespace Capturer
             {
                 Application.Exit();
             }
+        }
+
+        /// <summary>
+        /// Updates system tray configuration when settings change
+        /// </summary>
+        public void UpdateSystemTrayConfiguration()
+        {
+            if (_config.Application.SystemTray.EnableCapturerSystemTray)
+            {
+                // Enable system tray
+                notifyIcon.Visible = _config.Application.SystemTray.ShowOnStartup;
+            }
+            else
+            {
+                // Disable system tray
+                notifyIcon.Visible = false;
+            }
+        }
+
+        /// <summary>
+        /// Public method to refresh configuration and update UI
+        /// </summary>
+        public async Task RefreshConfigurationAsync()
+        {
+            _config = await _configManager.LoadConfigurationAsync();
+            UpdateSystemTrayConfiguration();
         }
 
     }

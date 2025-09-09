@@ -1,0 +1,69 @@
+{
+  "name": "Capturer Dashboard",
+  "short_name": "Capturer",
+  "description": "Dashboard administrativo para monitoreo de computadoras Capturer Desktop",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#0066CC",
+  "background_color": "#F8F9FA",
+  "categories": ["business", "productivity"],
+  "lang": "es",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "images/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "images/screenshot-wide.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Dashboard principal con métricas en tiempo real"
+    },
+    {
+      "src": "images/screenshot-narrow.png", 
+      "sizes": "640x1136",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Vista móvil del dashboard"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "url": "/",
+      "description": "Ver dashboard principal",
+      "icons": [
+        {
+          "src": "images/icon-96.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Computadoras",
+      "url": "/computers",
+      "description": "Ver listado de computadoras",
+      "icons": [
+        {
+          "src": "images/icon-96.png",
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false,
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  }
+}

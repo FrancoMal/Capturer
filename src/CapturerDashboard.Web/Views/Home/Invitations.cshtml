@@ -1,0 +1,685 @@
+@{
+    ViewData["Title"] = "Computer Invitations";
+}
+
+<!-- Navigation -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="/">
+            <i class="fas fa-desktop"></i>
+            Capturer Dashboard
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="/">
+                        <i class="fas fa-tachometer-alt"></i>
+                        Dashboard
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" href="/invitations">
+                        <i class="fas fa-user-plus"></i>
+                        Connect Computers
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#">
+                        <i class="fas fa-chart-bar"></i>
+                        Reports
+                    </a>
+                </li>
+            </ul>
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-user"></i>
+                        Admin
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="#"><i class="fas fa-cog"></i> Settings</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="/auth/logout"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container-fluid mt-3">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>💻 Computer Invitations</h2>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createInvitationModal">
+                    🎫 Create New Invitation
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Invitations -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>🔗 Active Invitations</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="activeInvitationsTable">
+                            <thead>
+                                <tr>
+                                    <th>Description</th>
+                                    <th>Created</th>
+                                    <th>Expires</th>
+                                    <th>Uses</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Will be populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pending Approvals -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5>⏳ Pending Computer Approvals</h5>
+                    <span class="badge bg-warning" id="pendingCount">0</span>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="pendingApprovalsTable">
+                            <thead>
+                                <tr>
+                                    <th>Computer Name</th>
+                                    <th>Requested</th>
+                                    <th>IP Address</th>
+                                    <th>Hardware Info</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Will be populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create Invitation Modal -->
+<div class="modal fade" id="createInvitationModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">🎫 Create Computer Invitation</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createInvitationForm">
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description (Optional)</label>
+                        <input type="text" class="form-control" id="description" 
+                               placeholder="e.g., 'Juan's Office Computer'">
+                        <div class="form-text">Help identify this invitation later</div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="validForHours" class="form-label">Valid For</label>
+                                <select class="form-select" id="validForHours">
+                                    <option value="1">1 hour</option>
+                                    <option value="24" selected>24 hours</option>
+                                    <option value="168">1 week</option>
+                                    <option value="720">30 days</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="maxUses" class="form-label">Maximum Uses</label>
+                                <select class="form-select" id="maxUses">
+                                    <option value="1" selected>Single use</option>
+                                    <option value="5">5 uses</option>
+                                    <option value="10">10 uses</option>
+                                    <option value="999">Unlimited</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="requireApproval" checked>
+                            <label class="form-check-label" for="requireApproval">
+                                Require manual approval
+                            </label>
+                            <div class="form-text">If disabled, computers will be registered automatically</div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="allowedNetworks" class="form-label">Allowed Networks (Optional)</label>
+                        <input type="text" class="form-control" id="allowedNetworks" 
+                               placeholder="e.g., 192.168.1.0/24, 10.0.0.0/8">
+                        <div class="form-text">IP ranges that can use this invitation. Leave empty for any network.</div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="createInvitationBtn">
+                    <span class="spinner-border spinner-border-sm d-none" role="status"></span>
+                    🎫 Create Invitation
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Invitation Result Modal -->
+<div class="modal fade" id="invitationResultModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">✅ Invitation Created Successfully</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="mb-3">
+                            <label for="invitationUrl" class="form-label">📎 Invitation Link</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="invitationUrl" readonly>
+                                <button class="btn btn-outline-secondary" type="button" onclick="copyInvitationUrl()">
+                                    📋 Copy
+                                </button>
+                                <button class="btn btn-outline-primary" type="button" onclick="shareInvitation()">
+                                    🔗 Share
+                                </button>
+                            </div>
+                            <div class="form-text">
+                                Share this link with the user to connect their computer. 
+                                Expires: <span id="expirationTime"></span>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">📧 Email Template</label>
+                            <textarea class="form-control" rows="4" id="emailTemplate" readonly></textarea>
+                            <button class="btn btn-sm btn-outline-secondary mt-2" onclick="copyEmailTemplate()">
+                                📋 Copy Email Text
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <label class="form-label">📱 QR Code</label>
+                            <div class="mb-3">
+                                <canvas id="qrCodeCanvas" width="200" height="200" class="border rounded"></canvas>
+                            </div>
+                            <button class="btn btn-sm btn-outline-primary" onclick="downloadQRCode()">
+                                💾 Download QR Code
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-success" onclick="createAnotherInvitation()">
+                    🎫 Create Another
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Approval Modal -->
+<div class="modal fade" id="approvalModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="approvalModalTitle">Computer Registration</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="approvalModalBody">
+                    <!-- Content will be populated by JavaScript -->
+                </div>
+                <div class="mb-3">
+                    <label for="approvalNotes" class="form-label">Notes (Optional)</label>
+                    <textarea class="form-control" id="approvalNotes" rows="3" 
+                              placeholder="Add any notes about this approval/denial..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="denyBtn" style="display: none;">
+                    ❌ Deny Registration
+                </button>
+                <button type="button" class="btn btn-success" id="approveBtn" style="display: none;">
+                    ✅ Approve Registration
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <!-- Include QR Code library -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    
+    <script>
+        class InvitationManager {
+            constructor() {
+                this.currentInvitation = null;
+                this.currentPendingRegistration = null;
+                this.init();
+            }
+
+            init() {
+                this.setupEventListeners();
+                this.loadActiveInvitations();
+                this.loadPendingApprovals();
+                
+                // Auto-refresh every 30 seconds
+                setInterval(() => {
+                    this.loadActiveInvitations();
+                    this.loadPendingApprovals();
+                }, 30000);
+            }
+
+            setupEventListeners() {
+                document.getElementById('createInvitationBtn').addEventListener('click', () => {
+                    this.createInvitation();
+                });
+
+                document.getElementById('approveBtn').addEventListener('click', () => {
+                    this.approveRegistration();
+                });
+
+                document.getElementById('denyBtn').addEventListener('click', () => {
+                    this.denyRegistration();
+                });
+            }
+
+            async createInvitation() {
+                const btn = document.getElementById('createInvitationBtn');
+                const spinner = btn.querySelector('.spinner-border');
+                
+                try {
+                    btn.disabled = true;
+                    spinner.classList.remove('d-none');
+
+                    const formData = {
+                        description: document.getElementById('description').value,
+                        validForHours: parseInt(document.getElementById('validForHours').value),
+                        maxUses: parseInt(document.getElementById('maxUses').value),
+                        requireApproval: document.getElementById('requireApproval').checked,
+                        allowedNetworks: document.getElementById('allowedNetworks').value
+                    };
+
+                    const response = await fetch('/api/invitations', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(formData)
+                    });
+
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.error || 'Failed to create invitation');
+                    }
+
+                    const result = await response.json();
+                    this.currentInvitation = result;
+                    
+                    this.showInvitationResult(result);
+                    bootstrap.Modal.getInstance(document.getElementById('createInvitationModal')).hide();
+                    
+                    // Reset form
+                    document.getElementById('createInvitationForm').reset();
+                    document.getElementById('requireApproval').checked = true;
+                    
+                    // Refresh invitations list
+                    this.loadActiveInvitations();
+
+                } catch (error) {
+                    console.error('Failed to create invitation:', error);
+                    alert('Failed to create invitation: ' + error.message);
+                } finally {
+                    btn.disabled = false;
+                    spinner.classList.add('d-none');
+                }
+            }
+
+            async showInvitationResult(invitation) {
+                // Populate invitation URL
+                document.getElementById('invitationUrl').value = invitation.invitationUrl;
+                document.getElementById('expirationTime').textContent = new Date(invitation.expiresAt).toLocaleString();
+
+                // Generate QR code
+                const canvas = document.getElementById('qrCodeCanvas');
+                await QRCode.toCanvas(canvas, invitation.invitationUrl, {
+                    width: 200,
+                    margin: 2,
+                    color: {
+                        dark: '#000000',
+                        light: '#FFFFFF'
+                    }
+                });
+
+                // Generate email template
+                const emailTemplate = this.generateEmailTemplate(invitation);
+                document.getElementById('emailTemplate').value = emailTemplate;
+
+                // Show result modal
+                new bootstrap.Modal(document.getElementById('invitationResultModal')).show();
+            }
+
+            generateEmailTemplate(invitation) {
+                const expirationDate = new Date(invitation.expiresAt).toLocaleDateString();
+                return `Subject: Connect your computer to Capturer Dashboard
+
+Hi!
+
+You've been invited to connect your computer to our Capturer monitoring system.
+
+To connect your computer:
+1. Open this link on the computer you want to monitor: ${invitation.invitationUrl}
+2. Follow the setup instructions
+3. Choose a descriptive name for your computer
+
+The invitation expires on ${expirationDate}.
+
+If you have any questions, please contact your system administrator.
+
+Best regards,
+Capturer Team`;
+            }
+
+            async loadActiveInvitations() {
+                try {
+                    const response = await fetch('/api/invitations');
+                    if (!response.ok) throw new Error('Failed to load invitations');
+
+                    const invitations = await response.json();
+                    this.renderActiveInvitations(invitations);
+                } catch (error) {
+                    console.error('Failed to load active invitations:', error);
+                }
+            }
+
+            renderActiveInvitations(invitations) {
+                const tbody = document.querySelector('#activeInvitationsTable tbody');
+                tbody.innerHTML = '';
+
+                invitations.forEach(invitation => {
+                    const row = document.createElement('tr');
+                    const timeUntilExpiry = invitation.timeUntilExpiry > 0 ? 
+                        Math.round(invitation.timeUntilExpiry) + 'h' : 'Expired';
+                    
+                    const statusBadge = invitation.isUsable ? 
+                        '<span class="badge bg-success">Active</span>' :
+                        '<span class="badge bg-danger">Expired</span>';
+
+                    row.innerHTML = `
+                        <td>${invitation.description || 'No description'}</td>
+                        <td>${new Date(invitation.createdAt).toLocaleString()}</td>
+                        <td>${timeUntilExpiry}</td>
+                        <td>
+                            <span class="badge bg-info">${invitation.usedCount}/${invitation.maxUses}</span>
+                            ${invitation.requireApproval ? '<span class="badge bg-warning ms-1">Approval Required</span>' : ''}
+                        </td>
+                        <td>${statusBadge}</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary" onclick="invitationManager.viewInvitation('${invitation.id}')">
+                                👁️ View
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="invitationManager.copyInvitationUrl('${invitation.invitationUrl}')">
+                                📋 Copy Link
+                            </button>
+                        </td>
+                    `;
+                    
+                    tbody.appendChild(row);
+                });
+            }
+
+            async loadPendingApprovals() {
+                try {
+                    const response = await fetch('/api/invitations/pending');
+                    if (!response.ok) throw new Error('Failed to load pending approvals');
+
+                    const pending = await response.json();
+                    this.renderPendingApprovals(pending);
+                    
+                    // Update pending count badge
+                    document.getElementById('pendingCount').textContent = pending.length;
+                } catch (error) {
+                    console.error('Failed to load pending approvals:', error);
+                }
+            }
+
+            renderPendingApprovals(pending) {
+                const tbody = document.querySelector('#pendingApprovalsTable tbody');
+                tbody.innerHTML = '';
+
+                if (pending.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No pending approvals</td></tr>';
+                    return;
+                }
+
+                pending.forEach(registration => {
+                    const row = document.createElement('tr');
+                    const hardwareInfo = Object.keys(registration.hardwareInfoData).length > 0 ?
+                        `OS: ${registration.hardwareInfoData.operatingSystem || 'Unknown'}, CPU: ${registration.hardwareInfoData.processorCount || 'Unknown'} cores` :
+                        'No hardware info';
+
+                    row.innerHTML = `
+                        <td>
+                            <strong>${registration.computerName}</strong>
+                            ${registration.computerId ? `<br><small class="text-muted">ID: ${registration.computerId}</small>` : ''}
+                        </td>
+                        <td>${new Date(registration.requestedAt).toLocaleString()}</td>
+                        <td><code>${registration.requestIP || 'Unknown'}</code></td>
+                        <td><small>${hardwareInfo}</small></td>
+                        <td>
+                            <button class="btn btn-sm btn-success" onclick="invitationManager.showApprovalModal('${registration.id}', 'approve')">
+                                ✅ Approve
+                            </button>
+                            <button class="btn btn-sm btn-danger ms-1" onclick="invitationManager.showApprovalModal('${registration.id}', 'deny')">
+                                ❌ Deny
+                            </button>
+                        </td>
+                    `;
+                    
+                    tbody.appendChild(row);
+                });
+            }
+
+            showApprovalModal(registrationId, action) {
+                this.currentPendingRegistration = registrationId;
+                
+                const modal = document.getElementById('approvalModal');
+                const title = document.getElementById('approvalModalTitle');
+                const approveBtn = document.getElementById('approveBtn');
+                const denyBtn = document.getElementById('denyBtn');
+                
+                if (action === 'approve') {
+                    title.textContent = '✅ Approve Computer Registration';
+                    approveBtn.style.display = 'inline-block';
+                    denyBtn.style.display = 'none';
+                } else {
+                    title.textContent = '❌ Deny Computer Registration';
+                    approveBtn.style.display = 'none';
+                    denyBtn.style.display = 'inline-block';
+                }
+
+                new bootstrap.Modal(modal).show();
+            }
+
+            async approveRegistration() {
+                try {
+                    const notes = document.getElementById('approvalNotes').value;
+                    
+                    const response = await fetch(`/api/invitations/pending/${this.currentPendingRegistration}/approve`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ notes })
+                    });
+
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.error || 'Approval failed');
+                    }
+
+                    const result = await response.json();
+                    
+                    alert(`✅ Computer registration approved!\n\nComputer: ${result.computerName}\nAPI Key: ${result.apiKey}`);
+                    
+                    bootstrap.Modal.getInstance(document.getElementById('approvalModal')).hide();
+                    this.loadPendingApprovals();
+                    
+                } catch (error) {
+                    console.error('Failed to approve registration:', error);
+                    alert('Failed to approve registration: ' + error.message);
+                }
+            }
+
+            async denyRegistration() {
+                try {
+                    const reason = document.getElementById('approvalNotes').value;
+                    if (!reason) {
+                        alert('Please provide a reason for denial');
+                        return;
+                    }
+                    
+                    const response = await fetch(`/api/invitations/pending/${this.currentPendingRegistration}/deny`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ reason })
+                    });
+
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.error || 'Denial failed');
+                    }
+
+                    alert('❌ Computer registration denied successfully');
+                    
+                    bootstrap.Modal.getInstance(document.getElementById('approvalModal')).hide();
+                    this.loadPendingApprovals();
+                    
+                } catch (error) {
+                    console.error('Failed to deny registration:', error);
+                    alert('Failed to deny registration: ' + error.message);
+                }
+            }
+
+            copyInvitationUrl() {
+                const url = document.getElementById('invitationUrl');
+                url.select();
+                document.execCommand('copy');
+                
+                // Show temporary feedback
+                const btn = event.target;
+                const originalText = btn.textContent;
+                btn.textContent = '✅ Copied!';
+                setTimeout(() => btn.textContent = originalText, 2000);
+            }
+
+            copyEmailTemplate() {
+                const template = document.getElementById('emailTemplate');
+                template.select();
+                document.execCommand('copy');
+                
+                // Show temporary feedback
+                const btn = event.target;
+                const originalText = btn.textContent;
+                btn.textContent = '✅ Copied!';
+                setTimeout(() => btn.textContent = originalText, 2000);
+            }
+
+            async downloadQRCode() {
+                const canvas = document.getElementById('qrCodeCanvas');
+                const link = document.createElement('a');
+                link.download = 'capturer-invitation-qr.png';
+                link.href = canvas.toDataURL();
+                link.click();
+            }
+
+            shareInvitation() {
+                const url = document.getElementById('invitationUrl').value;
+                
+                if (navigator.share) {
+                    navigator.share({
+                        title: 'Capturer Computer Invitation',
+                        text: 'Connect your computer to our monitoring system',
+                        url: url
+                    });
+                } else {
+                    // Fallback to copy
+                    this.copyInvitationUrl();
+                    alert('Link copied to clipboard!');
+                }
+            }
+
+            createAnotherInvitation() {
+                bootstrap.Modal.getInstance(document.getElementById('invitationResultModal')).hide();
+                new bootstrap.Modal(document.getElementById('createInvitationModal')).show();
+            }
+        }
+
+        // Global functions for onclick handlers
+        function copyInvitationUrl() {
+            window.invitationManager.copyInvitationUrl();
+        }
+
+        function shareInvitation() {
+            window.invitationManager.shareInvitation();
+        }
+
+        function copyEmailTemplate() {
+            window.invitationManager.copyEmailTemplate();
+        }
+
+        function downloadQRCode() {
+            window.invitationManager.downloadQRCode();
+        }
+
+        function createAnotherInvitation() {
+            window.invitationManager.createAnotherInvitation();
+        }
+
+        // Initialize when DOM is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            window.invitationManager = new InvitationManager();
+        });
+    </script>
+}

@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html><head>
+<meta charset='UTF-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0'>
+<title>📊 Reporte de Actividad - Capturer Dashboard</title>
+<script src='https://cdn.jsdelivr.net/npm/chart.js'></script>
+<link href='https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap' rel='stylesheet'>
+<style>
+
+            :root {
+                --primary-color: #2563eb;
+                --secondary-color: #3b82f6;
+                --success-color: #10b981;
+                --warning-color: #f59e0b;
+                --danger-color: #ef4444;
+                --gray-50: #f9fafb;
+                --gray-100: #f3f4f6;
+                --gray-200: #e5e7eb;
+                --gray-600: #4b5563;
+                --gray-800: #1f2937;
+                --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+                --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            }
+            
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            
+            body {
+                font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                background: linear-gradient(135deg, var(--gray-50) 0%, #ffffff 100%);
+                color: var(--gray-800);
+                line-height: 1.6;
+            }
+            
+            .container {
+                max-width: 1200px;
+                margin: 0 auto;
+                padding: 0 20px;
+            }
+            
+            .header {
+                background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+                color: white;
+                padding: 2rem 0;
+                margin-bottom: 2rem;
+                box-shadow: var(--shadow-lg);
+            }
+            
+            .header-content {
+                display: flex;
+                align-items: center;
+                gap: 1rem;
+            }
+            
+            .logo {
+                font-size: 3rem;
+                filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+            }
+            
+            .header h1 {
+                font-size: 2.5rem;
+                font-weight: 700;
+                margin-bottom: 0.5rem;
+            }
+            
+            .period {
+                font-size: 1.1rem;
+                opacity: 0.9;
+                font-weight: 300;
+            }
+            
+            .summary-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                gap: 1.5rem;
+                margin-bottom: 3rem;
+            }
+            
+            .summary-card {
+                background: white;
+                padding: 1.5rem;
+                border-radius: 12px;
+                box-shadow: var(--shadow);
+                border-left: 4px solid var(--primary-color);
+                transition: all 0.2s ease;
+            }
+            
+            .summary-card:hover {
+                transform: translateY(-2px);
+                box-shadow: var(--shadow-lg);
+            }
+            
+            .card-header {
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+                margin-bottom: 1rem;
+            }
+            
+            .card-icon {
+                font-size: 1.5rem;
+                width: 40px;
+                height: 40px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: var(--gray-100);
+                border-radius: 8px;
+            }
+            
+            .card-title {
+                font-size: 0.875rem;
+                font-weight: 500;
+                color: var(--gray-600);
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+            }
+            
+            .card-value {
+                font-size: 2rem;
+                font-weight: 700;
+                color: var(--gray-800);
+                margin-bottom: 0.5rem;
+            }
+            
+            .card-description {
+                font-size: 0.875rem;
+                color: var(--gray-600);
+            }
+            
+            .chart-container {
+                background: white;
+                padding: 2rem;
+                border-radius: 12px;
+                box-shadow: var(--shadow);
+                margin-bottom: 2rem;
+            }
+            
+            .chart-title {
+                font-size: 1.5rem;
+                font-weight: 600;
+                margin-bottom: 1.5rem;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+            
+            .chart-wrapper {
+                position: relative;
+                height: 400px;
+            }
+            
+            .modern-table {
+                background: white;
+                border-radius: 12px;
+                overflow: hidden;
+                box-shadow: var(--shadow);
+                margin-bottom: 2rem;
+            }
+            
+            .table-header {
+                background: var(--gray-50);
+                padding: 1.5rem 2rem;
+                border-bottom: 1px solid var(--gray-200);
+            }
+            
+            .table-title {
+                font-size: 1.25rem;
+                font-weight: 600;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+            
+            table {
+                width: 100%;
+                border-collapse: collapse;
+            }
+            
+            th, td {
+                padding: 1rem 2rem;
+                text-align: left;
+                border-bottom: 1px solid var(--gray-200);
+            }
+            
+            th {
+                background: var(--gray-50);
+                font-weight: 600;
+                color: var(--gray-800);
+                font-size: 0.875rem;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+            }
+            
+            tbody tr:hover {
+                background: var(--gray-50);
+            }
+            
+            .activity-bar {
+                width: 60px;
+                height: 8px;
+                background: var(--gray-200);
+                border-radius: 4px;
+                overflow: hidden;
+                display: inline-block;
+                vertical-align: middle;
+                margin-left: 0.5rem;
+            }
+            
+            .activity-fill {
+                height: 100%;
+                border-radius: 4px;
+                transition: width 0.3s ease;
+            }
+            
+            .footer {
+                background: var(--gray-800);
+                color: white;
+                text-align: center;
+                padding: 2rem;
+                margin-top: 3rem;
+            }
+            
+            .footer p {
+                opacity: 0.8;
+                font-size: 0.875rem;
+            }
+            
+            @media (max-width: 768px) {
+                .container {
+                    padding: 0 1rem;
+                }
+                
+                .header h1 {
+                    font-size: 2rem;
+                }
+                
+                .summary-grid {
+                    grid-template-columns: 1fr;
+                }
+                
+                .chart-wrapper {
+                    height: 300px;
+                }
+                
+                th, td {
+                    padding: 0.75rem 1rem;
+                }
+            }
+        
+</style></head><body>
+
+<div class='header'>
+<div class='container'>
+<div class='header-content'>
+<div class='logo'>📊</div>
+<div class='header-text'>
+<h1>Reporte de Actividad</h1>
+<p class='period'>27/08/2024 09:00 - 27/08/2024 18:00</p>
+</div></div></div></div>
+
+<div class='container'>
+
+<div class='summary-grid'>
+<div class='summary-card'>
+<div class='card-header'>
+<div class='card-icon'>⏱️</div>
+<div class='card-title'>Duración del Monitoreo</div>
+</div>
+<div class='card-value'>9.0h</div>
+<div class='card-description'>540 minutos de actividad</div>
+</div>
+<div class='summary-card'>
+<div class='card-header'>
+<div class='card-icon'>🎯</div>
+<div class='card-title'>Cuadrantes Monitoreados</div>
+</div>
+<div class='card-value'>4</div>
+<div class='card-description'>Regiones bajo seguimiento</div>
+</div>
+<div class='summary-card'>
+<div class='card-header'>
+<div class='card-icon'>🔥</div>
+<div class='card-title'>Actividades Detectadas</div>
+</div>
+<div class='card-value'>2,847</div>
+<div class='card-description'>De 18,450 comparaciones</div>
+</div>
+<div class='summary-card'>
+<div class='card-header'>
+<div class='card-icon'>📊</div>
+<div class='card-title'>Eficiencia de Monitoreo</div>
+</div>
+<div class='card-value'>15.4%</div>
+<div class='card-description'>Nivel: Moderada</div>
+</div>
+</div>
+
+<div class='chart-container'>
+<h2 class='chart-title'>📊 Actividad por Cuadrante</h2>
+<div class='chart-wrapper'>
+<canvas id='activityChart'></canvas>
+</div></div>
+
+<div class='chart-container'>
+<h2 class='chart-title'>📈 Evolución de Actividad durante el Día</h2>
+<div class='chart-wrapper'>
+<canvas id='timelineChart'></canvas>
+</div></div>
+
+<div class='modern-table'>
+<div class='table-header'>
+<h2 class='table-title'>📋 Detalles por Cuadrante</h2>
+</div>
+<table>
+<thead>
+<tr>
+<th>Cuadrante</th>
+<th>Comparaciones</th>
+<th>Actividades</th>
+<th>Tasa de Actividad</th>
+<th>Cambio Promedio</th>
+<th>Primera Actividad</th>
+<th>Última Actividad</th>
+<th>Duración Activa</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Trabajo</strong></td>
+<td>5,890</td>
+<td>1,234</td>
+<td>20.9%<span class='activity-bar'><span class='activity-fill' style='width: 41.8%; background: #ef4444;'></span></span></td>
+<td>8.45%</td>
+<td>27/08 09:15</td>
+<td>27/08 17:45</td>
+<td>08:30:00</td>
+</tr>
+<tr>
+<td><strong>Dashboard</strong></td>
+<td>4,560</td>
+<td>892</td>
+<td>19.6%<span class='activity-bar'><span class='activity-fill' style='width: 39.2%; background: #ef4444;'></span></span></td>
+<td>6.78%</td>
+<td>27/08 09:30</td>
+<td>27/08 17:30</td>
+<td>08:00:00</td>
+</tr>
+<tr>
+<td><strong>Comunicaciones</strong></td>
+<td>4,200</td>
+<td>456</td>
+<td>10.9%<span class='activity-bar'><span class='activity-fill' style='width: 21.8%; background: #10b981;'></span></span></td>
+<td>4.23%</td>
+<td>27/08 10:00</td>
+<td>27/08 16:45</td>
+<td>06:45:00</td>
+</tr>
+<tr>
+<td><strong>Personal</strong></td>
+<td>3,800</td>
+<td>265</td>
+<td>7.0%<span class='activity-bar'><span class='activity-fill' style='width: 14.0%; background: #3b82f6;'></span></span></td>
+<td>2.15%</td>
+<td>27/08 12:00</td>
+<td>27/08 15:30</td>
+<td>03:30:00</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+</div>
+
+<div class='footer'>
+<p>📅 Generado el 27/08/2024 18:15:30 | 🖥️ Capturer Dashboard v2.4 | 📊 2,847 actividades detectadas</p>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Gráfica de actividad por cuadrante
+    const activityCtx = document.getElementById('activityChart').getContext('2d');
+    new Chart(activityCtx, {
+        type: 'bar',
+        data: {
+            labels: ['Trabajo', 'Dashboard', 'Comunicaciones', 'Personal'],
+            datasets: [{
+                label: 'Tasa de Actividad (%)',
+                data: [20.9, 19.6, 10.9, 7.0],
+                backgroundColor: ['#ef4444', '#ef4444', '#10b981', '#3b82f6'],
+                borderColor: ['#ef4444', '#ef4444', '#10b981', '#3b82f6'],
+                borderWidth: 2,
+                borderRadius: 6,
+                borderSkipped: false
+            }, {
+                label: 'Actividades Detectadas',
+                data: [1234, 892, 456, 265],
+                type: 'line',
+                yAxisID: 'y1',
+                borderColor: '#6366f1',
+                backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                borderWidth: 3,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'top' },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false
+                }
+            },
+            scales: {
+                y: {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                    title: { display: true, text: 'Tasa de Actividad (%)' }
+                },
+                y1: {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    title: { display: true, text: 'Número de Actividades' },
+                    grid: { drawOnChartArea: false }
+                }
+            }
+        }
+    });
+    
+    // Gráfica temporal de actividad
+    const timelineCtx = document.getElementById('timelineChart').getContext('2d');
+    
+    new Chart(timelineCtx, {
+        type: 'line',
+        data: {
+            labels: ['00:00', '02:00', '04:00', '06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00', '22:00'],
+            datasets: [
+                {
+                    label: 'Trabajo',
+                    data: [0.5, 0.2, 0.1, 2.3, 18.7, 25.1, 28.3, 31.2, 26.8, 22.4, 1.2, 0.8],
+                    borderColor: '#ef4444',
+                    backgroundColor: '#ef444433',
+                    borderWidth: 3,
+                    fill: false,
+                    tension: 0.4
+                },
+                {
+                    label: 'Dashboard',
+                    data: [0.3, 0.1, 0.0, 1.8, 17.2, 23.6, 26.1, 28.9, 24.3, 20.7, 0.9, 0.6],
+                    borderColor: '#10b981',
+                    backgroundColor: '#10b98133',
+                    borderWidth: 3,
+                    fill: false,
+                    tension: 0.4
+                },
+                {
+                    label: 'Comunicaciones',
+                    data: [0.1, 0.0, 0.0, 0.9, 9.2, 14.1, 16.7, 18.3, 15.2, 12.1, 0.4, 0.2],
+                    borderColor: '#3b82f6',
+                    backgroundColor: '#3b82f633',
+                    borderWidth: 3,
+                    fill: false,
+                    tension: 0.4
+                },
+                {
+                    label: 'Personal',
+                    data: [0.0, 0.0, 0.0, 0.3, 4.2, 8.1, 12.4, 10.7, 7.9, 5.3, 0.1, 0.0],
+                    borderColor: '#f59e0b',
+                    backgroundColor: '#f59e0b33',
+                    borderWidth: 3,
+                    fill: false,
+                    tension: 0.4
+                }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'top' },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false
+                }
+            },
+            scales: {
+                x: {
+                    title: { display: true, text: 'Hora del Día' }
+                },
+                y: {
+                    title: { display: true, text: 'Nivel de Actividad (%)' },
+                    min: 0
+                }
+            },
+            interaction: {
+                intersect: false,
+                mode: 'index'
+            }
+        }
+    });
+    
+});
+</script>
+
+</body></html>

@@ -2,6 +2,7 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
 using Capturer.Models;
+using Capturer.Utils;
 
 namespace Capturer.Services;
 
@@ -15,6 +16,9 @@ public interface IScreenshotService
     List<ScreenInfo> GetAvailableScreens();
     Task RefreshScreenConfigurationAsync();
     event EventHandler<ScreenshotCapturedEventArgs>? ScreenshotCaptured;
+    
+    // Integración con monitoreo de actividad
+    void SetQuadrantService(QuadrantService quadrantService);
 }
 
 public class ScreenshotService : IScreenshotService, IDisposable
@@ -25,6 +29,9 @@ public class ScreenshotService : IScreenshotService, IDisposable
     private CapturerConfiguration _config = new();
     private DateTime? _nextCaptureTime;
     private TimeSpan _captureInterval;
+    
+    // Integración con monitoreo de actividad
+    private QuadrantService? _quadrantService;
 
     public bool IsCapturing => _isCapturing;
     public DateTime? NextCaptureTime => _nextCaptureTime;
@@ -125,10 +132,25 @@ public class ScreenshotService : IScreenshotService, IDisposable
 
             var screenshotInfo = await SaveScreenshotAsync(screenshot);
             
+            // Procesar monitoreo de actividad si está habilitado
+            List<QuadrantActivityResult>? activityResults = null;
+            if (_quadrantService != null)
+            {
+                try
+                {
+                    activityResults = await _quadrantService.ProcessScreenshotForActivityAsync(screenshot);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error en monitoreo de actividad: {ex.Message}");
+                }
+            }
+            
             ScreenshotCaptured?.Invoke(this, new ScreenshotCapturedEventArgs 
             { 
                 Screenshot = screenshotInfo, 
-                Success = true 
+                Success = true,
+                ActivityResults = activityResults
             });
 
             return screenshotInfo;
@@ -224,27 +246,59 @@ public class ScreenshotService : IScreenshotService, IDisposable
         var fileName = $"{now:yyyy-MM-dd_HH-mm-ss}.{_config.Screenshot.ImageFormat.ToLower()}";
         var fullPath = Path.Combine(_config.Storage.ScreenshotFolder, fileName);
 
-        // Get image format
-        var format = _config.Screenshot.ImageFormat.ToLower() switch
+        // Apply privacy blur if enabled
+        Bitmap finalScreenshot = screenshot;
+        try
         {
-            "jpg" or "jpeg" => ImageFormat.Jpeg,
-            "bmp" => ImageFormat.Bmp,
-            "gif" => ImageFormat.Gif,
-            "tiff" => ImageFormat.Tiff,
-            _ => ImageFormat.Png
-        };
+            if (_config.Screenshot.EnablePrivacyBlur)
+            {
+                Console.WriteLine($"Applying privacy blur - Intensity: {_config.Screenshot.BlurIntensity}, Mode: {_config.Screenshot.BlurMode}");
+                
+                // Validate blur settings
+                var (validatedIntensity, validatedMode, warning) = ImageBlurUtils.ValidateBlurSettings(
+                    _config.Screenshot.BlurIntensity, _config.Screenshot.BlurMode);
+                
+                if (!string.IsNullOrEmpty(warning))
+                {
+                    Console.WriteLine($"Blur performance warning: {warning}");
+                }
+                
+                finalScreenshot = await Task.Run(() => 
+                    ImageBlurUtils.ApplyBlur(screenshot, validatedIntensity, validatedMode));
+                
+                Console.WriteLine($"Privacy blur applied successfully");
+            }
 
-        // Save with quality settings for JPEG
-        if (format == ImageFormat.Jpeg)
-        {
-            var encoderParameters = new EncoderParameters(1);
-            encoderParameters.Param[0] = new EncoderParameter(Encoder.Quality, (long)_config.Screenshot.Quality);
-            var jpegEncoder = ImageCodecInfo.GetImageEncoders().First(e => e.FormatID == ImageFormat.Jpeg.Guid);
-            screenshot.Save(fullPath, jpegEncoder, encoderParameters);
+            // Get image format
+            var format = _config.Screenshot.ImageFormat.ToLower() switch
+            {
+                "jpg" or "jpeg" => ImageFormat.Jpeg,
+                "bmp" => ImageFormat.Bmp,
+                "gif" => ImageFormat.Gif,
+                "tiff" => ImageFormat.Tiff,
+                _ => ImageFormat.Png
+            };
+
+            // Save with quality settings for JPEG
+            if (format == ImageFormat.Jpeg)
+            {
+                var encoderParameters = new EncoderParameters(1);
+                encoderParameters.Param[0] = new EncoderParameter(Encoder.Quality, (long)_config.Screenshot.Quality);
+                var jpegEncoder = ImageCodecInfo.GetImageEncoders().First(e => e.FormatID == ImageFormat.Jpeg.Guid);
+                finalScreenshot.Save(fullPath, jpegEncoder, encoderParameters);
+            }
+            else
+            {
+                finalScreenshot.Save(fullPath, format);
+            }
         }
-        else
+        finally
         {
-            screenshot.Save(fullPath, format);
+            // Dispose blur result if it was created (but not the original screenshot)
+            if (finalScreenshot != screenshot)
+            {
+                finalScreenshot?.Dispose();
+            }
         }
 
         var fileInfo = new FileInfo(fullPath);
@@ -297,6 +351,12 @@ public class ScreenshotService : IScreenshotService, IDisposable
             await _captureTimer.DisposeAsync();
             _captureTimer = null;
         }
+    }
+
+    public void SetQuadrantService(QuadrantService quadrantService)
+    {
+        _quadrantService = quadrantService;
+        Console.WriteLine("[ScreenshotService] Monitoreo de actividad de cuadrantes habilitado");
     }
 
     public void Dispose()

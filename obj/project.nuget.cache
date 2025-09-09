@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "dgSpecHash": "pPiAnZOpZac=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\Usuario\\Desktop\\Capturer\\FinalIntegrationTest.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\Usuario\\.nuget\\packages\\microsoft.win32.systemevents\\8.0.0\\microsoft.win32.systemevents.8.0.0.nupkg.sha512",
+    "C:\\Users\\Usuario\\.nuget\\packages\\system.drawing.common\\8.0.0\\system.drawing.common.8.0.0.nupkg.sha512"
+  ],
+  "logs": []
+}
