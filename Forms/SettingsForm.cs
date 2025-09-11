@@ -91,7 +91,7 @@ public partial class SettingsForm : Form
     private void InitializeComponent()
     {
         this.Size = new Size(720, 700);
-        this.Text = "⚙️ Configuración del Sistema - Capturer v3.1.2";
+        this.Text = "⚙️ Configuración del Sistema - Capturer v3.2.0";
         this.StartPosition = FormStartPosition.CenterParent;
         this.FormBorderStyle = FormBorderStyle.Sizable; // Allow resizing
         this.MaximizeBox = true;

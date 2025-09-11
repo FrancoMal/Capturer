@@ -1209,24 +1209,24 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\Usuario\\.nuget\\packages\\": {},
-    "F:\\Microsoft Visual Studio\\Componentes SDK\\NuGetPackages": {}
+    "C:\\Users\\ftmal\\.nuget\\packages\\": {},
+    "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
-    "version": "3.1.2",
+    "version": "3.2.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\Usuario\\Desktop\\Capturer\\Capturer\\Capturer.csproj",
+      "projectUniqueName": "C:\\Users\\ftmal\\Desktop\\Capturer\\Capturer.csproj",
       "projectName": "Capturer",
-      "projectPath": "C:\\Users\\Usuario\\Desktop\\Capturer\\Capturer\\Capturer.csproj",
-      "packagesPath": "C:\\Users\\Usuario\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\Usuario\\Desktop\\Capturer\\Capturer\\obj\\",
+      "projectPath": "C:\\Users\\ftmal\\Desktop\\Capturer\\Capturer.csproj",
+      "packagesPath": "C:\\Users\\ftmal\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\ftmal\\Desktop\\Capturer\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
-        "F:\\Microsoft Visual Studio\\Componentes SDK\\NuGetPackages"
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
       ],
       "configFilePaths": [
-        "C:\\Users\\Usuario\\Desktop\\Capturer\\Capturer\\NuGet.Config",
-        "C:\\Users\\Usuario\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Users\\ftmal\\Desktop\\Capturer\\NuGet.Config",
+        "C:\\Users\\ftmal\\AppData\\Roaming\\NuGet\\NuGet.Config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
@@ -1252,7 +1252,8 @@
         "enableAudit": "true",
         "auditLevel": "low",
         "auditMode": "direct"
-      }
+      },
+      "SdkAnalysisLevel": "9.0.300"
     },
     "frameworks": {
       "net8.0-windows7.0": {
@@ -1314,7 +1315,7 @@
             "privateAssets": "none"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.403/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.304/PortableRuntimeIdentifierGraph.json"
       }
     }
   }

@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.RegularExpressions; // ★ NUEVO: Para extracción de fechas
 using Capturer.Models;
 using Capturer.Services;
 
@@ -15,6 +16,7 @@ public class ActivityDashboardSchedulerService : IDisposable
     private readonly CapturerConfiguration _config;
     private readonly IEmailService _emailService;
     private readonly System.Threading.Timer _dailyReportTimer;
+    private readonly System.Threading.Timer _cleanupTimer; // ★ NUEVO: Timer para limpieza de reportes
     private readonly object _lockObject = new object();
     
     // Configuración específica del dashboard
@@ -36,6 +38,10 @@ public class ActivityDashboardSchedulerService : IDisposable
         _emailService = emailService ?? throw new ArgumentNullException(nameof(emailService));
         
         InitializeDashboardReportsFolder();
+        
+        // ★ NUEVO: Limpieza inicial de archivos antiguos del dashboard
+        PerformInitialDashboardCleanup();
+        
         LoadDashboardConfiguration();
         
         // Programar timer para reportes diarios
@@ -44,6 +50,14 @@ public class ActivityDashboardSchedulerService : IDisposable
             null, 
             TimeSpan.FromMinutes(1), // Primera verificación en 1 minuto
             TimeSpan.FromMinutes(15) // Verificar cada 15 minutos
+        );
+        
+        // ★ NUEVO: Timer para limpieza periódica del dashboard (cada 6 horas)
+        _cleanupTimer = new System.Threading.Timer(
+            PerformPeriodicDashboardCleanup,
+            null,
+            TimeSpan.FromHours(6), // Primera limpieza en 6 horas
+            TimeSpan.FromHours(6)  // Limpiar cada 6 horas
         );
         
         Console.WriteLine($"[ActivityDashboardScheduler] Servicio iniciado. Carpeta reportes: {_dashboardReportsFolder}");
@@ -232,6 +246,23 @@ public class ActivityDashboardSchedulerService : IDisposable
             }
             
             Console.WriteLine($"[ActivityDashboardScheduler] Reporte diario generado para {reportDate:yyyy-MM-dd}: {generatedReports.Count} cuadrantes");
+            
+            // ★ NUEVO: Limpieza automática después de generar reporte diario
+            _ = Task.Run(() => 
+            {
+                try
+                {
+                    var deletedCount = CleanupOldDashboardReports();
+                    if (deletedCount > 0)
+                    {
+                        Console.WriteLine($"[ActivityDashboardScheduler] Limpieza post-reporte: {deletedCount} archivos antiguos eliminados");
+                    }
+                }
+                catch (Exception cleanupEx)
+                {
+                    Console.WriteLine($"[ActivityDashboardScheduler] Error en limpieza post-reporte: {cleanupEx.Message}");
+                }
+            });
         }
         catch (Exception ex)
         {
@@ -467,6 +498,230 @@ public class ActivityDashboardSchedulerService : IDisposable
             _dashboardReportsFolder = Path.GetTempPath(); // Fallback
         }
     }
+
+    #region ★ NUEVO: Sistema de Limpieza Dashboard - Retención 2 Días
+    
+    /// <summary>
+    /// Realiza limpieza inicial al iniciar el servicio del dashboard
+    /// </summary>
+    private void PerformInitialDashboardCleanup()
+    {
+        try
+        {
+            Console.WriteLine("[ActivityDashboardScheduler] Ejecutando limpieza inicial de reportes antiguos...");
+            var deletedCount = CleanupOldDashboardReports();
+            Console.WriteLine($"[ActivityDashboardScheduler] Limpieza inicial completada. Archivos eliminados: {deletedCount}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ActivityDashboardScheduler] Error en limpieza inicial: {ex.Message}");
+        }
+    }
+    
+    /// <summary>
+    /// Limpieza periódica del dashboard llamada por timer
+    /// </summary>
+    private void PerformPeriodicDashboardCleanup(object? state)
+    {
+        try
+        {
+            var deletedCount = CleanupOldDashboardReports();
+            if (deletedCount > 0)
+            {
+                Console.WriteLine($"[ActivityDashboardScheduler] Limpieza periódica completada. Archivos eliminados: {deletedCount}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ActivityDashboardScheduler] Error en limpieza periódica: {ex.Message}");
+        }
+    }
+    
+    /// <summary>
+    /// Limpia archivos antiguos del dashboard, manteniendo solo los últimos 2 días
+    /// RETENCIÓN: Solo archivos de ayer y hoy - elimina todo lo más antiguo
+    /// </summary>
+    /// <returns>Número de archivos eliminados</returns>
+    private int CleanupOldDashboardReports()
+    {
+        var deletedCount = 0;
+        var cutoffDate = DateTime.Now.Date.AddDays(-2); // Todo lo anterior a anteayer
+        
+        Console.WriteLine($"[ActivityDashboardScheduler] Limpiando reportes anteriores a {cutoffDate:yyyy-MM-dd}");
+        
+        try
+        {
+            // 1. Limpiar carpeta Daily
+            var dailyFolder = Path.Combine(_dashboardReportsFolder, "Daily");
+            if (Directory.Exists(dailyFolder))
+            {
+                deletedCount += CleanupDashboardFolderByDate(dailyFolder, cutoffDate, "*.html");
+            }
+            
+            // 2. Limpiar carpeta ByQuadrant (incluyendo subcarpetas)
+            var quadrantFolder = Path.Combine(_dashboardReportsFolder, "ByQuadrant");
+            if (Directory.Exists(quadrantFolder))
+            {
+                deletedCount += CleanupQuadrantFolders(quadrantFolder, cutoffDate);
+            }
+            
+            // 3. Limpiar Markers antiguos
+            var markersFolder = Path.Combine(_dashboardReportsFolder, "Markers");
+            if (Directory.Exists(markersFolder))
+            {
+                deletedCount += CleanupDashboardFolderByDate(markersFolder, cutoffDate, "*.marker");
+            }
+            
+            // 4. Limpiar archivos JSON de configuración antiguos si existen
+            deletedCount += CleanupDashboardFolderByDate(_dashboardReportsFolder, cutoffDate, "*.json");
+            
+            return deletedCount;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ActivityDashboardScheduler] Error en limpieza: {ex.Message}");
+            return deletedCount;
+        }
+    }
+    
+    /// <summary>
+    /// Limpia archivos en una carpeta del dashboard según fecha límite
+    /// </summary>
+    private int CleanupDashboardFolderByDate(string folderPath, DateTime cutoffDate, string searchPattern)
+    {
+        var deletedCount = 0;
+        
+        try
+        {
+            if (!Directory.Exists(folderPath)) return 0;
+            
+            var files = Directory.GetFiles(folderPath, searchPattern, SearchOption.TopDirectoryOnly);
+            
+            foreach (var file in files)
+            {
+                try
+                {
+                    var fileInfo = new FileInfo(file);
+                    
+                    // Para archivos del dashboard, usar fecha de creación o la más reciente
+                    var fileDate = fileInfo.CreationTime > fileInfo.LastWriteTime 
+                        ? fileInfo.CreationTime.Date 
+                        : fileInfo.LastWriteTime.Date;
+                    
+                    // Alternativamente, intentar extraer fecha del nombre del archivo
+                    var dateFromName = ExtractDateFromDashboardFileName(Path.GetFileName(file));
+                    if (dateFromName.HasValue)
+                    {
+                        fileDate = dateFromName.Value.Date;
+                    }
+                    
+                    if (fileDate < cutoffDate)
+                    {
+                        File.Delete(file);
+                        deletedCount++;
+                        Console.WriteLine($"[ActivityDashboardScheduler] Eliminado: {Path.GetFileName(file)} (fecha: {fileDate:yyyy-MM-dd})");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[ActivityDashboardScheduler] Error eliminando {file}: {ex.Message}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ActivityDashboardScheduler] Error accediendo carpeta {folderPath}: {ex.Message}");
+        }
+        
+        return deletedCount;
+    }
+    
+    /// <summary>
+    /// Limpia subcarpetas de cuadrantes recursivamente
+    /// </summary>
+    private int CleanupQuadrantFolders(string quadrantBaseFolder, DateTime cutoffDate)
+    {
+        var deletedCount = 0;
+        
+        try
+        {
+            if (!Directory.Exists(quadrantBaseFolder)) return 0;
+            
+            var subfolders = Directory.GetDirectories(quadrantBaseFolder);
+            
+            foreach (var subfolder in subfolders)
+            {
+                // Limpiar archivos HTML en cada subcarpeta de cuadrante
+                deletedCount += CleanupDashboardFolderByDate(subfolder, cutoffDate, "*.html");
+                deletedCount += CleanupDashboardFolderByDate(subfolder, cutoffDate, "*.json");
+                
+                // Si la subcarpeta está vacía después de la limpieza, eliminarla
+                try
+                {
+                    if (!Directory.EnumerateFileSystemEntries(subfolder).Any())
+                    {
+                        Directory.Delete(subfolder);
+                        Console.WriteLine($"[ActivityDashboardScheduler] Subcarpeta vacía eliminada: {Path.GetFileName(subfolder)}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[ActivityDashboardScheduler] Error eliminando subcarpeta vacía {subfolder}: {ex.Message}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ActivityDashboardScheduler] Error limpiando subcarpetas de cuadrantes: {ex.Message}");
+        }
+        
+        return deletedCount;
+    }
+    
+    /// <summary>
+    /// Extrae fecha del nombre de archivo del dashboard si es posible
+    /// </summary>
+    private DateTime? ExtractDateFromDashboardFileName(string fileName)
+    {
+        try
+        {
+            // Buscar patrones de fecha en nombres de archivos del dashboard
+            // Ejemplos: "Lunes_2024-09-11_Consolidado.html", "daily_report_20240911.marker"
+            
+            var datePatterns = new[]
+            {
+                @"(\d{4}-\d{2}-\d{2})",     // yyyy-MM-dd
+                @"(\d{8})",                 // yyyyMMdd
+            };
+            
+            foreach (var pattern in datePatterns)
+            {
+                var match = System.Text.RegularExpressions.Regex.Match(fileName, pattern);
+                if (match.Success)
+                {
+                    var dateString = match.Groups[1].Value;
+                    
+                    // Intentar parsear según el formato
+                    if (dateString.Length == 8 && DateTime.TryParseExact(dateString, "yyyyMMdd", null, DateTimeStyles.None, out var date1))
+                    {
+                        return date1;
+                    }
+                    else if (DateTime.TryParseExact(dateString, "yyyy-MM-dd", null, DateTimeStyles.None, out var date2))
+                    {
+                        return date2;
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ActivityDashboardScheduler] Error extrayendo fecha del archivo {fileName}: {ex.Message}");
+        }
+        
+        return null;
+    }
+    
+    #endregion
 
     /// <summary>
     /// Carga configuración del dashboard desde archivo
@@ -769,7 +1024,7 @@ Este es un reporte automático generado por el sistema Capturer - Activity Dashb
 Los archivos adjuntos contienen el análisis detallado de actividad por cuadrantes.
 
 ---
-🤖 Generado automáticamente por Capturer v3.1.2
+🤖 Generado automáticamente por Capturer v3.2.0
 📧 Configurado desde Activity Dashboard - Reportes Diarios";
     }
 
@@ -791,7 +1046,7 @@ Archivos adjuntos:
 Estos reportes fueron seleccionados manualmente desde Activity Dashboard.
 
 ---
-🤖 Generado por Capturer v3.1.2
+🤖 Generado por Capturer v3.2.0
 📧 Enviado desde Activity Dashboard";
     }
 
@@ -824,6 +1079,7 @@ Estos reportes fueron seleccionados manualmente desde Activity Dashboard.
         try
         {
             _dailyReportTimer?.Dispose();
+            _cleanupTimer?.Dispose(); // ★ NUEVO: Limpiar timer de cleanup
             Console.WriteLine("[ActivityDashboardScheduler] Servicio finalizado");
         }
         catch (Exception ex)

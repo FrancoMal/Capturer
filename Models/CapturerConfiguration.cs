@@ -102,6 +102,9 @@ public class ScheduleSettings
         DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, 
         DayOfWeek.Thursday, DayOfWeek.Friday
     };
+    
+    // ★ NUEVA: Configuración de período temporal para reportes diarios
+    public DailyReportPeriod DailyPeriod { get; set; } = DailyReportPeriod.PreviousDay; // Por defecto: ayer
 }
 
 public enum ReportFrequency
@@ -110,6 +113,16 @@ public enum ReportFrequency
     Weekly = 7,
     Monthly = 30,
     Custom = 0
+}
+
+/// <summary>
+/// ★ NUEVO: Define qué período temporal usar para reportes diarios
+/// </summary>
+public enum DailyReportPeriod
+{
+    PreviousDay = 0,  // Datos de AYER (recomendado - datos completos)
+    CurrentDay = 1,   // Datos de HOY (puede estar incompleto)
+    Last24Hours = 2   // Últimas 24 horas desde ahora
 }
 
 public enum ScreenCaptureMode
@@ -322,11 +335,34 @@ public class ReportPeriod
     
     public static ReportPeriod GetDailyPeriod(ScheduleSettings settings)
     {
-        var yesterday = DateTime.Now.Date.AddDays(-1);
+        // ★ MEJORADO: Usar configuración de período diario
+        DateTime targetDate = settings.DailyPeriod switch
+        {
+            DailyReportPeriod.PreviousDay => DateTime.Now.Date.AddDays(-1),    // AYER
+            DailyReportPeriod.CurrentDay => DateTime.Now.Date,                 // HOY
+            DailyReportPeriod.Last24Hours => DateTime.Now.AddDays(-1),         // Últimas 24h
+            _ => DateTime.Now.Date.AddDays(-1) // Default a ayer
+        };
+        
+        DateTime startDate, endDate;
+        
+        if (settings.DailyPeriod == DailyReportPeriod.Last24Hours)
+        {
+            // Últimas 24 horas exactas
+            endDate = DateTime.Now;
+            startDate = endDate.AddDays(-1);
+        }
+        else
+        {
+            // Día completo
+            startDate = targetDate.Date;
+            endDate = targetDate.Date.AddDays(1).AddSeconds(-1);
+        }
+        
         return new ReportPeriod
         {
-            StartDate = yesterday,
-            EndDate = yesterday.AddDays(1).AddSeconds(-1),
+            StartDate = startDate,
+            EndDate = endDate,
             StartTime = settings.UseTimeFilter ? settings.StartTime : null,
             EndTime = settings.UseTimeFilter ? settings.EndTime : null,
             ActiveWeekDays = settings.ActiveWeekDays

@@ -37,6 +37,10 @@ public partial class RoutineEmailForm : Form
     private ComboBox cmbReportTime;
     private ComboBox cmbWeeklyDay;
     
+    // ★ NUEVO: Control de período temporal para reportes diarios
+    private ComboBox cmbDailyPeriod;
+    private Label lblDailyPeriod;
+    
     // New Time Filter Controls
     private GroupBox groupTimeFilter;
     private CheckBox chkUseTimeFilter;
@@ -108,7 +112,7 @@ public partial class RoutineEmailForm : Form
     private void InitializeComponent()
     {
         this.Size = new Size(750, 800);
-        this.Text = "📊 Configuración de Reportes Automáticos - Capturer v3.1.2";
+        this.Text = "📊 Configuración de Reportes Automáticos - Capturer v3.2.0";
         this.StartPosition = FormStartPosition.CenterParent;
         this.FormBorderStyle = FormBorderStyle.Sizable;
         this.MaximizeBox = true;
@@ -158,7 +162,7 @@ public partial class RoutineEmailForm : Form
         { 
             Text = "Configuración de Reportes Automáticos", 
             Location = new Point(20, y), 
-            Size = new Size(640, 140), 
+            Size = new Size(640, 170), // ✅ Aumentado para acomodar nueva etiqueta de período 
             Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right 
         };
         
@@ -166,7 +170,7 @@ public partial class RoutineEmailForm : Form
         var helpMain = CreateHelpButton(new Point(605, -2), 
             "Configuración Principal: Configure cuándo y cómo se envían los reportes automáticos.\n\n" +
             "• Habilite reportes para activar el envío automático\n" +
-            "• Seleccione frecuencia: diaria, semanal, mensual o personalizada\n" +
+            "• Seleccione frecuencia con período claro (ej: diaria de AYER)\n" +
             "• Configure la hora exacta de envío\n" +
             "• Los reportes se envían automáticamente según esta configuración");
         groupMain.Controls.Add(helpMain);
@@ -190,7 +194,7 @@ public partial class RoutineEmailForm : Form
             Width = 120, 
             DropDownStyle = ComboBoxStyle.DropDownList 
         };
-        cmbReportFrequency.Items.AddRange(new[] { "Diario", "Semanal", "Mensual", "Personalizado" });
+        cmbReportFrequency.Items.AddRange(new[] { "Diario (datos de AYER)", "Semanal (semana pasada)", "Mensual (mes anterior)", "Personalizado" });
         cmbReportFrequency.SelectedIndexChanged += CmbReportFrequency_SelectedIndexChanged;
         groupMain.Controls.Add(cmbReportFrequency);
         
@@ -220,11 +224,26 @@ public partial class RoutineEmailForm : Form
         cmbWeeklyDay.Items.AddRange(new[] { "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo" });
         groupMain.Controls.Add(cmbWeeklyDay);
         
+        // ✅ NUEVO: Información de período antes de la hora
+        var periodInfoLabel = new Label
+        {
+            Text = "💡 Info: Los reportes contienen datos de períodos COMPLETOS finalizados\n" +
+                   "   Diario = Ayer | Semanal = Semana pasada",
+            Location = new Point(15, 78),
+            Size = new Size(600, 30),
+            Font = new Font("Segoe UI", 7.5F, FontStyle.Italic),
+            ForeColor = Color.FromArgb(108, 117, 125),
+            BackColor = Color.FromArgb(248, 249, 250),
+            BorderStyle = BorderStyle.FixedSingle,
+            Padding = new Padding(5)
+        };
+        groupMain.Controls.Add(periodInfoLabel);
+        
         // Report time
-        groupMain.Controls.Add(new Label { Text = "Hora del envío:", Location = new Point(15, 85), AutoSize = true });
+        groupMain.Controls.Add(new Label { Text = "Hora del envío:", Location = new Point(15, 115), AutoSize = true }); // ✅ Ajustado Y por nueva etiqueta
         cmbReportTime = new ComboBox 
         { 
-            Location = new Point(105, 82), 
+            Location = new Point(105, 112), // ✅ Ajustado Y por nueva etiqueta
             Width = 120, 
             DropDownStyle = ComboBoxStyle.DropDownList 
         };
@@ -234,10 +253,36 @@ public partial class RoutineEmailForm : Form
         }
         groupMain.Controls.Add(cmbReportTime);
         
+        // ★ NUEVO: Control de período diario (solo visible cuando Frequency == Daily)
+        lblDailyPeriod = new Label
+        {
+            Text = "Período diario:",
+            Location = new Point(250, 115),
+            AutoSize = true,
+            Visible = false // Initially hidden
+        };
+        groupMain.Controls.Add(lblDailyPeriod);
+        
+        cmbDailyPeriod = new ComboBox
+        {
+            Location = new Point(340, 112),
+            Width = 160,
+            DropDownStyle = ComboBoxStyle.DropDownList,
+            Visible = false // Initially hidden
+        };
+        cmbDailyPeriod.Items.AddRange(new[] { 
+            "AYER (recomendado)", 
+            "HOY (puede estar incompleto)", 
+            "Últimas 24 horas" 
+        });
+        cmbDailyPeriod.SelectedIndex = 0; // Default to "AYER"
+        cmbDailyPeriod.SelectedIndexChanged += CmbDailyPeriod_SelectedIndexChanged;
+        groupMain.Controls.Add(cmbDailyPeriod);
+        
         // Current status
         lblCurrentStatus = new Label 
         { 
-            Location = new Point(15, 110), 
+            Location = new Point(15, 145), // ✅ Ajustado Y por control de período diario
             Size = new Size(600, 20), 
             Text = "Estado: Reportes deshabilitados",
             Font = new Font("Microsoft Sans Serif", 8.25F, FontStyle.Bold),
@@ -734,6 +779,9 @@ public partial class RoutineEmailForm : Form
             cmbReportTime.SelectedIndex = _config.Schedule.ReportTime.Hours;
             cmbWeeklyDay.SelectedIndex = (int)_config.Schedule.WeeklyReportDay;
             
+            // ★ NUEVO: Cargar configuración de período diario
+            cmbDailyPeriod.SelectedIndex = (int)_config.Schedule.DailyPeriod;
+            
             // Load time filter settings
             chkUseTimeFilter.Checked = _config.Schedule.UseTimeFilter;
             cmbStartTime.SelectedIndex = _config.Schedule.StartTime.Hours;
@@ -791,7 +839,7 @@ public partial class RoutineEmailForm : Form
             if (groupTimeFilter != null)
             {
                 groupTimeFilter.Location = new Point(20, y);
-                y += 140;
+                y += 170; // ✅ Ajustado para el nuevo tamaño del grupo principal
             }
             
             if (groupRecipients != null)
@@ -918,10 +966,21 @@ public partial class RoutineEmailForm : Form
         // Show/hide custom controls based on frequency selection
         bool isCustom = cmbReportFrequency.SelectedIndex == 3;
         bool isWeekly = cmbReportFrequency.SelectedIndex == 1;
+        bool isDaily = cmbReportFrequency.SelectedIndex == 0; // ★ NUEVO
         
         numCustomDays.Visible = isCustom;
         cmbWeeklyDay.Visible = isWeekly;
         
+        // ★ NUEVO: Mostrar control de período solo para reportes diarios
+        lblDailyPeriod.Visible = isDaily;
+        cmbDailyPeriod.Visible = isDaily;
+        
+        UpdatePreviewInfo();
+    }
+    
+    // ★ NUEVO: Handler para cambio de período diario
+    private void CmbDailyPeriod_SelectedIndexChanged(object? sender, EventArgs e)
+    {
         UpdatePreviewInfo();
     }
 
@@ -1173,6 +1232,9 @@ public partial class RoutineEmailForm : Form
                 _ => ReportFrequency.Weekly
             };
             
+            // ★ NUEVO: Guardar configuración de período diario
+            _config.Schedule.DailyPeriod = (DailyReportPeriod)cmbDailyPeriod.SelectedIndex;
+            
             _config.Schedule.CustomDays = (int)numCustomDays.Value;
             _config.Schedule.ReportTime = TimeSpan.FromHours(cmbReportTime.SelectedIndex);
             _config.Schedule.WeeklyReportDay = (DayOfWeek)cmbWeeklyDay.SelectedIndex;
@@ -1286,6 +1348,10 @@ public partial class RoutineEmailForm : Form
         numCustomDays.Enabled = enabled;
         cmbReportTime.Enabled = enabled;
         cmbWeeklyDay.Enabled = enabled;
+        
+        // ★ NUEVO: Habilitar control de período diario
+        lblDailyPeriod.Enabled = enabled;
+        cmbDailyPeriod.Enabled = enabled;
         groupFormat.Enabled = enabled;
         groupTimeFilter.Enabled = enabled;
         
@@ -1379,6 +1445,24 @@ public partial class RoutineEmailForm : Form
         preview += $"=====================================\n\n";
         preview += $"Frecuencia: {frequency}\n";
         
+        // ✅ MEJORADO: Aclaración de período reportado con selección de usuario
+        if (cmbReportFrequency.SelectedIndex == 0) // Daily
+        {
+            var periodText = cmbDailyPeriod.SelectedIndex switch
+            {
+                0 => "Datos de AYER (día anterior completo) ✅",
+                1 => "Datos de HOY (puede estar incompleto) ⚠️",
+                2 => "Últimas 24 horas desde ahora 🕒",
+                _ => "Período no especificado"
+            };
+            preview += $"🕒 Período Diario: {periodText}\n";
+        }
+        else if (cmbReportFrequency.SelectedIndex == 1) // Weekly
+        {
+            preview += $"🕒 Período: Datos de la SEMANA PASADA (lunes-domingo)\n";
+        }
+        
+        // Configuración adicional por tipo
         if (cmbReportFrequency.SelectedIndex == 1) // Weekly
         {
             preview += $"Día de la semana: {cmbWeeklyDay.SelectedItem}\n";

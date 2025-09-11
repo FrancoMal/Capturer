@@ -1,16 +1,16 @@
-# 📸 Capturer v3.1.2 - Sistema Avanzado de Captura de Pantallas
+# 📸 Capturer v3.2.0 - Sistema Avanzado de Captura de Pantallas
 
 ![Capturer Logo](Capturer_Logo.png)
 
-**Capturer v3.1.2** es una aplicación de escritorio profesional que automatiza la captura de pantallas y gestión inteligente de reportes por correo electrónico. Incluye un sistema avanzado de cuadrantes, gestión separada de emails rutinarios/manuales, reportes de Activity Dashboard automatizados, y ayuda contextual integrada.
+**Capturer v3.2.0** es una aplicación de escritorio profesional que automatiza la captura de pantallas y gestión inteligente de reportes por correo electrónico. Incluye un sistema avanzado de cuadrantes, gestión separada de emails rutinarios/manuales, reportes de Activity Dashboard automatizados, y ayuda contextual integrada.
 
 🎯 **Perfecto para**: Monitoreo corporativo, trabajo remoto, documentación de procesos, cumplimiento regulatorio, análisis de productividad, y gestión de proyectos con reportes automatizados.
 
 ---
 
-## 📋 Índice - Funcionalidades v3.1.2
+## 📋 Índice - Funcionalidades v3.2.0
 
-1. [¿Qué hay de nuevo en v3.1.2?](#qué-hay-de-nuevo-en-v250)
+1. [¿Qué hay de nuevo en v3.2.0?](#qué-hay-de-nuevo-en-v250)
 2. [Sistema de Email Avanzado](#sistema-de-email-avanzado)
 3. [Sistema de Cuadrantes Inteligente](#sistema-de-cuadrantes-inteligente)
 4. [Interfaz de Usuario Renovada](#interfaz-de-usuario-renovada)
@@ -21,11 +21,11 @@
 9. [Casos de Uso Avanzados](#casos-de-uso-avanzados)
 10. [Solución de Problemas](#solución-de-problemas)
 11. [Documentación Técnica](#documentación-técnica)
-12. [FAQ v3.1.2](#preguntas-frecuentes-v250)
+12. [FAQ v3.2.0](#preguntas-frecuentes-v250)
 
 ---
 
-## ¿Qué hay de nuevo en v3.1.2?
+## ¿Qué hay de nuevo en v3.2.0?
 
 ### 🚀 Funcionalidades Principales Nuevas
 
@@ -148,7 +148,7 @@
 - **Integración de cuadrantes**: Procesamiento automático con perfiles
 - **Emails separados por cuadrante**: Un email por cada cuadrante seleccionado
 
-### 📨 Ejemplo de Email Generado v3.1.2
+### 📨 Ejemplo de Email Generado v3.2.0
 
 #### Email de Reporte Semanal Estándar:
 ```
@@ -156,7 +156,7 @@ De: capturer@empresa.com
 Para: gerencia@empresa.com, rrhh@empresa.com
 Asunto: Reporte Semanal Capturer - 19/08/2024 a 26/08/2024
 
-📸 REPORTE AUTOMÁTICO - CAPTURER v3.1.2
+📸 REPORTE AUTOMÁTICO - CAPTURER v3.2.0
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Tipo: Reporte Semanal
@@ -175,7 +175,7 @@ Generado: 2024-08-26 09:00:15
 📎 Adjunto: capturas_20240819-20240826.zip (1.2 GB)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Este email fue generado automáticamente por Capturer v3.1.2
+Este email fue generado automáticamente por Capturer v3.2.0
 ```
 
 #### Email de Cuadrante Individual:
@@ -184,7 +184,7 @@ De: capturer@empresa.com
 Para: supervisor@empresa.com
 Asunto: Reporte Cuadrante "Área de Trabajo" - 26/08/2024
 
-🔲 REPORTE POR CUADRANTE - CAPTURER v3.1.2
+🔲 REPORTE POR CUADRANTE - CAPTURER v3.2.0
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Cuadrante: "Área de Trabajo"
@@ -209,9 +209,9 @@ Procesado con perfil: Trabajo Diario
 
 ## Sistema de Cuadrantes Inteligente
 
-### 🔲 ¿Qué son los Cuadrantes en v3.1.2?
+### 🔲 ¿Qué son los Cuadrantes en v3.2.0?
 
-Los cuadrantes son **áreas definidas de la pantalla** que Capturer puede procesar de forma independiente. En v3.1.2, se integran completamente con el sistema de email para reportes especializados y con el nuevo sistema de Activity Dashboard.
+Los cuadrantes son **áreas definidas de la pantalla** que Capturer puede procesar de forma independiente. En v3.2.0, se integran completamente con el sistema de email para reportes especializados y con el nuevo sistema de Activity Dashboard.
 
 #### Ventajas de los Cuadrantes:
 - 🎯 **Enfoque específico**: Solo áreas relevantes para cada destinatario
@@ -350,11 +350,11 @@ Cuadrante 3: "Tráfico de Red"
 
 ## Interfaz de Usuario Renovada
 
-### 🖥️ Ventana Principal v3.1.2
+### 🖥️ Ventana Principal v3.2.0
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ 📸 Capturer v3.1.2 - Sistema Avanzado de Capturas            │
+│ 📸 Capturer v3.2.0 - Sistema Avanzado de Capturas            │
 ├─────────────────────────────────────────────────────────────┤
 │ 📊 Panel de Estado Mejorado:                               │
 │   Estado: [🟢 Funcionando]  Próxima: [14:35:20]           │
@@ -535,7 +535,7 @@ Cuadrante 3: "Tráfico de Red"
 
 ## Capturas de Pantalla
 
-### 📸 Modos de Captura v3.1.2
+### 📸 Modos de Captura v3.2.0
 
 #### 1. 🔄 **Captura Automática Inteligente**
 ```yaml
@@ -610,7 +610,7 @@ PROYECTO_2024-08-26_14-30-15_Q1.png
 
 ## Gestión de Almacenamiento
 
-### 📁 Estructura de Directorios v3.1.2
+### 📁 Estructura de Directorios v3.2.0
 
 ```
 C:\Users\[Usuario]\Documents\Capturer\
@@ -646,7 +646,7 @@ C:\Users\[Usuario]\Documents\Capturer\
     └── encrypted_passwords.dat            ← Contraseñas encriptadas
 ```
 
-### 🧹 Sistema de Limpieza Inteligente v3.1.2
+### 🧹 Sistema de Limpieza Inteligente v3.2.0
 
 #### Políticas de Retención:
 ```yaml
@@ -683,7 +683,7 @@ Limpieza por Prioridad:
 #### Panel de Control de Almacenamiento:
 ```
 ┌─────────────────────────────────────────────┐
-│ 💾 GESTIÓN DE ALMACENAMIENTO v3.1.2           │
+│ 💾 GESTIÓN DE ALMACENAMIENTO v3.2.0           │
 ├─────────────────────────────────────────────┤
 │ 📊 Estado Actual:                           │
 │   Used: ████████████░░░░ 8.2GB/10GB (82%)  │
@@ -727,10 +727,10 @@ Contenido del Backup:
 
 ### 🖥️ Funcionalidad System Tray Avanzada
 
-#### Menú Contextual Completo v3.1.2:
+#### Menú Contextual Completo v3.2.0:
 ```
 ┌────────────────────────────────────┐
-│ 📸 Capturer v3.1.2                   │
+│ 📸 Capturer v3.2.0                   │
 ├────────────────────────────────────┤
 │ 👁️  Mostrar ventana principal       │
 │ ─────────────────────────────────  │
@@ -1101,7 +1101,7 @@ Administradores IT:
 
 ## Solución de Problemas
 
-### 🚨 Diagnóstico Automático v3.1.2
+### 🚨 Diagnóstico Automático v3.2.0
 
 #### Sistema de Auto-Diagnóstico:
 ```
@@ -1119,7 +1119,7 @@ Verificaciones automáticas:
 
 Resultado ejemplo:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🎯 DIAGNÓSTICO SISTEMA CAPTURER v3.1.2
+🎯 DIAGNÓSTICO SISTEMA CAPTURER v3.2.0
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ✅ Sistema operativo: Windows 11 compatible
 ✅ .NET Runtime: 8.0.3 instalado
@@ -1359,7 +1359,7 @@ Ir a [🔲 Cuadrantes] → [✏️ Editar] cada cuadrante → Verificar:
 
 ---
 
-## Preguntas Frecuentes v3.1.2
+## Preguntas Frecuentes v3.2.0
 
 ### 📧 **Sistema de Email Dual**
 
@@ -1398,8 +1398,8 @@ R: Sí, los perfiles controlan varios aspectos que afectan el tamaño:
 
 ### ⚙️ **Configuración y Rendimiento**
 
-**P: ¿Capturer v3.1.2 usa más recursos que v1.0?**
-R: El uso base es similar, pero v3.1.2 ofrece más control:
+**P: ¿Capturer v3.2.0 usa más recursos que v1.0?**
+R: El uso base es similar, pero v3.2.0 ofrece más control:
 - **Modo básico**: Similar a v1.0 (~50-80MB RAM)
 - **Con cuadrantes activos**: +20-30MB por cuadrante procesado
 - **Durante procesamiento**: Pico temporal según configuración de calidad
@@ -1428,8 +1428,8 @@ R: ¡Significativamente! Los cuadrantes permiten:
 - **Reportes dirigidos**: Solo información relevante por destinatario
 - **Control granular**: Diferentes niveles de acceso por región
 
-**P: ¿Las contraseñas de email están más seguras en v3.1.2?**
-R: Sí, v3.1.2 incluye mejoras de seguridad:
+**P: ¿Las contraseñas de email están más seguras en v3.2.0?**
+R: Sí, v3.2.0 incluye mejoras de seguridad:
 - **DPAPI reforzado**: Encriptación más robusta
 - **Verificación integridad**: Detecta corrupción de claves
 - **Regeneración automática**: Recovery automático de claves corruptas
@@ -1449,7 +1449,7 @@ R: Límites recomendados:
 - **Por email**: Sin límite, pero más cuadrantes = más emails separados
 
 **P: ¿Capturer puede integrarse con otros sistemas?**
-R: v3.1.2 incluye mejores opciones de integración:
+R: v3.2.0 incluye mejores opciones de integración:
 - **APIs REST**: Endpoints básicos para estado y configuración (beta)
 - **PowerShell module**: Scripts de automatización
 - **Archivos estándar**: JSON configs fáciles de leer por otros sistemas
@@ -1457,7 +1457,7 @@ R: v3.1.2 incluye mejores opciones de integración:
 
 ### 📊 **Métricas y Análisis**
 
-**P: ¿Capturer v3.1.2 incluye análisis de datos?**
+**P: ¿Capturer v3.2.0 incluye análisis de datos?**
 R: Funcionalidades básicas incluidas:
 - **Estadísticas automáticas**: Tendencias de captura, usage patterns
 - **Métricas de email**: Tasas de entrega, tamaños de archivo
@@ -1478,12 +1478,12 @@ R: Múltiples formatos de exportación:
 
 ## Documentación Técnica
 
-### 🏗️ **Arquitectura v3.1.2 - Nuevos Componentes**
+### 🏗️ **Arquitectura v3.2.0 - Nuevos Componentes**
 
 #### Servicios Principales Expandidos:
 ```
 ┌─────────────────────────────────────────────┐
-│ Presentation Layer (Windows Forms v3.1.2)    │
+│ Presentation Layer (Windows Forms v3.2.0)    │
 │ ├─ MainForm (renovado con dual email)      │
 │ ├─ EmailForm (manual, con cuadrantes)      │
 │ ├─ RoutineEmailForm (nuevo, automático)    │
@@ -1553,10 +1553,10 @@ public class ProcessingTask
 }
 ```
 
-### 📊 **Métricas de Rendimiento v3.1.2**
+### 📊 **Métricas de Rendimiento v3.2.0**
 
 #### Recursos del Sistema Actualizados:
-| Componente | Base v1.0 | v3.1.2 Sin Cuadrantes | v3.1.2 Con Cuadrantes |
+| Componente | Base v1.0 | v3.2.0 Sin Cuadrantes | v3.2.0 Con Cuadrantes |
 |------------|-----------|-------------------|-------------------|
 | **Memoria RAM** | 50-80 MB | 60-90 MB | 90-150 MB |
 | **CPU (idle)** | <0.5% | <0.7% | <1.2% |
@@ -1565,7 +1565,7 @@ public class ProcessingTask
 | **Arranque** | 3-5 seg | 4-6 seg | 6-10 seg |
 
 #### Tiempos de Operación Nuevos:
-| Operación v3.1.2 | Tiempo Promedio | Notas |
+| Operación v3.2.0 | Tiempo Promedio | Notas |
 |----------------|-----------------|-------|
 | **Email Manual** | 10-45s | Dependiente de cuadrantes |
 | **Procesamiento Cuadrante** | 2-8s | Por cuadrante, según perfil |
@@ -1581,7 +1581,7 @@ public class ProcessingTask
 | **3-4** | +50-80 MB | +5-8% | +100% tiempo |
 | **5+** | +100+ MB | +10%+ | +200%+ tiempo |
 
-### 🔒 **Seguridad Mejorada v3.1.2**
+### 🔒 **Seguridad Mejorada v3.2.0**
 
 #### Encriptación Multi-Capa:
 ```csharp
@@ -1687,9 +1687,9 @@ Set-CapturerConfiguration -IntervalMinutes 30 -AutoStart $true
 
 ---
 
-**© 2025 Capturer v3.1.2 - Sistema Avanzado de Captura de Pantallas con Cuadrantes e Email Inteligente**
+**© 2025 Capturer v3.2.0 - Sistema Avanzado de Captura de Pantallas con Cuadrantes e Email Inteligente**
 
-*Esta documentación completa cubre todas las funcionalidades nuevas y mejoradas de Capturer v3.1.2. El sistema evoluciona continuamente con nuevas características, mejoras de seguridad, y optimizaciones de rendimiento basadas en feedback de usuarios y requisitos empresariales.*
+*Esta documentación completa cubre todas las funcionalidades nuevas y mejoradas de Capturer v3.2.0. El sistema evoluciona continuamente con nuevas características, mejoras de seguridad, y optimizaciones de rendimiento basadas en feedback de usuarios y requisitos empresariales.*
 
 ---
 

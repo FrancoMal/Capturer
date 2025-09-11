@@ -151,7 +151,7 @@ public partial class SimplifiedReportsConfigForm : Form
         {
             Text = "📊 ¿Cuándo quiere recibir reportes?",
             Font = new Font("Segoe UI", 10F, FontStyle.Bold),
-            Height = 180,
+            Height = 240, // ✅ Aumentado para acomodar la nueva etiqueta explicativa
             Dock = DockStyle.Fill,
             Padding = new Padding(15)
         };
@@ -188,6 +188,21 @@ public partial class SimplifiedReportsConfigForm : Form
             ForeColor = Color.FromArgb(156, 39, 176)
         };
         _rbWeekly.CheckedChanged += OnFrequencyChanged;
+
+        // ✅ NUEVO: Explicación de períodos reportados
+        var explanationLabel = new Label
+        {
+            Text = "💡 Información: Los reportes contienen datos COMPLETOS de períodos finalizados\n" +
+                   "   • Diario: Datos del día ANTERIOR (ayer 8AM-8PM)\n" +
+                   "   • Semanal: Datos de la SEMANA PASADA (lunes-domingo completo)",
+            Location = new Point(15, 95),
+            Size = new Size(500, 50),
+            Font = new Font("Segoe UI", 8F, FontStyle.Italic),
+            ForeColor = Color.FromArgb(108, 117, 125),
+            BackColor = Color.FromArgb(233, 236, 239),
+            BorderStyle = BorderStyle.FixedSingle,
+            Padding = new Padding(8)
+        };
 
         // Days selection panel
         _deliveryDaysPanel = new Panel
@@ -250,7 +265,7 @@ public partial class SimplifiedReportsConfigForm : Form
 
         _deliveryDaysPanel.Controls.AddRange(new Control[] { daysLabel, _lblWeeklyDelivery, _cmbWeeklyDeliveryDay });
 
-        mainPanel.Controls.AddRange(new Control[] { frequencyLabel, _rbDaily, _rbWeekly, _deliveryDaysPanel });
+        mainPanel.Controls.AddRange(new Control[] { frequencyLabel, _rbDaily, _rbWeekly, explanationLabel, _deliveryDaysPanel }); // ✅ Agregar nueva etiqueta explicativa
         groupBox.Controls.Add(mainPanel);
         return groupBox;
     }
@@ -830,7 +845,7 @@ public partial class SimplifiedReportsConfigForm : Form
             if (_rbDaily.Checked)
             {
                 var deliveryDays = _deliveryDaysCheckBoxes.Where(kvp => kvp.Value.Checked).Select(kvp => kvp.Key).ToList();
-                preview.Add("📅 CONFIGURACIÓN: Reportes HTML diarios");
+                preview.Add("📅 CONFIGURACIÓN: Reportes HTML diarios de AYER (día anterior completo)");
                 preview.Add($"⏰ Hora de envío: {_dtpEmailTime.Value:HH:mm}");
                 
                 if (deliveryDays.Any())
@@ -856,7 +871,7 @@ public partial class SimplifiedReportsConfigForm : Form
             else
             {
                 var weeklyDay = (DayOfWeek)_cmbWeeklyDeliveryDay.SelectedIndex;
-                preview.Add("📦 CONFIGURACIÓN: Reportes ZIP semanales");
+                preview.Add("📦 CONFIGURACIÓN: Reportes ZIP semanales de la SEMANA PASADA (completa)");
                 preview.Add($"⏰ Hora de envío: {_dtpEmailTime.Value:HH:mm}");
                 preview.Add($"🗓️ Día de envío: {GetDayName(weeklyDay)}");
                 
@@ -1057,7 +1072,7 @@ public partial class SimplifiedReportsConfigForm : Form
                     <hr style='margin: 20px 0; border: none; border-top: 1px solid #dee2e6;'>
                     <p style='color: #6c757d; font-size: 12px;'>
                         🧪 Email de prueba generado el {DateTime.Now:dd/MM/yyyy HH:mm:ss}<br>
-                        🖥️ Capturer Dashboard v3.1.2 - Sistema de Reportes Automáticos
+                        🖥️ Capturer Dashboard v3.2.0 - Sistema de Reportes Automáticos
                     </p>
                 </div>";
 
@@ -1303,13 +1318,13 @@ public partial class SimplifiedReportsConfigForm : Form
                 }
                 else
                 {
-                    summary.Add($"📅 Reportes diarios: {string.Join(", ", selectedDays.Select(d => GetDayName(d.Key)))}");
+                    summary.Add($"📅 Reportes diarios de AYER: {string.Join(", ", selectedDays.Select(d => GetDayName(d.Key)))}");
                     summary.Add($"⏰ Envío a las {_dtpEmailTime.Value:HH:mm}");
                 }
             }
             else
             {
-                summary.Add($"📦 Reportes semanales cada {_cmbWeeklyDeliveryDay.Text}");
+                summary.Add($"📦 Reportes semanales de la SEMANA PASADA cada {_cmbWeeklyDeliveryDay.Text}");
                 summary.Add($"⏰ Envío a las {_dtpEmailTime.Value:HH:mm}");
             }
 
@@ -1550,7 +1565,7 @@ public class SimplifiedReportsConfig
                 DayOfWeek.Sunday => "Dom",
                 _ => d.ToString()
             });
-            description.Add($"📅 Reportes HTML diarios: {string.Join(", ", dayNames)} a las {EmailTime:HH:mm}");
+            description.Add($"📅 Reportes HTML diarios de AYER (8AM-8PM): {string.Join(", ", dayNames)} a las {EmailTime:HH:mm}");
         }
         else
         {
@@ -1565,7 +1580,7 @@ public class SimplifiedReportsConfig
                 DayOfWeek.Sunday => "Domingo",
                 _ => WeeklyDeliveryDay.ToString()
             };
-            description.Add($"📦 Reportes ZIP semanales cada {weeklyDayName} a las {EmailTime:HH:mm}");
+            description.Add($"📦 Reportes ZIP semanales de la SEMANA PASADA cada {weeklyDayName} a las {EmailTime:HH:mm}");
         }
         
         // Monitoring configuration

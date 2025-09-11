@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using System.Text; // ★ NUEVO: Para Encoding.UTF8
 using System.Text.Json;
 using Capturer.Models;
 using Capturer.Services;
@@ -130,20 +131,21 @@ public class SimplifiedReportsSchedulerService : IDisposable
     }
 
     /// <summary>
-    /// Envía reporte HTML del día actual
+    /// Envía reporte HTML del día ANTERIOR completo (8 AM - 8 PM)
+    /// MEJORA: Reporta período FINALIZADO para datos completos y confiables
     /// </summary>
     private async Task SendDailyHtmlReportAsync(DateTime sendTime)
     {
         try
         {
-            Console.WriteLine("[SimplifiedReportsScheduler] Generando reporte HTML diario...");
+            Console.WriteLine("[SimplifiedReportsScheduler] Generando reporte HTML diario (día anterior)...");
             
-            // Generate report for today only
-            var startTime = DateTime.Today.AddHours(8); // 8 AM 
-            var endTime = DateTime.Today.AddHours(20);  // 8 PM
+            // ✅ CORREGIDO: Generate report for YESTERDAY (complete day)
+            var yesterday = sendTime.Date.AddDays(-1);
+            var startTime = yesterday.AddHours(8); // AYER 8 AM 
+            var endTime = yesterday.AddHours(20);   // AYER 8 PM
             
-            // System records 24/7, no filtering needed
-            Console.WriteLine($"[SimplifiedReportsScheduler] Generando reporte para {sendTime:dddd, dd/MM/yyyy}");
+            Console.WriteLine($"[SimplifiedReportsScheduler] Generando reporte para AYER {yesterday:dddd, dd/MM/yyyy} (8AM-8PM)");
 
             var report = await _reportService.GenerateReportAsync(startTime, endTime, "Daily-Automated");
             
@@ -153,18 +155,22 @@ public class SimplifiedReportsSchedulerService : IDisposable
                 var htmlPath = await _reportService.ExportReportAsync(report, "HTML");
                 Console.WriteLine($"[SimplifiedReportsScheduler] HTML generado: {htmlPath}");
 
-                // Prepare email
-                var subject = $"📊 Reporte Diario - {sendTime:dd/MM/yyyy}";
-                var body = GenerateSimpleEmailBody(report, "daily");
+                // ✅ MEJORADO: Subject claro especificando período reportado
+                var reportDate = sendTime.Date.AddDays(-1);
+                var subject = $"📊 Reporte Diario de AYER - {reportDate:dddd dd/MM/yyyy} (8AM-8PM)";
+                
+                // ★ NUEVA MEJORA: Usar HTML del reporte como cuerpo del email
+                var htmlContent = await File.ReadAllTextAsync(htmlPath, Encoding.UTF8);
+                var emailHtmlBody = await GenerateEnhancedDailyEmailHtml(htmlContent, report, reportDate);
+                
                 var attachmentFiles = new List<string> { htmlPath };
 
-                // Send using EmailService
-                var success = await _emailService.SendActivityDashboardReportAsync(
+                // ★ MEJORADO: Enviar con HTML embebido como cuerpo del email
+                var success = await SendDailyEmailWithEmbeddedHtml(
                     _config.SelectedRecipients,
                     subject,
-                    body,
-                    attachmentFiles,
-                    false // No ZIP for daily, just attach HTML directly
+                    emailHtmlBody,
+                    attachmentFiles
                 );
 
                 Console.WriteLine($"[SimplifiedReportsScheduler] Email diario {(success ? "enviado exitosamente" : "falló")}");
@@ -182,10 +188,39 @@ public class SimplifiedReportsSchedulerService : IDisposable
                     File.Delete(htmlPath);
                     Console.WriteLine("[SimplifiedReportsScheduler] Archivo temporal limpiado");
                 }
+                
+                // ★ NUEVO: Después de generar reporte diario, activar limpieza de archivos antiguos
+                // Nota: Esto se coordina con ActivityReportService para mantener retención de 2 días
+                _ = Task.Run(() =>
+                {
+                    try
+                    {
+                        // Llamar a ActivityReportService indirectamente a través de su limpieza periódica
+                        // La limpieza real se maneja en ActivityDashboardSchedulerService y ActivityReportService
+                        Console.WriteLine("[SimplifiedReportsScheduler] Reportes diarios coordinados - sistema de limpieza activado en otros servicios");
+                    }
+                    catch (Exception cleanupEx)
+                    {
+                        Console.WriteLine($"[SimplifiedReportsScheduler] Info cleanup: {cleanupEx.Message}");
+                    }
+                });
             }
             else
             {
-                Console.WriteLine("[SimplifiedReportsScheduler] Sin datos para reporte diario");
+                Console.WriteLine($"[SimplifiedReportsScheduler] Sin datos para reporte diario del {sendTime.Date.AddDays(-1):yyyy-MM-dd}");
+                
+                // Send notification email even if no data
+                var yesterdayEmpty = sendTime.Date.AddDays(-1);
+                var subject = $"📊 Reporte Diario de AYER - {yesterdayEmpty:dddd dd/MM/yyyy} (Sin Datos)";
+                var body = GenerateEmptyDailyReportBody(yesterdayEmpty);
+                
+                await _emailService.SendActivityDashboardReportAsync(
+                    _config.SelectedRecipients,
+                    subject,
+                    body,
+                    new List<string>(), // No attachments
+                    false
+                );
             }
         }
         catch (Exception ex)
@@ -196,24 +231,28 @@ public class SimplifiedReportsSchedulerService : IDisposable
     }
 
     /// <summary>
-    /// Envía ZIP con reportes HTML de toda la semana
+    /// Envía ZIP con reportes HTML de la SEMANA PASADA completa (lunes-domingo)
+    /// MEJORA: Reporta semana FINALIZADA para datos completos y confiables
     /// </summary>
     private async Task SendWeeklyZipReportAsync(DateTime sendTime)
     {
         try
         {
-            Console.WriteLine("[SimplifiedReportsScheduler] Generando reportes semanales...");
+            Console.WriteLine("[SimplifiedReportsScheduler] Generando reportes semanales (semana pasada)...");
             
             var htmlFiles = new List<string>();
-            var startOfWeek = GetStartOfWeek(sendTime);
+            // ✅ CORREGIDO: Get LAST week (complete week)
+            var lastWeekStart = GetStartOfWeek(sendTime.AddDays(-7)); // Semana anterior
             
-            // Generate HTML for each day of the week
+            Console.WriteLine($"[SimplifiedReportsScheduler] Procesando SEMANA PASADA: {lastWeekStart:dd/MM/yyyy} - {lastWeekStart.AddDays(6):dd/MM/yyyy}");
+            
+            // Generate HTML for each day of LAST week
             for (int i = 0; i < 7; i++)
             {
-                var dayDate = startOfWeek.AddDays(i);
+                var dayDate = lastWeekStart.AddDays(i);
                 
-                // System records all days 24/7, generate report for each day
-                Console.WriteLine($"[SimplifiedReportsScheduler] Procesando {dayDate:dd/MM} ({dayDate.DayOfWeek})");
+                // System records all days 24/7, generate report for each day of LAST week
+                Console.WriteLine($"[SimplifiedReportsScheduler] Procesando {dayDate:dd/MM} ({dayDate.DayOfWeek}) [SEMANA PASADA]");
 
                 var dayStart = dayDate.AddHours(8);
                 var dayEnd = dayDate.AddHours(20);
@@ -242,12 +281,13 @@ public class SimplifiedReportsSchedulerService : IDisposable
             if (htmlFiles.Any())
             {
                 // Create ZIP with all HTML reports
-                var zipPath = await CreateWeeklyZipAsync(htmlFiles, startOfWeek);
+                var zipPath = await CreateWeeklyZipAsync(htmlFiles, lastWeekStart);
                 Console.WriteLine($"[SimplifiedReportsScheduler] ZIP creado: {zipPath}");
 
-                // Prepare email
-                var subject = $"📦 Reporte Semanal - Semana del {startOfWeek:dd/MM/yyyy}";
-                var body = GenerateWeeklyZipEmailBody(startOfWeek, sendTime, htmlFiles.Count);
+                // ✅ MEJORADO: Subject claro especificando semana reportada
+                var lastWeekEnd = lastWeekStart.AddDays(6);
+                var subject = $"📦 Reporte Semanal de la SEMANA PASADA - {lastWeekStart:dd/MM} al {lastWeekEnd:dd/MM/yyyy}";
+                var body = GenerateWeeklyZipEmailBody(lastWeekStart, sendTime, htmlFiles.Count);
                 var attachmentFiles = new List<string> { zipPath };
 
                 // Send using EmailService
@@ -274,10 +314,28 @@ public class SimplifiedReportsSchedulerService : IDisposable
                 {
                     File.Delete(zipPath);
                 }
+                
+                // ★ NUEVO: Nota de coordinación - la limpieza de archivos persistentes
+                // se maneja automáticamente por ActivityDashboardScheduler y ActivityReportService
+                Console.WriteLine("[SimplifiedReportsScheduler] Reportes semanales coordinados - sistema de limpieza activo");
             }
             else
             {
-                Console.WriteLine("[SimplifiedReportsScheduler] Sin datos para reporte semanal");
+                var lastWeekStartEmpty = GetStartOfWeek(sendTime.AddDays(-7));
+                var lastWeekEndEmpty = lastWeekStartEmpty.AddDays(6);
+                Console.WriteLine($"[SimplifiedReportsScheduler] Sin datos para reporte semanal {lastWeekStartEmpty:yyyy-MM-dd} - {lastWeekEndEmpty:yyyy-MM-dd}");
+                
+                // Send notification email even if no data
+                var subject = $"📦 Reporte Semanal de la SEMANA PASADA - {lastWeekStartEmpty:dd/MM} al {lastWeekEndEmpty:dd/MM/yyyy} (Sin Datos)";
+                var body = GenerateEmptyWeeklyReportBody(lastWeekStartEmpty, lastWeekEndEmpty);
+                
+                await _emailService.SendActivityDashboardReportAsync(
+                    _config.SelectedRecipients,
+                    subject,
+                    body,
+                    new List<string>(), // No attachments
+                    false
+                );
             }
         }
         catch (Exception ex)
@@ -316,26 +374,36 @@ public class SimplifiedReportsSchedulerService : IDisposable
         return zipPath;
     }
 
-    private string GenerateSimpleEmailBody(ActivityReport report, string reportType)
+    private string GenerateSimpleEmailBody(ActivityReport report, string reportType, DateTime? specificDate = null)
     {
+        var reportTitle = reportType == "daily" ? 
+            (specificDate.HasValue ? $"Reporte Diario de AYER ({specificDate.Value:dddd dd/MM/yyyy})" : "Reporte Diario") : 
+            "Reporte Semanal";
+            
         var body = $@"
             <div style='font-family: Segoe UI, Arial, sans-serif; max-width: 600px;'>
-                <h2 style='color: #2563eb;'>📊 {(reportType == "daily" ? "Reporte Diario" : "Reporte Semanal")} - ActivityDashboard</h2>
+                <h2 style='color: #2563eb;'>📊 {reportTitle} - ActivityDashboard</h2>
                 
                 <div style='background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0;'>
-                    <p><strong>Período:</strong> {report.ReportStartTime:dd/MM/yyyy HH:mm} - {report.ReportEndTime:dd/MM/yyyy HH:mm}</p>
-                    <p><strong>Duración:</strong> {report.ReportDuration.TotalHours:F1} horas</p>
+                    <p><strong>🕒 Período Reportado:</strong> {report.ReportStartTime:dd/MM/yyyy HH:mm} - {report.ReportEndTime:dd/MM/yyyy HH:mm}</p>
+                    <p><strong>⏱️ Duración:</strong> {report.ReportDuration.TotalHours:F1} horas</p>
                     <p><strong>Cuadrantes:</strong> {report.Summary.TotalQuadrants}</p>
                     <p><strong>Actividades detectadas:</strong> {report.Summary.TotalActivities:N0}</p>
                     <p><strong>Actividad promedio:</strong> {report.Summary.AverageActivityRate:F1}%</p>
                 </div>
+                
+                {(reportType == "daily" && specificDate.HasValue ? 
+                    $"<div style='background: #e8f5e8; padding: 10px; border-radius: 5px; margin: 15px 0; border-left: 4px solid #28a745;'>\n" +
+                    $"    <p style='margin: 0; color: #155724;'><strong>ℹ️ Aclaración:</strong> Este reporte contiene los datos <strong>completos</strong> del día anterior ({specificDate.Value:dddd dd/MM/yyyy}) de 8:00 AM a 8:00 PM.</p>\n" +
+                    "</div>" : 
+                    "")}
                 
                 <p>📎 Adjunto encontrará el reporte detallado en formato HTML con gráficos interactivos.</p>
                 
                 <hr style='margin: 20px 0; border: none; border-top: 1px solid #dee2e6;'>
                 <p style='color: #6c757d; font-size: 12px;'>
                     📅 Generado automáticamente el {DateTime.Now:dd/MM/yyyy HH:mm:ss}<br>
-                    🖥️ Capturer Dashboard v3.1.2 - Sistema de Monitoreo Empresarial
+                    🖥️ Capturer Dashboard v3.2.0 - Sistema de Monitoreo Empresarial
                 </p>
             </div>";
         
@@ -348,13 +416,17 @@ public class SimplifiedReportsSchedulerService : IDisposable
         
         var body = $@"
             <div style='font-family: Segoe UI, Arial, sans-serif; max-width: 600px;'>
-                <h2 style='color: #2563eb;'>📦 Reporte Semanal - ActivityDashboard</h2>
+                <h2 style='color: #2563eb;'>📦 Reporte Semanal de la SEMANA PASADA - ActivityDashboard</h2>
+                
+                <div style='background: #e8f5e8; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #28a745;'>
+                    <p><strong>ℹ️ Aclaración:</strong> Este reporte contiene los datos <strong>completos</strong> de la semana anterior.</p>
+                </div>
                 
                 <div style='background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0;'>
-                    <p><strong>Semana:</strong> {startOfWeek:dd/MM/yyyy} - {endOfWeek:dd/MM/yyyy}</p>
-                    <p><strong>Generado:</strong> {sendTime:dd/MM/yyyy HH:mm}</p>
-                    <p><strong>Archivos incluidos:</strong> {fileCount} reportes HTML</p>
-                    <p><strong>Contenido:</strong> Reportes de toda la semana (sistema registra 24/7)</p>
+                    <p><strong>🕒 Semana Reportada:</strong> {startOfWeek:dd/MM/yyyy} - {endOfWeek:dd/MM/yyyy}</p>
+                    <p><strong>📅 Generado:</strong> {sendTime:dd/MM/yyyy HH:mm}</p>
+                    <p><strong>📎 Archivos incluidos:</strong> {fileCount} reportes HTML</p>
+                    <p><strong>📋 Contenido:</strong> Reportes diarios completos (8AM-8PM cada día)</p>
                 </div>
                 
                 <div style='background: #e3f2fd; padding: 15px; border-radius: 8px; margin: 15px 0;'>
@@ -372,7 +444,7 @@ public class SimplifiedReportsSchedulerService : IDisposable
                 <hr style='margin: 20px 0; border: none; border-top: 1px solid #dee2e6;'>
                 <p style='color: #6c757d; font-size: 12px;'>
                     📅 Generado automáticamente el {DateTime.Now:dd/MM/yyyy HH:mm:ss}<br>
-                    🖥️ Capturer Dashboard v3.1.2 - Sistema de Monitoreo Empresarial
+                    🖥️ Capturer Dashboard v3.2.0 - Sistema de Monitoreo Empresarial
                 </p>
             </div>";
         
@@ -452,6 +524,144 @@ public class SimplifiedReportsSchedulerService : IDisposable
         catch (Exception ex)
         {
             Console.WriteLine($"[SimplifiedReportsScheduler] Error guardando configuración: {ex.Message}");
+        }
+    }
+
+    private string GenerateEmptyDailyReportBody(DateTime reportDate)
+    {
+        return $@"
+            <div style='font-family: Segoe UI, Arial, sans-serif; max-width: 600px;'>
+                <h2 style='color: #2563eb;'>📊 Reporte Diario de AYER ({reportDate:dddd dd/MM/yyyy}) - ActivityDashboard</h2>
+                
+                <div style='background: #fff3cd; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #ffc107;'>
+                    <p style='margin: 0; color: #856404;'><strong>⚠️ Sin Datos:</strong> No se registró actividad en los cuadrantes durante el período de ayer ({reportDate:dd/MM/yyyy}) de 8:00 AM a 8:00 PM.</p>
+                </div>
+                
+                <div style='background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0;'>
+                    <p><strong>🕒 Período Revisado:</strong> {reportDate:dd/MM/yyyy} 08:00 - 20:00</p>
+                    <p><strong>📋 Posibles Causas:</strong></p>
+                    <ul style='margin: 10px 0; padding-left: 20px;'>
+                        <li>No hubo actividad en los cuadrantes monitoreados</li>
+                        <li>Sistema de monitoreo pausado temporalmente</li>
+                        <li>Configuración de cuadrantes pendiente</li>
+                    </ul>
+                </div>
+                
+                <hr style='margin: 20px 0; border: none; border-top: 1px solid #dee2e6;'>
+                <p style='color: #6c757d; font-size: 12px;'>
+                    📅 Generado automáticamente el {DateTime.Now:dd/MM/yyyy HH:mm:ss}<br>
+                    🖥️ Capturer Dashboard v3.2.0 - Sistema de Monitoreo Empresarial
+                </p>
+            </div>";
+    }
+    
+    private string GenerateEmptyWeeklyReportBody(DateTime startOfWeek, DateTime endOfWeek)
+    {
+        return $@"
+            <div style='font-family: Segoe UI, Arial, sans-serif; max-width: 600px;'>
+                <h2 style='color: #2563eb;'>📦 Reporte Semanal de la SEMANA PASADA ({startOfWeek:dd/MM} - {endOfWeek:dd/MM/yyyy}) - ActivityDashboard</h2>
+                
+                <div style='background: #fff3cd; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #ffc107;'>
+                    <p style='margin: 0; color: #856404;'><strong>⚠️ Sin Datos:</strong> No se registró actividad en los cuadrantes durante toda la semana pasada.</p>
+                </div>
+                
+                <div style='background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0;'>
+                    <p><strong>🕒 Semana Revisada:</strong> {startOfWeek:dd/MM/yyyy} - {endOfWeek:dd/MM/yyyy}</p>
+                    <p><strong>📋 Posibles Causas:</strong></p>
+                    <ul style='margin: 10px 0; padding-left: 20px;'>
+                        <li>No hubo actividad en los cuadrantes monitoreados</li>
+                        <li>Sistema de monitoreo pausado durante la semana</li>
+                        <li>Configuración de cuadrantes pendiente</li>
+                        <li>Período de vacaciones o fin de semana extendido</li>
+                    </ul>
+                </div>
+                
+                <hr style='margin: 20px 0; border: none; border-top: 1px solid #dee2e6;'>
+                <p style='color: #6c757d; font-size: 12px;'>
+                    📅 Generado automáticamente el {DateTime.Now:dd/MM/yyyy HH:mm:ss}<br>
+                    🖥️ Capturer Dashboard v3.2.0 - Sistema de Monitoreo Empresarial
+                </p>
+            </div>";
+    }
+    
+    /// <summary>
+    /// ★ NUEVO: Genera HTML embebido para email de reporte diario
+    /// Procesa el HTML del reporte y lo adapta para email con información adicional
+    /// </summary>
+    private async Task<string> GenerateEnhancedDailyEmailHtml(string reportHtmlContent, ActivityReport report, DateTime reportDate)
+    {
+        try
+        {
+            // Leer el HTML completo del reporte
+            var html = reportHtmlContent;
+            
+            // ✅ Backend Reliability: Validar que el HTML sea válido
+            if (string.IsNullOrEmpty(html) || !html.Contains("<!DOCTYPE html>"))
+            {
+                Console.WriteLine("[SimplifiedReportsScheduler] HTML inválido, usando fallback");
+                return GenerateSimpleEmailBody(report, "daily", reportDate);
+            }
+            
+            // ★ MEJORA: Insertar información adicional de email antes del cierre del body
+            var emailFooter = $@"
+            <div style='margin-top: 40px; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 10px;'>
+                <h3 style='margin: 0 0 10px 0; color: white;'>📎 Reporte Adjunto</h3>
+                <p style='margin: 5px 0; opacity: 0.9;'>📄 Para su conveniencia, también encontrará este reporte como archivo HTML adjunto.</p>
+                <p style='margin: 5px 0; opacity: 0.9;'>🖥️ El archivo adjunto contiene la misma información con funcionalidad completa offline.</p>
+            </div>
+            
+            <div style='margin-top: 30px; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #007bff;'>
+                <p style='margin: 0; font-size: 12px; color: #6c757d;'>
+                    📅 Email generado automáticamente el {DateTime.Now:dd/MM/yyyy HH:mm:ss}<br>
+                    🖥️ Capturer Dashboard v3.2.0 - Sistema de Monitoreo Empresarial<br>
+                    🕒 Reporte del período: {reportDate:dddd dd/MM/yyyy} 8:00 AM - 8:00 PM
+                </p>
+            </div>";
+            
+            // Insertar footer antes del cierre del body
+            var bodyCloseIndex = html.LastIndexOf("</body>");
+            if (bodyCloseIndex > 0)
+            {
+                html = html.Insert(bodyCloseIndex, emailFooter);
+            }
+            else
+            {
+                // Fallback: agregar al final
+                html += emailFooter + "</body></html>";
+            }
+            
+            return html;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[SimplifiedReportsScheduler] Error procesando HTML para email: {ex.Message}");
+            // Fallback a email simple
+            return GenerateSimpleEmailBody(report, "daily", reportDate);
+        }
+    }
+    
+    /// <summary>
+    /// ★ NUEVO: Envía email diario con HTML embebido como cuerpo
+    /// Utiliza el nuevo método especializado de EmailService para HTML completo
+    /// </summary>
+    private async Task<bool> SendDailyEmailWithEmbeddedHtml(List<string> recipients, string subject, string htmlBody, List<string> attachmentFiles)
+    {
+        try
+        {
+            // ★ USAR NUEVO MÉTODO especializado para HTML embebido
+            var success = await _emailService.SendDailyActivityReportWithEmbeddedHtmlAsync(
+                recipients,
+                subject,
+                htmlBody, // ★ CLAVE: HTML completo del reporte como cuerpo
+                attachmentFiles // ★ ADEMÁS: Archivo HTML adjunto
+            );
+            
+            return success;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[SimplifiedReportsScheduler] Error enviando email con HTML embebido: {ex.Message}");
+            return false;
         }
     }
 

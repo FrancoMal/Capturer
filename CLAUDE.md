@@ -1,8 +1,8 @@
-# 📸 Capturer v3.1.2 - Documentación para Claude
+# 📸 Capturer v3.2.0 - Documentación para Claude
 
 ## 🎯 Propósito del Proyecto
 
-**Capturer v3.1.2** es una aplicación de escritorio .NET 8 para Windows diseñada específicamente como **sistema de monitoreo de oficina 24/7**. Su función principal es capturar automáticamente pantallas de trabajo y generar reportes organizados por email.
+**Capturer v3.2.0** es una aplicación de escritorio .NET 8 para Windows diseñada específicamente como **sistema de monitoreo de oficina 24/7**. Su función principal es capturar automáticamente pantallas de trabajo y generar reportes organizados por email.
 
 ### Casos de Uso Principal:
 - **Monitoreo empresarial continuo** - Supervisión de actividad laboral
@@ -34,7 +34,7 @@
 │ Business Logic Layer            │ ← Servicios principales
 │ • ScreenshotService             │
 │ • EmailService (dual mode)      │
-│ • QuadrantService (v3.1.2)        │
+│ • QuadrantService (v3.2.0)        │
 │ • SchedulerService              │
 │ • ConfigurationManager          │
 ├─────────────────────────────────┤
@@ -47,7 +47,7 @@
 
 ---
 
-## 🚀 Arquitectura Unificada v3.1.2
+## 🚀 Arquitectura Unificada v3.2.0
 
 ### Flujo de Procesamiento Inteligente:
 ```
@@ -106,7 +106,7 @@ SendManualReportAsync() // Control total por parte del usuario
 - Integración opcional con cuadrantes
 ```
 
-#### Email Automático (Rutinario) - ✨ MEJORADO v3.1.2:
+#### Email Automático (Rutinario) - ✨ MEJORADO v3.2.0:
 ```csharp  
 SendEnhancedReportAsync() // ⭐ NUEVO: Reportes con filtros avanzados
 SendRoutineQuadrantReportsAsync() // Con cuadrantes automáticos
@@ -118,7 +118,7 @@ SendRoutineQuadrantReportsAsync() // Con cuadrantes automáticos
 - Reportes separados por cuadrante disponibles
 ```
 
-### 🆕 Sistema Unificado de Filtros + Cuadrantes (v3.1.2):
+### 🆕 Sistema Unificado de Filtros + Cuadrantes (v3.2.0):
 
 #### Flujo de Procesamiento Integrado:
 ```yaml
@@ -151,7 +151,7 @@ Cuadrantes: ["Métricas", "Rendimiento"]
 Resultado: KPIs empresariales en horario ejecutivo
 ```
 
-### 3. QuadrantService (★ Característica v3.1.2)
+### 3. QuadrantService (★ Característica v3.2.0)
 **Responsabilidad:** Procesamiento inteligente de regiones de pantalla
 
 ```csharp
@@ -199,7 +199,7 @@ C:\Users\[User]\Documents\Capturer\
 │   │   ├── 2024-08-26_14-30-15.png
 │   │   └── 2024-08-26_15-00-15.png
 │   └── 2024-09\
-├── Quadrants\                      ← ★ Cuadrantes procesados (v3.1.2)
+├── Quadrants\                      ← ★ Cuadrantes procesados (v3.2.0)
 │   ├── Trabajo\                   ← Un cuadrante = Una carpeta
 │   │   ├── 2024-08-26_14-30-15_Trabajo.png
 │   │   └── metadata.json
@@ -242,7 +242,7 @@ C:\Users\[User]\Documents\Capturer\
     "Recipients": ["admin@empresa.com"],
     "SenderName": "Sistema Capturer"
   },
-  "QuadrantSystem": {                    // ★ Nuevo en v3.1.2
+  "QuadrantSystem": {                    // ★ Nuevo en v3.2.0
     "IsEnabled": true,
     "ShowPreviewColors": true,
     "EnableLogging": true,
@@ -284,7 +284,7 @@ C:\Users\[User]\Documents\Capturer\
 
 ---
 
-## 📧 Sistema de Email Dual (v3.1.2)
+## 📧 Sistema de Email Dual (v3.2.0)
 
 ### Diferencias Clave:
 
@@ -323,7 +323,7 @@ C:\Users\[User]\Documents\Capturer\
 
 ---
 
-## 🔲 Sistema de Cuadrantes (★ v3.1.2)
+## 🔲 Sistema de Cuadrantes (★ v3.2.0)
 
 ### Concepto:
 Los cuadrantes permiten dividir la pantalla en **regiones de interés específicas** y procesarlas por separado. Ideal para:
@@ -528,7 +528,7 @@ dotnet test
 | **Procesamiento cuadrantes (50 images)** | 15-60s | 5-12% CPU |
 | **Startup aplicación** | 4-10s | 60-90MB RAM |
 
-### Optimizaciones v3.1.2:
+### Optimizaciones v3.2.0:
 - **Async/await** extensivo para no bloquear UI
 - **SemaphoreSlim** para control concurrencia
 - **Memory streams** para attachments email
@@ -539,7 +539,7 @@ dotnet test
 
 ## 🎯 Conclusión para Claude
 
-Este proyecto está **bien estructurado** para ser un sistema de monitoreo empresarial robusto. La arquitectura de servicios con DI permite fácil testing y extensión. El sistema de cuadrantes v3.1.2 añade valor significativo para casos de uso enterprise.
+Este proyecto está **bien estructurado** para ser un sistema de monitoreo empresarial robusto. La arquitectura de servicios con DI permite fácil testing y extensión. El sistema de cuadrantes v3.2.0 añade valor significativo para casos de uso enterprise.
 
 **Fortalezas principales:**
 - ✅ Arquitectura limpia y mantenible

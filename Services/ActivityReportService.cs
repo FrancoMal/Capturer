@@ -1,5 +1,7 @@
 using System.Text.Json;
 using System.Text;
+using System.Text.RegularExpressions; // ★ NUEVO: Para extracción de fechas
+using System.Globalization; // ★ NUEVO: Para parseo de fechas
 using Capturer.Models;
 
 namespace Capturer.Services;
@@ -16,6 +18,7 @@ public class ActivityReportService : IDisposable
     // Current session report
     private ActivityReport? _currentSessionReport;
     private readonly System.Threading.Timer _autoSaveTimer;
+    private readonly System.Threading.Timer _cleanupTimer; // ★ NUEVO: Timer para limpieza automática
 
     public event EventHandler<ActivityReportGeneratedEventArgs>? ReportGenerated;
 
@@ -25,10 +28,17 @@ public class ActivityReportService : IDisposable
         _config = config ?? new ActivityReportConfiguration();
         
         EnsureReportsFolder();
+        
+        // ★ NUEVO: Limpieza inicial de archivos antiguos
+        PerformInitialCleanup();
+        
         StartCurrentSession();
         
         // Auto-save current session every 5 minutes
         _autoSaveTimer = new System.Threading.Timer(AutoSaveCurrentSession, null, TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(5));
+        
+        // ★ NUEVO: Limpieza automática cada hora para mantener solo 2 días
+        _cleanupTimer = new System.Threading.Timer(PerformPeriodicCleanup, null, TimeSpan.FromHours(1), TimeSpan.FromHours(1));
         
         // Subscribe to activity changes to build real-time report
         _activityService.ActivityChanged += OnActivityChanged;
@@ -2046,7 +2056,7 @@ public class ActivityReportService : IDisposable
         
         // Footer
         html.AppendLine("<div class='footer'>");
-        html.AppendLine($"<p>📅 Generado el {DateTime.Now:dd/MM/yyyy HH:mm:ss} | 🖥️ Capturer Dashboard v3.1.2 | 📊 {report.Summary.TotalActivities:N0} actividades detectadas</p>");
+        html.AppendLine($"<p>📅 Generado el {DateTime.Now:dd/MM/yyyy HH:mm:ss} | 🖥️ Capturer Dashboard v3.2.0 | 📊 {report.Summary.TotalActivities:N0} actividades detectadas</p>");
         html.AppendLine("</div>");
         
         // JavaScript para las gráficas
@@ -2151,6 +2161,192 @@ public class ActivityReportService : IDisposable
         }
     }
 
+    #region ★ NUEVO: Sistema de Limpieza Automática - Retención 2 Días
+    
+    /// <summary>
+    /// Realiza limpieza inicial al iniciar el servicio
+    /// </summary>
+    private void PerformInitialCleanup()
+    {
+        try
+        {
+            Console.WriteLine("[ActivityReportService] Ejecutando limpieza inicial de archivos antiguos...");
+            var deletedCount = CleanupOldReports();
+            Console.WriteLine($"[ActivityReportService] Limpieza inicial completada. Archivos eliminados: {deletedCount}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ActivityReportService] Error en limpieza inicial: {ex.Message}");
+        }
+    }
+    
+    /// <summary>
+    /// Limpieza periódica llamada por timer
+    /// </summary>
+    private void PerformPeriodicCleanup(object? state)
+    {
+        try
+        {
+            var deletedCount = CleanupOldReports();
+            if (deletedCount > 0)
+            {
+                Console.WriteLine($"[ActivityReportService] Limpieza periódica completada. Archivos eliminados: {deletedCount}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ActivityReportService] Error en limpieza periódica: {ex.Message}");
+        }
+    }
+    
+    /// <summary>
+    /// Limpia archivos de reportes antiguos, manteniendo solo los últimos 2 días (ayer y hoy)
+    /// RETENCIÓN: Solo archivos de ayer y hoy - elimina todo lo más antiguo
+    /// </summary>
+    /// <returns>Número de archivos eliminados</returns>
+    private int CleanupOldReports()
+    {
+        var deletedCount = 0;
+        var cutoffDate = DateTime.Now.Date.AddDays(-2); // Todo lo anterior a anteayer
+        
+        Console.WriteLine($"[ActivityReportService] Limpiando archivos anteriores a {cutoffDate:yyyy-MM-dd}");
+        
+        try
+        {
+            // 1. Limpiar Sessions folder
+            var sessionsFolder = Path.Combine(_config.ReportsFolder, "Sessions");
+            if (Directory.Exists(sessionsFolder))
+            {
+                deletedCount += CleanupFolderByDate(sessionsFolder, cutoffDate, "*.json");
+            }
+            
+            // 2. Limpiar Exports folder
+            var exportsFolder = Path.Combine(_config.ReportsFolder, "Exports");
+            if (Directory.Exists(exportsFolder))
+            {
+                deletedCount += CleanupFolderByDate(exportsFolder, cutoffDate, "*.*");
+            }
+            
+            // 3. Limpiar Quadrants folder
+            var quadrantsFolder = Path.Combine(_config.ReportsFolder, "Quadrants");
+            if (Directory.Exists(quadrantsFolder))
+            {
+                deletedCount += CleanupFolderByDate(quadrantsFolder, cutoffDate, "*.json");
+            }
+            
+            // 4. Limpiar archivos sueltos en la carpeta raíz
+            deletedCount += CleanupFolderByDate(_config.ReportsFolder, cutoffDate, "*.json");
+            deletedCount += CleanupFolderByDate(_config.ReportsFolder, cutoffDate, "*.html");
+            deletedCount += CleanupFolderByDate(_config.ReportsFolder, cutoffDate, "*.csv");
+            
+            return deletedCount;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ActivityReportService] Error en limpieza: {ex.Message}");
+            return deletedCount;
+        }
+    }
+    
+    /// <summary>
+    /// Limpia archivos en una carpeta específica según fecha límite
+    /// </summary>
+    private int CleanupFolderByDate(string folderPath, DateTime cutoffDate, string searchPattern)
+    {
+        var deletedCount = 0;
+        
+        try
+        {
+            if (!Directory.Exists(folderPath)) return 0;
+            
+            var files = Directory.GetFiles(folderPath, searchPattern, SearchOption.TopDirectoryOnly);
+            
+            foreach (var file in files)
+            {
+                try
+                {
+                    var fileInfo = new FileInfo(file);
+                    
+                    // Usar fecha de creación o modificación (la más reciente)
+                    var fileDate = fileInfo.CreationTime > fileInfo.LastWriteTime 
+                        ? fileInfo.CreationTime.Date 
+                        : fileInfo.LastWriteTime.Date;
+                    
+                    // Intentar extraer fecha del nombre del archivo para mayor precisión
+                    var dateFromName = ExtractDateFromActivityFileName(Path.GetFileName(file));
+                    if (dateFromName.HasValue)
+                    {
+                        fileDate = dateFromName.Value.Date;
+                    }
+                    
+                    if (fileDate < cutoffDate)
+                    {
+                        File.Delete(file);
+                        deletedCount++;
+                        Console.WriteLine($"[ActivityReportService] Eliminado: {Path.GetFileName(file)} (fecha: {fileDate:yyyy-MM-dd})");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[ActivityReportService] Error eliminando {file}: {ex.Message}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ActivityReportService] Error accediendo carpeta {folderPath}: {ex.Message}");
+        }
+        
+        return deletedCount;
+    }
+    
+    /// <summary>
+    /// Extrae fecha del nombre de archivo de activity reports si es posible
+    /// </summary>
+    private DateTime? ExtractDateFromActivityFileName(string fileName)
+    {
+        try
+        {
+            // Buscar patrones de fecha en nombres de archivos de activity reports
+            // Ejemplos: "session1_to_2024-09-11_14-30-15.json", "ActivityReport_20240911_143022.json"
+            
+            var datePatterns = new[]
+            {
+                @"to_(\d{4}-\d{2}-\d{2})",   // session_to_yyyy-MM-dd pattern
+                @"_(\d{4}-\d{2}-\d{2})_",    // _yyyy-MM-dd_ pattern
+                @"_(\d{8})_",               // _yyyyMMdd_ pattern
+                @"Report_(\d{8})",          // Report_yyyyMMdd pattern
+            };
+            
+            foreach (var pattern in datePatterns)
+            {
+                var match = Regex.Match(fileName, pattern);
+                if (match.Success)
+                {
+                    var dateString = match.Groups[1].Value;
+                    
+                    // Intentar parsear según el formato
+                    if (dateString.Length == 8 && DateTime.TryParseExact(dateString, "yyyyMMdd", null, DateTimeStyles.None, out var date1))
+                    {
+                        return date1;
+                    }
+                    else if (DateTime.TryParseExact(dateString, "yyyy-MM-dd", null, DateTimeStyles.None, out var date2))
+                    {
+                        return date2;
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ActivityReportService] Error extrayendo fecha del archivo {fileName}: {ex.Message}");
+        }
+        
+        return null;
+    }
+    
+    #endregion
+
     private void EnsureReportsFolder()
     {
         try
@@ -2175,6 +2371,7 @@ public class ActivityReportService : IDisposable
             SaveCurrentSessionReport();
             
             _autoSaveTimer?.Dispose();
+            _cleanupTimer?.Dispose(); // ★ NUEVO: Limpiar timer de cleanup
             _activityService.ActivityChanged -= OnActivityChanged;
             
             Console.WriteLine("[ActivityReportService] Servicio de reportes finalizado");

@@ -8,7 +8,7 @@
 
 ## 🏢 Propuesta de Valor
 
-### Situación Actual (v3.1.2)
+### Situación Actual (v3.2.0)
 - ✅ Captura de pantallas automática
 - ✅ Sistema de cuadrantes local
 - ✅ Reportes por email

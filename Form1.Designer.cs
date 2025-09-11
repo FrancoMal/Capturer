@@ -424,7 +424,7 @@
             this.MaximizeBox = false;
             this.Name = "Form1";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "Capturer v3.1.2 - Sistema de Monitoreo";
+            this.Text = "Capturer v3.2.0 - Sistema de Monitoreo";
             this.contextMenuStrip.ResumeLayout(false);
             this.groupBoxStatus.ResumeLayout(false);
             this.groupBoxStatus.PerformLayout();

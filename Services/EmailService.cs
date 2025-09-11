@@ -3,6 +3,7 @@ using MailKit.Security;
 using MimeKit;
 using System.IO.Compression;
 using System.Text;
+using System.Text.RegularExpressions; // ★ NUEVO: Para conversión HTML a texto
 using Capturer.Models;
 
 namespace Capturer.Services;
@@ -16,6 +17,7 @@ public interface IEmailService
     Task<bool> SendQuadrantReportAsync(List<string> recipients, DateTime startDate, DateTime endDate, List<string> selectedQuadrants, bool useZipFormat = true);
     Task<bool> SendRoutineQuadrantReportsAsync(List<string> recipients, DateTime startDate, DateTime endDate, List<string> selectedQuadrants, bool useZipFormat = true, bool separateEmailPerQuadrant = false);
     Task<bool> SendActivityDashboardReportAsync(List<string> recipients, string subject, string body, List<string> attachmentFiles, bool useZipFormat = true);
+    Task<bool> SendDailyActivityReportWithEmbeddedHtmlAsync(List<string> recipients, string subject, string htmlBody, List<string> attachmentFiles); // ★ NUEVO
     
     // Activity report methods (consolidated from EmailActivityReportExtension)
     Task<bool> SendActivityReportAsync(ActivityReport report, List<string> recipients, ActivityEmailIntegration config);
@@ -1514,7 +1516,7 @@ Si tienes alguna pregunta, contacta al administrador del sistema.
         </div>
         
         <div class='footer'>
-            <p>🤖 Generado automáticamente por <strong>Capturer v3.1.2</strong></p>
+            <p>🤖 Generado automáticamente por <strong>Capturer v3.2.0</strong></p>
             <p>📧 Activity Dashboard - Reportes Avanzados</p>
         </div>
     </div>
@@ -1886,6 +1888,105 @@ Si tienes alguna pregunta, contacta al administrador del sistema.
             {
                 Console.WriteLine($"[EmailService] Error eliminando archivo temporal {file}: {ex.Message}");
             }
+        }
+    }
+    
+    /// <summary>
+    /// ★ NUEVO: Envía reporte diario de Activity Dashboard con HTML completo embebido
+    /// El cuerpo del email ES el HTML del reporte + adjunto del archivo HTML
+    /// </summary>
+    public async Task<bool> SendDailyActivityReportWithEmbeddedHtmlAsync(List<string> recipients, string subject, string htmlBody, List<string> attachmentFiles)
+    {
+        try
+        {
+            await LoadConfigurationAsync();
+
+            // Crear mensaje de email
+            var message = new MimeMessage();
+            message.From.Add(new MailboxAddress(_config.Email.SenderName, _config.Email.Username));
+            message.Subject = subject;
+
+            // Añadir destinatarios
+            foreach (var recipient in recipients)
+            {
+                message.To.Add(MailboxAddress.Parse(recipient));
+            }
+
+            var bodyBuilder = new BodyBuilder();
+            
+            // ★ CLAVE: Usar HTML completo del reporte directamente como cuerpo del email
+            bodyBuilder.HtmlBody = htmlBody;
+            
+            // Generar versión de texto plano del HTML para clientes que no soportan HTML
+            bodyBuilder.TextBody = ConvertHtmlToPlainText(htmlBody);
+
+            // Añadir adjuntos HTML
+            foreach (var file in attachmentFiles)
+            {
+                if (File.Exists(file))
+                {
+                    bodyBuilder.Attachments.Add(file);
+                }
+            }
+
+            message.Body = bodyBuilder.ToMessageBody();
+
+            // Enviar email usando infraestructura existente
+            var success = await SendEmailAsync(message);
+
+            // Disparar evento
+            EmailSent?.Invoke(this, new EmailSentEventArgs
+            {
+                Recipients = recipients,
+                AttachmentCount = attachmentFiles.Count,
+                SentDate = DateTime.Now,
+                Success = success
+            });
+
+            return success;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[EmailService] Error enviando reporte diario con HTML embebido: {ex.Message}");
+            
+            EmailSent?.Invoke(this, new EmailSentEventArgs
+            {
+                Recipients = recipients,
+                Success = false,
+                ErrorMessage = ex.Message,
+                SentDate = DateTime.Now
+            });
+            
+            return false;
+        }
+    }
+    
+    /// <summary>
+    /// Convierte HTML a texto plano para clientes de email que no soportan HTML
+    /// </summary>
+    private string ConvertHtmlToPlainText(string html)
+    {
+        try
+        {
+            // Remover tags HTML y convertir a texto plano
+            var plainText = System.Text.RegularExpressions.Regex.Replace(html, "<[^>]*>", "");
+            
+            // Decodificar entidades HTML comunes
+            plainText = plainText.Replace("&nbsp;", " ")
+                                 .Replace("&amp;", "&")
+                                 .Replace("&lt;", "<")
+                                 .Replace("&gt;", ">")
+                                 .Replace("&quot;", "\"");
+            
+            // Limpiar espacios en blanco excesivos
+            plainText = System.Text.RegularExpressions.Regex.Replace(plainText, @"\s+", " ").Trim();
+            
+            return plainText;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[EmailService] Error convirtiendo HTML a texto: {ex.Message}");
+            return "Reporte de actividad - ver archivo adjunto para contenido completo.";
         }
     }
 
