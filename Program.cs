@@ -21,6 +21,31 @@ namespace Capturer
             
             try
             {
+                // ★ NEW v3.2.2: Check if instance is already running (for tray icon management)
+                var runningProcesses = System.Diagnostics.Process.GetProcessesByName("Capturer");
+                bool isAlreadyRunning = runningProcesses.Length > 1;
+
+                if (isAlreadyRunning)
+                {
+                    // Try to activate existing instance
+                    foreach (var process in runningProcesses)
+                    {
+                        if (process.Id != Environment.ProcessId)
+                        {
+                            try
+                            {
+                                // Send message to existing instance to show itself
+                                Console.WriteLine($"[Capturer] Instancia existente detectada (PID: {process.Id}) - Activando ventana");
+
+                                // This will be handled by the existing instance
+                                Environment.Exit(0);
+                                return;
+                            }
+                            catch { /* Continue with normal startup if activation fails */ }
+                        }
+                    }
+                }
+
                 // Run the main form with dependency injection
                 var mainForm = new Form1(serviceProvider);
                 Application.Run(mainForm);

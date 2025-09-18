@@ -65,95 +65,283 @@ public partial class SimplifiedReportsConfigForm : Form
     {
         SuspendLayout();
 
-        // Form configuration - EXPANDED for complete configuration
-        Text = "📅 Configuración Completa de Reportes Automáticos";
-        Size = new Size(650, 850); // Larger to accommodate all sections
-        FormBorderStyle = FormBorderStyle.Sizable; // Allow resizing
+        // ★ NEW v3.2.2: SIGNIFICANTLY IMPROVED for better readability
+        Text = "📊 Reportes Automáticos ActivityDashboard v3.2.2";
+        Size = new Size(980, 720); // MUCH LARGER for better visibility
+        FormBorderStyle = FormBorderStyle.Sizable;
         MaximizeBox = true;
-        MinimizeBox = false;
+        MinimizeBox = true; // Allow minimize
         StartPosition = FormStartPosition.CenterParent;
-        BackColor = Color.White;
-        MinimumSize = new Size(600, 700);
+        BackColor = Color.FromArgb(248, 249, 250); // Modern light background
+        MinimumSize = new Size(920, 680); // Larger minimum size
 
-        // Main scrollable panel
+        // ★ NEW v3.2.2: Use TabControl for MUCH better organization and readability
+        var tabControl = new TabControl
+        {
+            Dock = DockStyle.Fill,
+            Font = new Font("Segoe UI", 9F, FontStyle.Bold),
+            Padding = new Point(25, 10), // More space between tabs
+            Margin = new Padding(10),
+            Appearance = TabAppearance.FlatButtons,
+            SizeMode = TabSizeMode.Fixed,
+            ItemSize = new Size(170, 35) // Larger tabs for better visibility
+        };
+
+        // Create organized tabs instead of single long form
+        var configTab = CreateConfiguracionTab();
+        var cuadrantesTab = CreateCuadrantesTab();
+        var emailTab = CreateEmailTab();
+        var previewTab = CreatePreviewTab();
+
+        tabControl.TabPages.AddRange(new TabPage[] {
+            configTab, cuadrantesTab, emailTab, previewTab
+        });
+
+        // ★ v3.2.2: Fixed button panel at bottom for all tabs
+        var fixedButtonPanel = new Panel
+        {
+            Height = 70,
+            Dock = DockStyle.Bottom,
+            BackColor = Color.FromArgb(248, 249, 250),
+            Padding = new Padding(25, 15, 25, 15)
+        };
+
+        var btnOK = new Button
+        {
+            Text = "💾 Guardar Configuración v3.2.2",
+            Size = new Size(220, 40),
+            Anchor = AnchorStyles.Bottom | AnchorStyles.Right,
+            BackColor = Color.FromArgb(25, 135, 84), // Success green
+            ForeColor = Color.White,
+            FlatStyle = FlatStyle.Flat,
+            Font = new Font("Segoe UI", 10F, FontStyle.Bold),
+            DialogResult = DialogResult.OK
+        };
+        btnOK.Location = new Point(fixedButtonPanel.Width - 350, 15);
+        btnOK.FlatAppearance.BorderSize = 0;
+        btnOK.Click += OnSaveClick;
+
+        var btnCancel = new Button
+        {
+            Text = "❌ Cancelar",
+            Size = new Size(110, 40),
+            Anchor = AnchorStyles.Bottom | AnchorStyles.Right,
+            BackColor = Color.FromArgb(220, 53, 69), // Danger red
+            ForeColor = Color.White,
+            FlatStyle = FlatStyle.Flat,
+            Font = new Font("Segoe UI", 10F),
+            DialogResult = DialogResult.Cancel
+        };
+        btnCancel.Location = new Point(fixedButtonPanel.Width - 120, 15);
+        btnCancel.FlatAppearance.BorderSize = 0;
+
+        fixedButtonPanel.Controls.AddRange(new Control[] { btnOK, btnCancel });
+
+        Controls.Add(tabControl);
+        Controls.Add(fixedButtonPanel);
+        
+        ResumeLayout(false);
+    }
+
+    // ★ NEW v3.2.2: Tab creation methods for better organization
+
+    private TabPage CreateConfiguracionTab()
+    {
+        var tab = new TabPage("⚙️ Configuración")
+        {
+            BackColor = Color.White,
+            Padding = new Padding(15),
+            Font = new Font("Segoe UI", 9F)
+        };
+
         var scrollPanel = new Panel
         {
             Dock = DockStyle.Fill,
             AutoScroll = true,
-            Padding = new Padding(15)
+            BackColor = Color.White
         };
 
         var mainPanel = new TableLayoutPanel
         {
             Location = new Point(0, 0),
-            Size = new Size(600, 1000), // Increased size for all sections
+            Size = new Size(900, 400), // Adequate space for sections
             ColumnCount = 1,
-            RowCount = 9, // Increased for new sections
+            RowCount = 2,
             Padding = new Padding(10),
-            BackColor = Color.White,
-            AutoSize = false
+            AutoSize = false,
+            BackColor = Color.White
         };
 
-        // Configure rows
-        for (int i = 0; i < 8; i++)
+        for (int i = 0; i < 2; i++)
         {
             mainPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         }
-        mainPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // Preview row
         mainPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
 
-        // Section 1: Frequency & Days Selection
+        // Add sections with better spacing
         var frequencySection = CreateFrequencyAndDaysSection();
+        frequencySection.Margin = new Padding(5, 5, 5, 15);
         mainPanel.Controls.Add(frequencySection, 0, 0);
 
-        // Section 2: Quadrant Configuration
-        var quadrantSection = CreateQuadrantConfigSection();
-        mainPanel.Controls.Add(quadrantSection, 0, 1);
-
-        // Section 3: Monitoring Configuration
-        var monitoringSection = CreateMonitoringConfigSection();
-        mainPanel.Controls.Add(monitoringSection, 0, 2);
-
-        // Section 4: Email Time
         var emailTimeSection = CreateEmailTimeSection();
-        mainPanel.Controls.Add(emailTimeSection, 0, 3);
+        emailTimeSection.Margin = new Padding(5, 5, 5, 15);
+        mainPanel.Controls.Add(emailTimeSection, 0, 1);
 
-        // Section 5: Recipients
-        var recipientsSection = CreateRecipientsSection();
-        mainPanel.Controls.Add(recipientsSection, 0, 4);
-
-        // Section 6: Testing
-        var testingSection = CreateTestingSection();
-        mainPanel.Controls.Add(testingSection, 0, 5);
-
-        // Section 7: Report Preview
-        var reportPreviewSection = CreateReportPreviewSection();
-        mainPanel.Controls.Add(reportPreviewSection, 0, 6);
-
-        // Section 8: Calendar Preview
-        var calendarSection = CreateCalendarPreviewSection();
-        mainPanel.Controls.Add(calendarSection, 0, 7);
-
-        // Fixed buttons at bottom
-        var buttonPanel = CreateButtonPanel();
-        
         scrollPanel.Controls.Add(mainPanel);
-        
-        Controls.Add(scrollPanel);
-        Controls.Add(buttonPanel);
-        
-        ResumeLayout(false);
+        tab.Controls.Add(scrollPanel);
+        return tab;
     }
+
+    private TabPage CreateCuadrantesTab()
+    {
+        var tab = new TabPage("🎯 Cuadrantes")
+        {
+            BackColor = Color.White,
+            Padding = new Padding(15),
+            Font = new Font("Segoe UI", 9F)
+        };
+
+        var scrollPanel = new Panel
+        {
+            Dock = DockStyle.Fill,
+            AutoScroll = true,
+            BackColor = Color.White
+        };
+
+        var mainPanel = new TableLayoutPanel
+        {
+            Location = new Point(0, 0),
+            Size = new Size(900, 350),
+            ColumnCount = 1,
+            RowCount = 2,
+            Padding = new Padding(10),
+            AutoSize = false,
+            BackColor = Color.White
+        };
+
+        for (int i = 0; i < 2; i++)
+        {
+            mainPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        }
+        mainPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+
+        var quadrantSection = CreateQuadrantConfigSection();
+        quadrantSection.Margin = new Padding(5, 5, 5, 15);
+        mainPanel.Controls.Add(quadrantSection, 0, 0);
+
+        var monitoringSection = CreateMonitoringConfigSection();
+        monitoringSection.Margin = new Padding(5, 5, 5, 15);
+        mainPanel.Controls.Add(monitoringSection, 0, 1);
+
+        scrollPanel.Controls.Add(mainPanel);
+        tab.Controls.Add(scrollPanel);
+        return tab;
+    }
+
+    private TabPage CreateEmailTab()
+    {
+        var tab = new TabPage("📧 Email & Testing")
+        {
+            BackColor = Color.White,
+            Padding = new Padding(15),
+            Font = new Font("Segoe UI", 9F)
+        };
+
+        var scrollPanel = new Panel
+        {
+            Dock = DockStyle.Fill,
+            AutoScroll = true,
+            BackColor = Color.White
+        };
+
+        var mainPanel = new TableLayoutPanel
+        {
+            Location = new Point(0, 0),
+            Size = new Size(900, 300),
+            ColumnCount = 1,
+            RowCount = 2,
+            Padding = new Padding(10),
+            AutoSize = false,
+            BackColor = Color.White
+        };
+
+        for (int i = 0; i < 2; i++)
+        {
+            mainPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        }
+        mainPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+
+        var recipientsSection = CreateRecipientsSection();
+        recipientsSection.Margin = new Padding(5, 5, 5, 15);
+        mainPanel.Controls.Add(recipientsSection, 0, 0);
+
+        var testingSection = CreateTestingSection();
+        testingSection.Margin = new Padding(5, 5, 5, 15);
+        mainPanel.Controls.Add(testingSection, 0, 1);
+
+        scrollPanel.Controls.Add(mainPanel);
+        tab.Controls.Add(scrollPanel);
+        return tab;
+    }
+
+    private TabPage CreatePreviewTab()
+    {
+        var tab = new TabPage("🔍 Vista Previa")
+        {
+            BackColor = Color.White,
+            Padding = new Padding(15),
+            Font = new Font("Segoe UI", 9F)
+        };
+
+        var scrollPanel = new Panel
+        {
+            Dock = DockStyle.Fill,
+            AutoScroll = true,
+            BackColor = Color.White
+        };
+
+        var mainPanel = new TableLayoutPanel
+        {
+            Location = new Point(0, 0),
+            Size = new Size(900, 350),
+            ColumnCount = 1,
+            RowCount = 2,
+            Padding = new Padding(10),
+            AutoSize = false,
+            BackColor = Color.White
+        };
+
+        for (int i = 0; i < 2; i++)
+        {
+            mainPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        }
+        mainPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+
+        var reportPreviewSection = CreateReportPreviewSection();
+        reportPreviewSection.Margin = new Padding(5, 5, 5, 15);
+        mainPanel.Controls.Add(reportPreviewSection, 0, 0);
+
+        var calendarSection = CreateCalendarPreviewSection();
+        calendarSection.Margin = new Padding(5, 5, 5, 15);
+        mainPanel.Controls.Add(calendarSection, 0, 1);
+
+        scrollPanel.Controls.Add(mainPanel);
+        tab.Controls.Add(scrollPanel);
+        return tab;
+    }
+
+    // ★ Existing section creation methods (unchanged functionality)
 
     private GroupBox CreateFrequencyAndDaysSection()
     {
         var groupBox = new GroupBox
         {
-            Text = "📊 ¿Cuándo quiere recibir reportes?",
-            Font = new Font("Segoe UI", 10F, FontStyle.Bold),
-            Height = 240, // ✅ Aumentado para acomodar la nueva etiqueta explicativa
+            Text = "📊 ¿Cuándo quiere recibir reportes? (v3.2.2)",
+            Font = new Font("Segoe UI", 11F, FontStyle.Bold),
+            Height = 300, // ★ v3.2.2: Even more height for excellent readability
             Dock = DockStyle.Fill,
-            Padding = new Padding(15)
+            Padding = new Padding(20), // ★ v3.2.2: More padding for better spacing
+            ForeColor = Color.DarkBlue
         };
 
         var mainPanel = new Panel { Dock = DockStyle.Fill };
@@ -171,9 +359,9 @@ public partial class SimplifiedReportsConfigForm : Form
         _rbDaily = new RadioButton
         {
             Text = "📅 Diario - Recibir reporte HTML cada día seleccionado",
-            Location = new Point(15, 45),
-            Size = new Size(400, 25),
-            Font = new Font("Segoe UI", 9F, FontStyle.Bold),
+            Location = new Point(20, 50), // ★ v3.2.2: Better positioning
+            Size = new Size(480, 30), // ★ v3.2.2: Larger for better readability
+            Font = new Font("Segoe UI", 10F, FontStyle.Bold),
             ForeColor = Color.FromArgb(0, 123, 255),
             Checked = true
         };
@@ -182,9 +370,9 @@ public partial class SimplifiedReportsConfigForm : Form
         _rbWeekly = new RadioButton
         {
             Text = "📦 Semanal - Recibir ZIP con 7 reportes HTML cada semana",
-            Location = new Point(15, 70),
-            Size = new Size(400, 25),
-            Font = new Font("Segoe UI", 9F, FontStyle.Bold),
+            Location = new Point(20, 85), // ★ v3.2.2: Better positioning with more space
+            Size = new Size(480, 30), // ★ v3.2.2: Larger for better readability
+            Font = new Font("Segoe UI", 10F, FontStyle.Bold),
             ForeColor = Color.FromArgb(156, 39, 176)
         };
         _rbWeekly.CheckedChanged += OnFrequencyChanged;

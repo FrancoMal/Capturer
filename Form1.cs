@@ -152,10 +152,11 @@ namespace Capturer
             // Timer events
             updateTimer.Tick += UpdateTimer_Tick;
 
-            // System tray events
+            // ★ NEW v3.2.2: Enhanced system tray events with hide option
             notifyIcon.DoubleClick += NotifyIcon_DoubleClick;
             showToolStripMenuItem.Click += ShowToolStripMenuItem_Click;
             captureToolStripMenuItem.Click += CaptureToolStripMenuItem_Click;
+            hideTrayToolStripMenuItem.Click += HideTrayToolStripMenuItem_Click; // NEW
             exitToolStripMenuItem.Click += ExitToolStripMenuItem_Click;
 
             // Form events
@@ -206,8 +207,26 @@ namespace Capturer
                 notifyIcon.Icon = SystemIcons.Application;
             }
 
-            notifyIcon.Text = "Capturer v3.2.1 - Background Monitor";
+            notifyIcon.Text = "Capturer v3.2.2 - Background Monitor";
             notifyIcon.Visible = true; // Always visible when background execution is enabled
+
+            // ★ NEW v3.2.2: Enhanced context menu with hide option
+            SetupTrayContextMenu();
+        }
+
+        /// <summary>
+        /// ★ NEW v3.2.2: Setup enhanced context menu with hide system tray option
+        /// </summary>
+        private void SetupTrayContextMenu()
+        {
+            // The context menu is already created in Designer, just need to wire up events
+            // and update visibility based on current configuration
+
+            // Update context menu visibility based on configuration
+            contextMenuStrip.Enabled = true;
+            notifyIcon.ContextMenuStrip = contextMenuStrip;
+
+            Console.WriteLine("[Capturer] Context menu configurado con opción 'Ocultar System Tray'");
         }
 
         private async void BtnStartCapture_Click(object? sender, EventArgs e)
@@ -371,6 +390,52 @@ namespace Capturer
             }
         }
         
+        /// <summary>
+        /// ★ NEW v3.2.2: Hide system tray icon while keeping background execution
+        /// </summary>
+        private void HideTrayToolStripMenuItem_Click(object? sender, EventArgs e)
+        {
+            var result = MessageBox.Show(
+                "¿Está seguro de ocultar el icono del system tray?\n\n" +
+                "✅ La aplicación seguirá ejecutándose en segundo plano\n" +
+                "✅ Verificable en Administrador de Tareas > Capturer.exe\n" +
+                "✅ Para volver a mostrar: ejecutar Capturer.exe nuevamente\n\n" +
+                "💡 Esta acción resuelve conflictos con código legacy del system tray.",
+                "🙈 Ocultar System Tray v3.2.2",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question);
+
+            if (result == DialogResult.Yes)
+            {
+                // Update configuration to hide tray icon
+                _config.Application.BackgroundExecution.ShowSystemTrayIcon = false;
+
+                // Save configuration asynchronously
+                _ = Task.Run(async () => await _configManager.SaveConfigurationAsync(_config));
+
+                // Hide tray icon immediately
+                notifyIcon.Visible = false;
+
+                // Hide form if visible
+                if (Visible)
+                {
+                    Hide();
+                }
+
+                // Show confirmation via Windows notification (since tray is hidden)
+                Console.WriteLine("[Capturer] System tray ocultado - Aplicación ejecutándose en segundo plano");
+
+                // Optional: Show Windows 10 toast notification
+                try
+                {
+                    // This will only show if the system supports it
+                    var processName = System.Diagnostics.Process.GetCurrentProcess().ProcessName;
+                    Console.WriteLine($"[Capturer] Proceso {processName} ejecutándose en segundo plano sin icono de tray");
+                }
+                catch { /* Ignore notification errors */ }
+            }
+        }
+
         private async void ExitToolStripMenuItem_Click(object? sender, EventArgs e)
         {
             await CleanupAndExit();

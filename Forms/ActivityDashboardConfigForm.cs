@@ -21,8 +21,7 @@ public partial class ActivityDashboardConfigForm : Form
     private NumericUpDown _numPixelToleranceThreshold = new();
     private NumericUpDown _numActivityThreshold = new();
     private CheckBox _chkEnableMonitoring = new();
-    private Button _btnOK = new();
-    private Button _btnCancel = new();
+    // ★ v3.2.2: Buttons now created directly in form - no need for class fields
     private Label _lblConfigStatus = new();
     private Label _lblPreviewInfo = new();
     
@@ -50,79 +49,125 @@ public partial class ActivityDashboardConfigForm : Form
     {
         SuspendLayout();
 
-        // Form configuration
-        Text = "Configuración del Dashboard de Actividad";
-        Size = new Size(720, 600);
-        FormBorderStyle = FormBorderStyle.Sizable; // Allow resizing
+        // ★ NEW v3.2.2: SIGNIFICANTLY IMPROVED for better readability
+        Text = "⚙️ Configuración Dashboard de Actividad v3.2.2";
+        Size = new Size(900, 650); // MUCH LARGER for better visibility
+        FormBorderStyle = FormBorderStyle.Sizable;
         MaximizeBox = true;
         MinimizeBox = true;
         StartPosition = FormStartPosition.CenterParent;
-        BackColor = Color.White;
-        MinimumSize = new Size(650, 500); // Set minimum size
+        BackColor = Color.FromArgb(248, 249, 250); // Modern light background
+        MinimumSize = new Size(850, 600); // Larger minimum size
 
-        // Create scrollable container
+        // ★ v3.2.2: Enhanced scrollable container with better layout
         var scrollPanel = new Panel
         {
             Dock = DockStyle.Fill,
             AutoScroll = true,
-            Padding = new Padding(5)
+            Padding = new Padding(10),
+            BackColor = Color.White,
+            Margin = new Padding(0, 0, 0, 70) // Leave space for buttons
         };
 
-        // Main layout panel with fixed height to ensure scrolling
+        // ★ v3.2.2: Improved main layout with better spacing
         var mainPanel = new TableLayoutPanel
         {
             Location = new Point(0, 0),
-            Size = new Size(680, 700), // Fixed height larger than form
+            Size = new Size(850, 650), // Better proportions
             ColumnCount = 2,
-            RowCount = 6,
-            Padding = new Padding(15),
-            AutoSize = false
+            RowCount = 7, // Added row for better spacing
+            Padding = new Padding(20),
+            AutoSize = false,
+            BackColor = Color.White
         };
 
-        // Configure columns
+        // ★ v3.2.2: Better column configuration with more space
         mainPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
         mainPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
 
-        // Configure rows
-        for (int i = 0; i < 5; i++)
+        // ★ v3.2.2: Better row configuration with spacing
+        for (int i = 0; i < 6; i++)
         {
             mainPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         }
-        mainPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 50F)); // Buttons row
+        mainPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 60F)); // Buttons row with more height
 
-        // Section 1: Quadrant Configuration Selection
+        // ★ v3.2.2: Better organized sections with improved spacing
         var quadrantGroupBox = CreateQuadrantConfigSection();
+        quadrantGroupBox.Margin = new Padding(5, 5, 5, 15);
         mainPanel.Controls.Add(quadrantGroupBox, 0, 0);
         mainPanel.SetColumnSpan(quadrantGroupBox, 2);
 
-        // Section 2: Preview Panel
         var previewGroupBox = CreatePreviewSection();
+        previewGroupBox.Margin = new Padding(5, 5, 5, 15);
         mainPanel.Controls.Add(previewGroupBox, 0, 1);
         mainPanel.SetColumnSpan(previewGroupBox, 2);
 
-        // Section 3: Monitoring Interval
         var intervalGroupBox = CreateIntervalSection();
+        intervalGroupBox.Margin = new Padding(5, 5, 10, 15);
         mainPanel.Controls.Add(intervalGroupBox, 0, 2);
 
-        // Section 4: Comparison Settings
         var comparisonGroupBox = CreateComparisonSection();
+        comparisonGroupBox.Margin = new Padding(10, 5, 5, 15);
         mainPanel.Controls.Add(comparisonGroupBox, 1, 2);
 
-        // Section 5: Activity Settings  
         var activityGroupBox = CreateActivitySection();
+        activityGroupBox.Margin = new Padding(5, 5, 10, 15);
         mainPanel.Controls.Add(activityGroupBox, 0, 3);
 
-        // Section 6: Status Information
         var statusGroupBox = CreateStatusSection();
+        statusGroupBox.Margin = new Padding(10, 5, 5, 15);
         mainPanel.Controls.Add(statusGroupBox, 1, 3);
 
-        // Buttons
-        var buttonPanel = CreateButtonPanel();
-        mainPanel.Controls.Add(buttonPanel, 0, 4);
-        mainPanel.SetColumnSpan(buttonPanel, 2);
+        // Add a spacer row for better visual separation
+        var spacer = new Panel { Height = 20, BackColor = Color.Transparent };
+        mainPanel.Controls.Add(spacer, 0, 4);
+        mainPanel.SetColumnSpan(spacer, 2);
 
         scrollPanel.Controls.Add(mainPanel);
+
+        // ★ v3.2.2: Fixed button panel at bottom for consistency
+        var fixedButtonPanel = new Panel
+        {
+            Height = 70,
+            Dock = DockStyle.Bottom,
+            BackColor = Color.FromArgb(248, 249, 250),
+            Padding = new Padding(20, 17, 20, 17)
+        };
+
+        var btnOK = new Button
+        {
+            Text = "💾 Aplicar Configuración v3.2.2",
+            Size = new Size(210, 35),
+            Anchor = AnchorStyles.Bottom | AnchorStyles.Right,
+            BackColor = Color.FromArgb(25, 135, 84), // Success green
+            ForeColor = Color.White,
+            FlatStyle = FlatStyle.Flat,
+            Font = new Font("Segoe UI", 9F, FontStyle.Bold),
+            DialogResult = DialogResult.OK
+        };
+        btnOK.Location = new Point(fixedButtonPanel.Width - 330, 17);
+        btnOK.FlatAppearance.BorderSize = 0;
+        btnOK.Click += OnOKClick;
+
+        var btnCancel = new Button
+        {
+            Text = "❌ Cancelar",
+            Size = new Size(100, 35),
+            Anchor = AnchorStyles.Bottom | AnchorStyles.Right,
+            BackColor = Color.FromArgb(220, 53, 69), // Danger red
+            ForeColor = Color.White,
+            FlatStyle = FlatStyle.Flat,
+            Font = new Font("Segoe UI", 9F),
+            DialogResult = DialogResult.Cancel
+        };
+        btnCancel.Location = new Point(fixedButtonPanel.Width - 110, 17);
+        btnCancel.FlatAppearance.BorderSize = 0;
+
+        fixedButtonPanel.Controls.AddRange(new Control[] { btnOK, btnCancel });
+
         Controls.Add(scrollPanel);
+        Controls.Add(fixedButtonPanel);
         ResumeLayout(false);
     }
 
@@ -130,11 +175,12 @@ public partial class ActivityDashboardConfigForm : Form
     {
         var groupBox = new GroupBox
         {
-            Text = "Configuración de Cuadrantes",
+            Text = "🎯 Configuración de Cuadrantes",
             Font = new Font("Segoe UI", 10F, FontStyle.Bold),
-            Height = 80,
+            Height = 90, // ★ v3.2.2: More height for better visibility
             Dock = DockStyle.Fill,
-            Padding = new Padding(10)
+            Padding = new Padding(15), // More padding
+            ForeColor = Color.DarkBlue
         };
 
         var label = new Label
@@ -172,28 +218,30 @@ public partial class ActivityDashboardConfigForm : Form
     {
         var groupBox = new GroupBox
         {
-            Text = "Vista Previa de Cuadrantes",
+            Text = "🔍 Vista Previa de Cuadrantes",
             Font = new Font("Segoe UI", 10F, FontStyle.Bold),
-            Height = 200,
+            Height = 220, // ★ v3.2.2: More height for better preview
             Dock = DockStyle.Fill,
-            Padding = new Padding(10)
+            Padding = new Padding(15),
+            ForeColor = Color.DarkGreen
         };
 
         _quadrantPreviewPanel = new Panel
         {
-            Location = new Point(15, 25),
-            Size = new Size(400, 120),
+            Location = new Point(15, 30),
+            Size = new Size(450, 130), // ★ v3.2.2: Larger preview area
             BorderStyle = BorderStyle.FixedSingle,
-            BackColor = Color.WhiteSmoke
+            BackColor = Color.AliceBlue,
+            Margin = new Padding(5)
         };
 
         _lblPreviewInfo = new Label
         {
-            Text = "Seleccione una configuración para ver la vista previa",
-            Location = new Point(15, 150),
-            Size = new Size(400, 20),
-            Font = new Font("Segoe UI", 8F, FontStyle.Italic),
-            ForeColor = Color.Gray,
+            Text = "📋 Seleccione una configuración para ver la vista previa v3.2.2",
+            Location = new Point(15, 170), // ★ v3.2.2: Adjusted for larger preview
+            Size = new Size(450, 25), // Wider and taller
+            Font = new Font("Segoe UI", 9F, FontStyle.Italic),
+            ForeColor = Color.DarkBlue,
             TextAlign = ContentAlignment.MiddleLeft
         };
 
@@ -205,11 +253,12 @@ public partial class ActivityDashboardConfigForm : Form
     {
         var groupBox = new GroupBox
         {
-            Text = "Intervalo de Monitoreo",
+            Text = "⏰ Intervalo de Monitoreo",
             Font = new Font("Segoe UI", 10F, FontStyle.Bold),
-            Height = 100,
+            Height = 120, // ★ v3.2.2: More height for better layout
             Dock = DockStyle.Fill,
-            Padding = new Padding(10)
+            Padding = new Padding(15),
+            ForeColor = Color.DarkOrange
         };
 
         var minutesLabel = new Label
@@ -268,11 +317,12 @@ public partial class ActivityDashboardConfigForm : Form
     {
         var groupBox = new GroupBox
         {
-            Text = "Configuración de Comparación",
+            Text = "🔍 Configuración de Comparación",
             Font = new Font("Segoe UI", 10F, FontStyle.Bold),
-            Height = 100,
+            Height = 120, // ★ v3.2.2: More height for better layout
             Dock = DockStyle.Fill,
-            Padding = new Padding(10)
+            Padding = new Padding(15),
+            ForeColor = Color.DarkRed
         };
 
         var toleranceLabel = new Label
@@ -310,11 +360,12 @@ public partial class ActivityDashboardConfigForm : Form
     {
         var groupBox = new GroupBox
         {
-            Text = "Detección de Actividad",
+            Text = "📊 Detección de Actividad",
             Font = new Font("Segoe UI", 10F, FontStyle.Bold),
-            Height = 100,
+            Height = 120, // ★ v3.2.2: More height for better layout
             Dock = DockStyle.Fill,
-            Padding = new Padding(10)
+            Padding = new Padding(15),
+            ForeColor = Color.DarkMagenta
         };
 
         var thresholdLabel = new Label
@@ -354,11 +405,12 @@ public partial class ActivityDashboardConfigForm : Form
     {
         var groupBox = new GroupBox
         {
-            Text = "Estado del Monitoreo",
+            Text = "⚙️ Estado del Monitoreo",
             Font = new Font("Segoe UI", 10F, FontStyle.Bold),
-            Height = 100,
+            Height = 120, // ★ v3.2.2: More height for better layout
             Dock = DockStyle.Fill,
-            Padding = new Padding(10)
+            Padding = new Padding(15),
+            ForeColor = Color.DarkCyan
         };
 
         _chkEnableMonitoring = new CheckBox
@@ -383,44 +435,7 @@ public partial class ActivityDashboardConfigForm : Form
         return groupBox;
     }
 
-    private Panel CreateButtonPanel()
-    {
-        var panel = new Panel
-        {
-            Height = 50,
-            Dock = DockStyle.Fill
-        };
-
-        _btnOK = new Button
-        {
-            Text = "Aplicar Configuración",
-            Size = new Size(140, 30),
-            Location = new Point(200, 10),
-            BackColor = Color.FromArgb(0, 120, 215),
-            ForeColor = Color.White,
-            FlatStyle = FlatStyle.Flat,
-            Font = new Font("Segoe UI", 9F, FontStyle.Bold),
-            DialogResult = DialogResult.OK
-        };
-        _btnOK.FlatAppearance.BorderSize = 0;
-        _btnOK.Click += OnOKClick;
-
-        _btnCancel = new Button
-        {
-            Text = "Cancelar",
-            Size = new Size(100, 30),
-            Location = new Point(350, 10),
-            BackColor = Color.Gray,
-            ForeColor = Color.White,
-            FlatStyle = FlatStyle.Flat,
-            Font = new Font("Segoe UI", 9F),
-            DialogResult = DialogResult.Cancel
-        };
-        _btnCancel.FlatAppearance.BorderSize = 0;
-
-        panel.Controls.AddRange(new Control[] { _btnOK, _btnCancel });
-        return panel;
-    }
+    // ★ v3.2.2: CreateButtonPanel() method removed - buttons now integrated in form
 
     private void LoadQuadrantConfigurations()
     {

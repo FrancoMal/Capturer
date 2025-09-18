@@ -51,6 +51,7 @@
             this.contextMenuStrip = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.showToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.captureToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.hideTrayToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem(); // ★ NEW v3.2.2
             this.exitToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.updateTimer = new System.Windows.Forms.Timer(this.components);
             this.groupBoxStatus = new System.Windows.Forms.GroupBox();
@@ -314,27 +315,37 @@
             this.showToolStripMenuItem,
             this.captureToolStripMenuItem,
             new System.Windows.Forms.ToolStripSeparator(),
+            this.hideTrayToolStripMenuItem, // ★ NEW v3.2.2
+            new System.Windows.Forms.ToolStripSeparator(),
             this.exitToolStripMenuItem});
             this.contextMenuStrip.Name = "contextMenuStrip";
-            this.contextMenuStrip.Size = new System.Drawing.Size(180, 76);
+            this.contextMenuStrip.Size = new System.Drawing.Size(200, 100); // ★ v3.2.2: Larger for new option
             // 
             // showToolStripMenuItem
             // 
             this.showToolStripMenuItem.Name = "showToolStripMenuItem";
-            this.showToolStripMenuItem.Size = new System.Drawing.Size(179, 22);
-            this.showToolStripMenuItem.Text = "Mostrar";
+            this.showToolStripMenuItem.Size = new System.Drawing.Size(199, 22); // ★ v3.2.2: Adjusted size
+            this.showToolStripMenuItem.Text = "👁️ Mostrar Capturer";
             // 
             // captureToolStripMenuItem
             // 
             this.captureToolStripMenuItem.Name = "captureToolStripMenuItem";
-            this.captureToolStripMenuItem.Size = new System.Drawing.Size(179, 22);
+            this.captureToolStripMenuItem.Size = new System.Drawing.Size(199, 22); // ★ v3.2.2: Adjusted size
             this.captureToolStripMenuItem.Text = "📸 Captura de Pantalla";
+            //
+            // hideTrayToolStripMenuItem
+            //
+            this.hideTrayToolStripMenuItem.Name = "hideTrayToolStripMenuItem";
+            this.hideTrayToolStripMenuItem.Size = new System.Drawing.Size(199, 22);
+            this.hideTrayToolStripMenuItem.Text = "🙈 Ocultar System Tray";
+            this.hideTrayToolStripMenuItem.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
+            this.hideTrayToolStripMenuItem.ForeColor = System.Drawing.Color.DarkRed;
             // 
             // exitToolStripMenuItem
             // 
             this.exitToolStripMenuItem.Name = "exitToolStripMenuItem";
-            this.exitToolStripMenuItem.Size = new System.Drawing.Size(179, 22);
-            this.exitToolStripMenuItem.Text = "Salir";
+            this.exitToolStripMenuItem.Size = new System.Drawing.Size(199, 22); // ★ v3.2.2: Adjusted size
+            this.exitToolStripMenuItem.Text = "❌ Salir Completamente";
             // 
             // updateTimer
             // 
@@ -457,6 +468,7 @@
         private System.Windows.Forms.ContextMenuStrip contextMenuStrip;
         private System.Windows.Forms.ToolStripMenuItem showToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem captureToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem hideTrayToolStripMenuItem; // ★ NEW v3.2.2
         private System.Windows.Forms.ToolStripMenuItem exitToolStripMenuItem;
         private System.Windows.Forms.Timer updateTimer;
         private System.Windows.Forms.GroupBox groupBoxStatus;

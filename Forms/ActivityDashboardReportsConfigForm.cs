@@ -57,150 +57,311 @@ public partial class ActivityDashboardReportsConfigForm : Form
     {
         SuspendLayout();
 
-        // Form configuration - INCREASED HEIGHT for better visibility
-        Text = "Configuración de Reportes Diarios - ActivityDashboard";
-        Size = new Size(680, 800); // Increased both width and height
-        FormBorderStyle = FormBorderStyle.Sizable; // Allow resizing
-        MaximizeBox = true; // Allow maximizing
-        MinimizeBox = false;
+        // ★ NEW v3.2.2: SIGNIFICANTLY IMPROVED LAYOUT for better readability
+        Text = "📊 Configuración de Reportes ActivityDashboard v3.2.2";
+        Size = new Size(950, 700); // MUCH LARGER for better visibility
+        FormBorderStyle = FormBorderStyle.Sizable;
+        MaximizeBox = true;
+        MinimizeBox = true; // Allow minimize
         StartPosition = FormStartPosition.CenterParent;
-        BackColor = Color.White;
-        MinimumSize = new Size(650, 600); // Set minimum size
+        BackColor = Color.FromArgb(248, 249, 250); // Light modern background
+        MinimumSize = new Size(900, 650); // Larger minimum size
+        WindowState = FormWindowState.Normal;
 
-        // Create main panel with scroll - FIXED SCROLLING
-        var scrollPanel = new Panel
+        // ★ NEW v3.2.2: Use TabControl for MUCH better organization
+        var tabControl = new TabControl
         {
             Dock = DockStyle.Fill,
-            AutoScroll = true,
-            Padding = new Padding(10),
-            BackColor = Color.White
+            Font = new Font("Segoe UI", 9F, FontStyle.Bold),
+            Padding = new Point(20, 8), // More space between tabs
+            Margin = new Padding(10),
+            Appearance = TabAppearance.FlatButtons,
+            SizeMode = TabSizeMode.Fixed,
+            ItemSize = new Size(150, 30) // Larger tabs
         };
 
-        // Main layout - FIXED SIZE CALCULATION
-        var mainPanel = new TableLayoutPanel
-        {
-            Location = new Point(0, 0),
-            Size = new Size(640, 950), // Adjusted width to fit in new form size
-            ColumnCount = 1,
-            RowCount = 10, // Keep all sections
-            Padding = new Padding(15),
-            AutoSize = false,
-            BackColor = Color.White
-        };
+        // Create organized tabs instead of single long form
+        var generalTab = CreateGeneralTab();
+        var filtersTab = CreateFiltersTab();
+        var quadrantsTab = CreateQuadrantsTab();
+        var emailTab = CreateEmailTab();
+        var outputTab = CreateOutputTab();
 
-        for (int i = 0; i < 9; i++)
-        {
-            mainPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        }
-        mainPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 50F)); // Buttons row
-        mainPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+        tabControl.TabPages.AddRange(new TabPage[] {
+            generalTab, filtersTab, quadrantsTab, emailTab, outputTab
+        });
 
-        // Section 1: Enable Reports
-        var enableGroupBox = CreateEnableSection();
-        mainPanel.Controls.Add(enableGroupBox, 0, 0);
-
-        // Section 2: Frequency Configuration
-        var frequencyGroupBox = CreateFrequencySection();
-        mainPanel.Controls.Add(frequencyGroupBox, 0, 1);
-
-        // Section 3: Timing Configuration
-        var timingGroupBox = CreateTimingSection();
-        mainPanel.Controls.Add(timingGroupBox, 0, 2);
-
-        // Section 4: Period Configuration
-        var periodGroupBox = CreatePeriodSection();
-        mainPanel.Controls.Add(periodGroupBox, 0, 3);
-
-        // Section 5: Week Days Filter
-        var weekDaysGroupBox = CreateWeekDaysSection();
-        mainPanel.Controls.Add(weekDaysGroupBox, 0, 4);
-
-        // Section 6: Quadrant Configuration
-        var quadrantGroupBox = CreateQuadrantSection();
-        mainPanel.Controls.Add(quadrantGroupBox, 0, 5);
-
-        // Section 7: Email Configuration
-        var emailGroupBox = CreateEmailSection();
-        mainPanel.Controls.Add(emailGroupBox, 0, 6);
-
-        // Section 8: Output Configuration
-        var outputGroupBox = CreateOutputSection();
-        mainPanel.Controls.Add(outputGroupBox, 0, 7);
-
-        // Section 9: Preview and Testing
-        var previewGroupBox = CreatePreviewSection();
-        mainPanel.Controls.Add(previewGroupBox, 0, 8);
-
-        // Buttons
-        var buttonPanel = CreateButtonPanel();
-        mainPanel.Controls.Add(buttonPanel, 0, 9);
-
-        // CRITICAL FIX: Ensure the scroll panel knows the main panel size
-        scrollPanel.Controls.Add(mainPanel);
+        // ★ v3.2.2: Much cleaner layout with tabs - no more cramped sections!
         
-        // Add visual separator before buttons for better UX
-        var separatorPanel = new Panel
-        {
-            Height = 2,
-            BackColor = Color.LightGray,
-            Margin = new Padding(20, 10, 20, 10)
-        };
-        
-        // Create a fixed button panel at the bottom of the form
+        // ★ v3.2.2: Fixed button panel at bottom for all tabs
         var fixedButtonPanel = new Panel
         {
-            Height = 60,
+            Height = 65,
             Dock = DockStyle.Bottom,
             BackColor = Color.FromArgb(248, 249, 250),
-            Padding = new Padding(15, 10, 15, 10)
+            Padding = new Padding(20, 15, 20, 15)
         };
-        
-        var fixedBtnOK = new Button
+
+        var btnOK = new Button
         {
-            Text = "💾 Guardar Configuración",
-            Size = new Size(160, 35),
+            Text = "💾 Guardar Configuración v3.2.2",
+            Size = new Size(200, 35),
             Anchor = AnchorStyles.Bottom | AnchorStyles.Right,
-            BackColor = Color.FromArgb(0, 120, 215),
+            BackColor = Color.FromArgb(25, 135, 84), // Success green
             ForeColor = Color.White,
             FlatStyle = FlatStyle.Flat,
             Font = new Font("Segoe UI", 9F, FontStyle.Bold),
             DialogResult = DialogResult.OK
         };
-        fixedBtnOK.Location = new Point(fixedButtonPanel.Width - 280, 12);
-        fixedBtnOK.FlatAppearance.BorderSize = 0;
-        fixedBtnOK.Click += OnOKClick;
-        
-        var fixedBtnCancel = new Button
+        btnOK.Location = new Point(fixedButtonPanel.Width - 320, 15);
+        btnOK.FlatAppearance.BorderSize = 0;
+        btnOK.Click += OnOKClick;
+
+        var btnCancel = new Button
         {
             Text = "❌ Cancelar",
             Size = new Size(100, 35),
             Anchor = AnchorStyles.Bottom | AnchorStyles.Right,
-            BackColor = Color.Gray,
+            BackColor = Color.FromArgb(220, 53, 69), // Danger red
             ForeColor = Color.White,
             FlatStyle = FlatStyle.Flat,
             Font = new Font("Segoe UI", 9F),
             DialogResult = DialogResult.Cancel
         };
-        fixedBtnCancel.Location = new Point(fixedButtonPanel.Width - 115, 12);
-        fixedBtnCancel.FlatAppearance.BorderSize = 0;
-        
-        fixedButtonPanel.Controls.AddRange(new Control[] { fixedBtnOK, fixedBtnCancel });
-        
-        // Adjust scroll panel to leave room for fixed buttons
-        var adjustedScrollPanel = new Panel
-        {
-            Dock = DockStyle.Fill,
-            AutoScroll = true,
-            Padding = new Padding(10, 10, 10, 10),
-            BackColor = Color.White
-        };
-        
-        adjustedScrollPanel.Controls.Add(mainPanel);
-        
-        Controls.Add(adjustedScrollPanel);
+        btnCancel.Location = new Point(fixedButtonPanel.Width - 110, 15);
+        btnCancel.FlatAppearance.BorderSize = 0;
+
+        fixedButtonPanel.Controls.AddRange(new Control[] { btnOK, btnCancel });
+
+        Controls.Add(tabControl);
         Controls.Add(fixedButtonPanel);
         ResumeLayout(false);
     }
+
+    // ★ NEW v3.2.2: Tab creation methods for better organization
+
+    private TabPage CreateGeneralTab()
+    {
+        var tab = new TabPage("🤖 General")
+        {
+            BackColor = Color.White,
+            Padding = new Padding(15),
+            Font = new Font("Segoe UI", 9F)
+        };
+
+        var scrollPanel = new Panel
+        {
+            Dock = DockStyle.Fill,
+            AutoScroll = true,
+            BackColor = Color.White
+        };
+
+        var mainPanel = new TableLayoutPanel
+        {
+            Location = new Point(0, 0),
+            Size = new Size(850, 400), // Adequate space for sections
+            ColumnCount = 1,
+            RowCount = 3,
+            Padding = new Padding(10),
+            AutoSize = false,
+            BackColor = Color.White
+        };
+
+        for (int i = 0; i < 3; i++)
+        {
+            mainPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        }
+        mainPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+
+        // Add sections with better spacing
+        var enableGroupBox = CreateEnableSection();
+        enableGroupBox.Margin = new Padding(5, 5, 5, 15);
+        mainPanel.Controls.Add(enableGroupBox, 0, 0);
+
+        var frequencyGroupBox = CreateFrequencySection();
+        frequencyGroupBox.Margin = new Padding(5, 5, 5, 15);
+        mainPanel.Controls.Add(frequencyGroupBox, 0, 1);
+
+        var timingGroupBox = CreateTimingSection();
+        timingGroupBox.Margin = new Padding(5, 5, 5, 15);
+        mainPanel.Controls.Add(timingGroupBox, 0, 2);
+
+        scrollPanel.Controls.Add(mainPanel);
+        tab.Controls.Add(scrollPanel);
+        return tab;
+    }
+
+    private TabPage CreateFiltersTab()
+    {
+        var tab = new TabPage("🗓️ Filtros")
+        {
+            BackColor = Color.White,
+            Padding = new Padding(15),
+            Font = new Font("Segoe UI", 9F)
+        };
+
+        var scrollPanel = new Panel
+        {
+            Dock = DockStyle.Fill,
+            AutoScroll = true,
+            BackColor = Color.White
+        };
+
+        var mainPanel = new TableLayoutPanel
+        {
+            Location = new Point(0, 0),
+            Size = new Size(850, 350),
+            ColumnCount = 1,
+            RowCount = 2,
+            Padding = new Padding(10),
+            AutoSize = false,
+            BackColor = Color.White
+        };
+
+        for (int i = 0; i < 2; i++)
+        {
+            mainPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        }
+        mainPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+
+        var periodGroupBox = CreatePeriodSection();
+        periodGroupBox.Margin = new Padding(5, 5, 5, 15);
+        mainPanel.Controls.Add(periodGroupBox, 0, 0);
+
+        var weekDaysGroupBox = CreateWeekDaysSection();
+        weekDaysGroupBox.Margin = new Padding(5, 5, 5, 15);
+        mainPanel.Controls.Add(weekDaysGroupBox, 0, 1);
+
+        scrollPanel.Controls.Add(mainPanel);
+        tab.Controls.Add(scrollPanel);
+        return tab;
+    }
+
+    private TabPage CreateQuadrantsTab()
+    {
+        var tab = new TabPage("🎯 Cuadrantes")
+        {
+            BackColor = Color.White,
+            Padding = new Padding(15),
+            Font = new Font("Segoe UI", 9F)
+        };
+
+        var scrollPanel = new Panel
+        {
+            Dock = DockStyle.Fill,
+            AutoScroll = true,
+            BackColor = Color.White
+        };
+
+        var mainPanel = new TableLayoutPanel
+        {
+            Location = new Point(0, 0),
+            Size = new Size(850, 200),
+            ColumnCount = 1,
+            RowCount = 1,
+            Padding = new Padding(10),
+            AutoSize = false,
+            BackColor = Color.White
+        };
+
+        mainPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        mainPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+
+        var quadrantGroupBox = CreateQuadrantSection();
+        quadrantGroupBox.Margin = new Padding(5, 5, 5, 15);
+        mainPanel.Controls.Add(quadrantGroupBox, 0, 0);
+
+        scrollPanel.Controls.Add(mainPanel);
+        tab.Controls.Add(scrollPanel);
+        return tab;
+    }
+
+    private TabPage CreateEmailTab()
+    {
+        var tab = new TabPage("📧 Email")
+        {
+            BackColor = Color.White,
+            Padding = new Padding(15),
+            Font = new Font("Segoe UI", 9F)
+        };
+
+        var scrollPanel = new Panel
+        {
+            Dock = DockStyle.Fill,
+            AutoScroll = true,
+            BackColor = Color.White
+        };
+
+        var mainPanel = new TableLayoutPanel
+        {
+            Location = new Point(0, 0),
+            Size = new Size(850, 300),
+            ColumnCount = 1,
+            RowCount = 1,
+            Padding = new Padding(10),
+            AutoSize = false,
+            BackColor = Color.White
+        };
+
+        mainPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        mainPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+
+        var emailGroupBox = CreateEmailSection();
+        emailGroupBox.Margin = new Padding(5, 5, 5, 15);
+        mainPanel.Controls.Add(emailGroupBox, 0, 0);
+
+        scrollPanel.Controls.Add(mainPanel);
+        tab.Controls.Add(scrollPanel);
+        return tab;
+    }
+
+    private TabPage CreateOutputTab()
+    {
+        var tab = new TabPage("📁 Salida & Test")
+        {
+            BackColor = Color.White,
+            Padding = new Padding(15),
+            Font = new Font("Segoe UI", 9F)
+        };
+
+        var scrollPanel = new Panel
+        {
+            Dock = DockStyle.Fill,
+            AutoScroll = true,
+            BackColor = Color.White
+        };
+
+        var mainPanel = new TableLayoutPanel
+        {
+            Location = new Point(0, 0),
+            Size = new Size(850, 350),
+            ColumnCount = 1,
+            RowCount = 2,
+            Padding = new Padding(10),
+            AutoSize = false,
+            BackColor = Color.White
+        };
+
+        for (int i = 0; i < 2; i++)
+        {
+            mainPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        }
+        mainPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+
+        var outputGroupBox = CreateOutputSection();
+        outputGroupBox.Margin = new Padding(5, 5, 5, 15);
+        mainPanel.Controls.Add(outputGroupBox, 0, 0);
+
+        var previewGroupBox = CreatePreviewSection();
+        previewGroupBox.Margin = new Padding(5, 5, 5, 15);
+        mainPanel.Controls.Add(previewGroupBox, 0, 1);
+
+        scrollPanel.Controls.Add(mainPanel);
+        tab.Controls.Add(scrollPanel);
+        return tab;
+    }
+
+    // ★ Existing section creation methods (unchanged functionality)
 
     private GroupBox CreateEnableSection()
     {

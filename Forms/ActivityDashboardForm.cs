@@ -602,10 +602,13 @@ public partial class ActivityDashboardForm : Form
     {
         try
         {
-            // Check if system tray is enabled for ActivityDashboard
-            if (_capturerConfig?.Application.SystemTray.EnableActivityDashboardSystemTray != true)
+            // ★ v3.2.2: Use new BackgroundExecution configuration (with legacy fallback)
+            bool shouldShowTray = _capturerConfig?.Application.BackgroundExecution.ShouldShowTrayIcon ??
+                                 _capturerConfig?.Application.SystemTray.EnableActivityDashboardSystemTray == true;
+
+            if (!shouldShowTray)
             {
-                Console.WriteLine("[ActivityDashboard] System tray deshabilitado en configuración");
+                Console.WriteLine("[ActivityDashboard] System tray deshabilitado en configuración v3.2.2");
                 // Ensure NotifyIcon is null and not created
                 _notifyIcon = null;
                 return; // Don't create system tray if disabled
@@ -670,10 +673,18 @@ public partial class ActivityDashboardForm : Form
 
             var separatorItem = new ToolStripSeparator();
 
-            var hideItem = new ToolStripMenuItem("Minimizar a bandeja");
+            var hideItem = new ToolStripMenuItem("⬇️ Minimizar a bandeja");
             hideItem.Click += (s, e) => HideToTray();
 
-            var exitItem = new ToolStripMenuItem("Cerrar Dashboard");
+            // ★ NEW v3.2.2: Add "Hide System Tray" option for ActivityDashboard
+            var hideTrayItem = new ToolStripMenuItem("🙈 Ocultar System Tray")
+            {
+                Font = new Font("Segoe UI", 9F, FontStyle.Bold),
+                ForeColor = Color.DarkRed
+            };
+            hideTrayItem.Click += OnHideActivityDashboardTrayClick;
+
+            var exitItem = new ToolStripMenuItem("❌ Cerrar Dashboard");
             exitItem.Click += (s, e) => Close();
 
             _trayContextMenu.Items.AddRange(new ToolStripItem[]
@@ -685,6 +696,8 @@ public partial class ActivityDashboardForm : Form
                 exportCsvItem,
                 new ToolStripSeparator(),
                 hideItem,
+                hideTrayItem, // ★ NEW v3.2.2
+                new ToolStripSeparator(),
                 exitItem
             });
 
@@ -1677,6 +1690,72 @@ public partial class ActivityDashboardForm : Form
                 button.Enabled = true;
                 button.Text = "🧪 Prueba Email";
                 button.BackColor = Color.FromArgb(255, 152, 0);
+            }
+        }
+    }
+
+    /// <summary>
+    /// ★ NEW v3.2.2: Hide ActivityDashboard system tray icon while keeping monitoring active
+    /// </summary>
+    private void OnHideActivityDashboardTrayClick(object? sender, EventArgs e)
+    {
+        var result = MessageBox.Show(
+            "¿Está seguro de ocultar el icono del ActivityDashboard del system tray?\n\n" +
+            "✅ El ActivityDashboard seguirá ejecutándose en segundo plano\n" +
+            "✅ El monitoreo de cuadrantes continuará funcionando\n" +
+            "✅ Los reportes automáticos seguirán generándose\n" +
+            "✅ Verificable en Administrador de Tareas > Capturer.exe\n" +
+            "✅ Para volver a mostrar: abrir ActivityDashboard desde Capturer principal\n\n" +
+            "💡 Esta acción resuelve el problema de superposición con código legacy.",
+            "🙈 Ocultar ActivityDashboard System Tray v3.2.2",
+            MessageBoxButtons.YesNo,
+            MessageBoxIcon.Question);
+
+        if (result == DialogResult.Yes)
+        {
+            try
+            {
+                // Update configuration to hide ActivityDashboard tray icon
+                if (_capturerConfig != null)
+                {
+                    // Use the new v3.2.1 BackgroundExecution configuration
+                    _capturerConfig.Application.BackgroundExecution.ShowSystemTrayIcon = false;
+                    Console.WriteLine("[ActivityDashboard] Configuración actualizada - ShowSystemTrayIcon = false");
+                }
+
+                // Hide tray icon immediately
+                if (_notifyIcon != null)
+                {
+                    _notifyIcon.Visible = false;
+                    Console.WriteLine("[ActivityDashboard] NotifyIcon.Visible = false");
+                }
+
+                // Hide form if visible
+                if (Visible)
+                {
+                    Hide();
+                    Console.WriteLine("[ActivityDashboard] Ventana ocultada");
+                }
+
+                // Show confirmation via console and message
+                Console.WriteLine("[ActivityDashboard] System tray ocultado exitosamente - Dashboard ejecutándose en segundo plano");
+
+                // Optional: Show final confirmation message
+                MessageBox.Show(
+                    "✅ ActivityDashboard system tray ocultado exitosamente.\n\n" +
+                    "🔄 El monitoreo continúa en segundo plano\n" +
+                    "📊 Los reportes automáticos seguirán funcionando\n" +
+                    "📋 Para volver a mostrar: usar botón 'ActivityDashboard' en Capturer principal\n\n" +
+                    "🎯 Problema de código legacy resuelto.",
+                    "System Tray Ocultado v3.2.2",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error ocultando ActivityDashboard system tray: {ex.Message}",
+                               "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                Console.WriteLine($"[ActivityDashboard] Error ocultando system tray: {ex}");
             }
         }
     }
