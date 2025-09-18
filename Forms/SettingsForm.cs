@@ -64,15 +64,18 @@ public partial class SettingsForm : Form
     private NumericUpDown numMaxSizeGB;
     private CheckBox chkAutoCleanup;
     
-    // Application controls
-    private CheckBox chkMinimizeToTray;
-    private CheckBox chkShowNotifications;
-    private CheckBox chkEnableCapturerSystemTray;
-    private CheckBox chkEnableActivityDashboardSystemTray;
-    private CheckBox chkShowOnStartup;
-    private CheckBox chkHideOnClose;
+    // ★ NEW v3.2.1: Simplified background execution controls
+    private CheckBox chkEnableBackgroundExecution;
+    private CheckBox chkShowSystemTrayIcon;
+    private CheckBox chkHideToTrayOnClose;
     private CheckBox chkShowTrayNotifications;
     private NumericUpDown numNotificationDuration;
+
+    // Application controls (general)
+    private CheckBox chkShowNotifications;
+
+    // Legacy controls (kept for compatibility)
+    private CheckBox chkMinimizeToTray;
     
     private Button btnSave;
     private Button btnCancel;
@@ -425,74 +428,81 @@ public partial class SettingsForm : Form
     {
         var y = 20;
 
-        // System Tray Section
-        var groupSystemTray = new GroupBox
+        // ★ NEW v3.2.1: Simplified Background Execution Section
+        var groupBackgroundExecution = new GroupBox
         {
-            Text = "🖥️ Configuración del System Tray",
+            Text = "🔄 Ejecución en Segundo Plano (v3.2.1)",
             Location = new Point(20, y),
-            Size = new Size(650, 180),
-            Font = new Font("Segoe UI", 9F, FontStyle.Bold)
+            Size = new Size(650, 200),
+            Font = new Font("Segoe UI", 9F, FontStyle.Bold),
+            ForeColor = Color.DarkGreen
         };
 
         y = 25;
-        chkEnableCapturerSystemTray = new CheckBox 
-        { 
-            Text = "Habilitar system tray para Capturer", 
-            Location = new Point(15, y), 
-            AutoSize = true 
+        chkEnableBackgroundExecution = new CheckBox
+        {
+            Text = "⭐ Ejecutar siempre en segundo plano (verificable en Administrador de Tareas)",
+            Location = new Point(15, y),
+            AutoSize = true,
+            Font = new Font("Segoe UI", 9F, FontStyle.Bold),
+            ForeColor = Color.DarkBlue
         };
-        groupSystemTray.Controls.Add(chkEnableCapturerSystemTray);
-
-        y += 25;
-        chkEnableActivityDashboardSystemTray = new CheckBox 
-        { 
-            Text = "Habilitar system tray para Dashboard de Actividad", 
-            Location = new Point(15, y), 
-            AutoSize = true 
-        };
-        groupSystemTray.Controls.Add(chkEnableActivityDashboardSystemTray);
+        groupBackgroundExecution.Controls.Add(chkEnableBackgroundExecution);
 
         y += 30;
-        chkShowOnStartup = new CheckBox 
-        { 
-            Text = "Mostrar icono al iniciar", 
-            Location = new Point(15, y), 
-            AutoSize = true 
+        chkShowSystemTrayIcon = new CheckBox
+        {
+            Text = "🖥️ Mostrar icono en system tray (para fácil acceso)",
+            Location = new Point(15, y),
+            AutoSize = true
         };
-        groupSystemTray.Controls.Add(chkShowOnStartup);
-
-        chkHideOnClose = new CheckBox 
-        { 
-            Text = "Ocultar al cerrar ventana", 
-            Location = new Point(250, y), 
-            AutoSize = true 
-        };
-        groupSystemTray.Controls.Add(chkHideOnClose);
+        groupBackgroundExecution.Controls.Add(chkShowSystemTrayIcon);
 
         y += 25;
-        chkShowTrayNotifications = new CheckBox 
-        { 
-            Text = "Mostrar notificaciones", 
-            Location = new Point(15, y), 
-            AutoSize = true 
+        chkHideToTrayOnClose = new CheckBox
+        {
+            Text = "⬇️ Ocultar al cerrar ventana (en lugar de cerrar completamente)",
+            Location = new Point(15, y),
+            AutoSize = true
         };
-        groupSystemTray.Controls.Add(chkShowTrayNotifications);
+        groupBackgroundExecution.Controls.Add(chkHideToTrayOnClose);
+
+        y += 25;
+        chkShowTrayNotifications = new CheckBox
+        {
+            Text = "🔔 Mostrar notificaciones",
+            Location = new Point(15, y),
+            AutoSize = true
+        };
+        groupBackgroundExecution.Controls.Add(chkShowTrayNotifications);
 
         y += 30;
-        groupSystemTray.Controls.Add(new Label { Text = "Duración notificaciones (ms):", Location = new Point(15, y), Size = new Size(200, 23) });
-        numNotificationDuration = new NumericUpDown 
-        { 
-            Location = new Point(220, y - 3), 
-            Width = 100, 
-            Minimum = 1000, 
-            Maximum = 10000, 
+        groupBackgroundExecution.Controls.Add(new Label { Text = "Duración notificaciones (ms):", Location = new Point(15, y), Size = new Size(200, 23) });
+        numNotificationDuration = new NumericUpDown
+        {
+            Location = new Point(220, y - 3),
+            Width = 100,
+            Minimum = 1000,
+            Maximum = 10000,
             Value = 3000,
             Increment = 500
         };
-        groupSystemTray.Controls.Add(numNotificationDuration);
+        groupBackgroundExecution.Controls.Add(numNotificationDuration);
 
-        tab.Controls.Add(groupSystemTray);
-        y += 200;
+        // Add explanation label
+        var lblExplanation = new Label
+        {
+            Text = "📝 Cuando 'Ejecutar en segundo plano' está habilitado, la app NUNCA se cierra completamente.\n✓ Verificar en Administrador de Tareas > Procesos > Capturer.exe",
+            Location = new Point(15, y + 30),
+            Size = new Size(620, 40),
+            Font = new Font("Segoe UI", 8F, FontStyle.Italic),
+            ForeColor = Color.DarkGreen,
+            BackColor = Color.LightGreen
+        };
+        groupBackgroundExecution.Controls.Add(lblExplanation);
+
+        tab.Controls.Add(groupBackgroundExecution);
+        y += 220;
 
         // Legacy Application Settings Section
         var groupLegacy = new GroupBox
@@ -581,14 +591,18 @@ public partial class SettingsForm : Form
             chkAutoCleanup.Checked = _config.Storage.AutoCleanup;
             
             // Application settings
-            chkMinimizeToTray.Checked = _config.Application.MinimizeToTray;
+            // ★ NEW v3.2.1: Load simplified background execution settings
+            chkEnableBackgroundExecution.Checked = _config.Application.BackgroundExecution.EnableBackgroundExecution;
+            chkShowSystemTrayIcon.Checked = _config.Application.BackgroundExecution.ShowSystemTrayIcon;
+            chkHideToTrayOnClose.Checked = _config.Application.BackgroundExecution.HideToTrayOnClose;
+            chkShowTrayNotifications.Checked = _config.Application.BackgroundExecution.ShowTrayNotifications;
+            numNotificationDuration.Value = _config.Application.BackgroundExecution.NotificationDurationMs;
+
+            // General application settings
             chkShowNotifications.Checked = _config.Application.ShowNotifications;
-            chkEnableCapturerSystemTray.Checked = _config.Application.SystemTray.EnableCapturerSystemTray;
-            chkEnableActivityDashboardSystemTray.Checked = _config.Application.SystemTray.EnableActivityDashboardSystemTray;
-            chkShowOnStartup.Checked = _config.Application.SystemTray.ShowOnStartup;
-            chkHideOnClose.Checked = _config.Application.SystemTray.HideOnClose;
-            chkShowTrayNotifications.Checked = _config.Application.SystemTray.ShowTrayNotifications;
-            numNotificationDuration.Value = _config.Application.SystemTray.NotificationDurationMs;
+
+            // Legacy settings (for backward compatibility)
+            chkMinimizeToTray.Checked = _config.Application.MinimizeToTray;
         }
         catch (Exception ex)
         {
@@ -648,14 +662,18 @@ public partial class SettingsForm : Form
             _config.Storage.AutoCleanup = chkAutoCleanup.Checked;
             
             // Application settings
-            _config.Application.MinimizeToTray = chkMinimizeToTray.Checked;
+            // ★ NEW v3.2.1: Save simplified background execution settings
+            _config.Application.BackgroundExecution.EnableBackgroundExecution = chkEnableBackgroundExecution.Checked;
+            _config.Application.BackgroundExecution.ShowSystemTrayIcon = chkShowSystemTrayIcon.Checked;
+            _config.Application.BackgroundExecution.HideToTrayOnClose = chkHideToTrayOnClose.Checked;
+            _config.Application.BackgroundExecution.ShowTrayNotifications = chkShowTrayNotifications.Checked;
+            _config.Application.BackgroundExecution.NotificationDurationMs = (int)numNotificationDuration.Value;
+
+            // General application settings
             _config.Application.ShowNotifications = chkShowNotifications.Checked;
-            _config.Application.SystemTray.EnableCapturerSystemTray = chkEnableCapturerSystemTray.Checked;
-            _config.Application.SystemTray.EnableActivityDashboardSystemTray = chkEnableActivityDashboardSystemTray.Checked;
-            _config.Application.SystemTray.ShowOnStartup = chkShowOnStartup.Checked;
-            _config.Application.SystemTray.HideOnClose = chkHideOnClose.Checked;
-            _config.Application.SystemTray.ShowTrayNotifications = chkShowTrayNotifications.Checked;
-            _config.Application.SystemTray.NotificationDurationMs = (int)numNotificationDuration.Value;
+
+            // Legacy settings (for backward compatibility)
+            _config.Application.MinimizeToTray = chkMinimizeToTray.Checked;
             
             // Save configuration
             await _configManager.SaveConfigurationAsync(_config);

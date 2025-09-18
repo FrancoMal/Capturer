@@ -1213,7 +1213,7 @@
     "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
-    "version": "3.2.0",
+    "version": "3.2.1",
     "restore": {
       "projectUniqueName": "C:\\Users\\ftmal\\Desktop\\Capturer\\Capturer.csproj",
       "projectName": "Capturer",

@@ -172,8 +172,9 @@ namespace Capturer
 
         private void SetupSystemTray()
         {
-            // Only setup system tray if enabled in configuration
-            if (!_config.Application.SystemTray.EnableCapturerSystemTray)
+            // ★ NEW v3.2.1: Simplified system tray setup using new configuration
+            // Only setup system tray if background execution is enabled AND tray icon should be shown
+            if (!_config.Application.BackgroundExecution.ShouldShowTrayIcon)
             {
                 notifyIcon.Visible = false;
                 return;
@@ -204,9 +205,9 @@ namespace Capturer
             {
                 notifyIcon.Icon = SystemIcons.Application;
             }
-            
-            notifyIcon.Text = "Capturer - Screenshot Manager";
-            notifyIcon.Visible = _config.Application.SystemTray.ShowOnStartup;
+
+            notifyIcon.Text = "Capturer v3.2.1 - Background Monitor";
+            notifyIcon.Visible = true; // Always visible when background execution is enabled
         }
 
         private async void BtnStartCapture_Click(object? sender, EventArgs e)
@@ -486,14 +487,21 @@ namespace Capturer
 
         private void MinimizeToTray()
         {
-            // Check if system tray is enabled and MinimizeToTray is enabled
-            if (_config.Application.MinimizeToTray && _config.Application.SystemTray.EnableCapturerSystemTray)
+            // ★ NEW v3.2.1: Simplified minimize logic
+            if (_config.Application.BackgroundExecution.ShouldShowTrayIcon)
             {
                 Hide();
-                ShowNotification("Capturer", "Aplicación minimizada al área de notificación");
+                ShowNotification("Capturer v3.2.1", "Ejecutándose en segundo plano - Visible en Administrador de Tareas");
+            }
+            else if (_config.Application.BackgroundExecution.ShouldRunInBackground)
+            {
+                // Background execution enabled but no tray icon - just hide window
+                Hide();
+                Console.WriteLine("[Capturer] Aplicación oculta - Ejecutándose en segundo plano sin icono");
             }
             else
             {
+                // No background execution - normal minimize
                 WindowState = FormWindowState.Minimized;
             }
         }
@@ -507,30 +515,42 @@ namespace Capturer
 
         private void ShowNotification(string title, string message)
         {
-            // Show notification only if system tray is enabled and notifications are enabled
-            if (_config.Application.ShowNotifications && 
-                _config.Application.SystemTray.EnableCapturerSystemTray && 
-                _config.Application.SystemTray.ShowTrayNotifications)
+            // ★ NEW v3.2.1: Simplified notification logic
+            if (_config.Application.ShowNotifications &&
+                _config.Application.BackgroundExecution.ShouldShowTrayIcon &&
+                _config.Application.BackgroundExecution.ShowTrayNotifications)
             {
-                notifyIcon.ShowBalloonTip(_config.Application.SystemTray.NotificationDurationMs, title, message, ToolTipIcon.Info);
+                notifyIcon.ShowBalloonTip(_config.Application.BackgroundExecution.NotificationDurationMs, title, message, ToolTipIcon.Info);
             }
         }
 
         private async void Form1_FormClosing(object? sender, FormClosingEventArgs e)
         {
-            // Check if should minimize to tray instead of closing
-            if (_config.Application.MinimizeToTray && 
-                _config.Application.SystemTray.EnableCapturerSystemTray &&
-                _config.Application.SystemTray.HideOnClose &&
-                e.CloseReason == CloseReason.UserClosing)
+            // ★ NEW v3.2.1: Clear background execution logic
+
+            // If background execution is enabled, NEVER close the application completely
+            if (_config.Application.BackgroundExecution.ShouldRunInBackground && e.CloseReason == CloseReason.UserClosing)
             {
                 e.Cancel = true;
-                MinimizeToTray();
+
+                if (_config.Application.BackgroundExecution.ShouldHideToTrayOnClose)
+                {
+                    // Hide to tray (or just hide if no tray icon)
+                    MinimizeToTray();
+                }
+                else
+                {
+                    // Just minimize normally but keep running in background
+                    WindowState = FormWindowState.Minimized;
+                    Console.WriteLine("[Capturer] Minimizado - Ejecutándose en segundo plano (verificable en Administrador de Tareas)");
+                }
+
+                return; // NEVER exit when background execution is enabled
             }
-            else
-            {
-                await CleanupAndExit();
-            }
+
+            // Only allow full exit if background execution is disabled OR forced shutdown
+            Console.WriteLine($"[Capturer] Cerrando aplicación completamente. Razón: {e.CloseReason}");
+            await CleanupAndExit();
         }
 
         private async void BtnCaptureNow_Click(object? sender, EventArgs e)
@@ -763,19 +783,22 @@ namespace Capturer
         }
 
         /// <summary>
-        /// Updates system tray configuration when settings change
+        /// ★ NEW v3.2.1: Updates system tray configuration when settings change
         /// </summary>
         public void UpdateSystemTrayConfiguration()
         {
-            if (_config.Application.SystemTray.EnableCapturerSystemTray)
+            // Use simplified configuration logic
+            if (_config.Application.BackgroundExecution.ShouldShowTrayIcon)
             {
-                // Enable system tray
-                notifyIcon.Visible = _config.Application.SystemTray.ShowOnStartup;
+                // Enable system tray icon
+                notifyIcon.Visible = true;
+                Console.WriteLine("[Capturer] System tray habilitado - Configuración actualizada");
             }
             else
             {
-                // Disable system tray
+                // Disable system tray icon (but app can still run in background)
                 notifyIcon.Visible = false;
+                Console.WriteLine("[Capturer] System tray deshabilitado - App puede seguir ejecutándose en segundo plano");
             }
         }
 

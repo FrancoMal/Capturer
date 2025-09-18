@@ -260,48 +260,77 @@ public class ApplicationSettings
 {
     public bool StartWithWindows { get; set; } = false;
     public bool StartMinimized { get; set; } = true;
-    public bool MinimizeToTray { get; set; } = true;
     public bool ShowNotifications { get; set; } = true;
     public string Language { get; set; } = "es-ES";
     public bool AutoCheckUpdates { get; set; } = true;
-    
-    // System Tray Configuration
+
+    // ★ NEW v3.2.1: Simplified Background Execution Configuration
+    public BackgroundExecutionSettings BackgroundExecution { get; set; } = new();
+
+    // Legacy compatibility - DO NOT USE in new code
+    [Obsolete("Use BackgroundExecution.ShowSystemTrayIcon instead")]
+    public bool MinimizeToTray { get; set; } = true;
+
+    [Obsolete("Use BackgroundExecution instead")]
     public SystemTraySettings SystemTray { get; set; } = new();
 }
 
 /// <summary>
-/// Configuración avanzada del System Tray para Capturer y ActivityDashboard
+/// ★ NEW v3.2.1: Simplified Background Execution Configuration
+/// Clear, easy-to-understand options for background operation
 /// </summary>
-public class SystemTraySettings
+public class BackgroundExecutionSettings
 {
     /// <summary>
-    /// Habilita el system tray para la aplicación principal Capturer
+    /// ⭐ PRINCIPAL: Always run application in background (even when window is closed)
+    /// When enabled, app continues running and is visible in Task Manager
     /// </summary>
-    public bool EnableCapturerSystemTray { get; set; } = true;
-    
+    public bool EnableBackgroundExecution { get; set; } = true;
+
     /// <summary>
-    /// Habilita el system tray para ActivityDashboard
+    /// ⭐ SIMPLE: Show system tray icon for easy access
+    /// When disabled, app runs in background without tray icon
     /// </summary>
-    public bool EnableActivityDashboardSystemTray { get; set; } = true;
-    
+    public bool ShowSystemTrayIcon { get; set; } = true;
+
     /// <summary>
-    /// Mostrar icono del system tray al iniciar la aplicación
+    /// ⭐ CLEAR: Hide to system tray when closing window (instead of fully exiting)
+    /// Only works when EnableBackgroundExecution is true
     /// </summary>
-    public bool ShowOnStartup { get; set; } = true;
-    
-    /// <summary>
-    /// Ocultar automáticamente en system tray al cerrar ventana (en lugar de cerrar completamente)
-    /// </summary>
-    public bool HideOnClose { get; set; } = true;
-    
-    /// <summary>
-    /// Mostrar notificaciones del system tray
-    /// </summary>
+    public bool HideToTrayOnClose { get; set; } = true;
+
+    // Additional settings (less confusing)
     public bool ShowTrayNotifications { get; set; } = true;
-    
+    public int NotificationDurationMs { get; set; } = 3000;
+
     /// <summary>
-    /// Duración de las notificaciones en milisegundos
+    /// Compatibility property: True if background execution should work
     /// </summary>
+    public bool ShouldRunInBackground => EnableBackgroundExecution;
+
+    /// <summary>
+    /// Compatibility property: True if tray icon should be visible
+    /// </summary>
+    public bool ShouldShowTrayIcon => EnableBackgroundExecution && ShowSystemTrayIcon;
+
+    /// <summary>
+    /// Compatibility property: True if should hide to tray on close
+    /// </summary>
+    public bool ShouldHideToTrayOnClose => EnableBackgroundExecution && ShowSystemTrayIcon && HideToTrayOnClose;
+}
+
+/// <summary>
+/// ⚠️ LEGACY: Old complex system tray configuration - DO NOT USE in new code
+/// Kept for backward compatibility only. Use BackgroundExecutionSettings instead.
+/// </summary>
+[Obsolete("Use BackgroundExecutionSettings instead. This class will be removed in v4.0")]
+public class SystemTraySettings
+{
+    public bool EnableCapturerSystemTray { get; set; } = true;
+    public bool EnableActivityDashboardSystemTray { get; set; } = true;
+    public bool ShowOnStartup { get; set; } = true;
+    public bool HideOnClose { get; set; } = true;
+    public bool ShowTrayNotifications { get; set; } = true;
     public int NotificationDurationMs { get; set; } = 3000;
 }
 
